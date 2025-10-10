@@ -699,11 +699,9 @@
         let alarmTime = null;
         let alarmActive = false;
         let snoozeCount = 0;
-        let currentAudio = null;
         let alarmInterval = null;
         let timeOfDayCounter = 0;
-        let isRadioPlaying = false;
-        let audioElement = null; // Глобальный аудио элемент
+        let audioElement = null; // Единый аудио элемент
 
         const timesOfDay = ['night', 'dawn', 'morning', 'day', 'afternoon', 'evening', 'midnight'];
         const timeLabels = ['Ночь', 'Рассвет', 'Утро', 'День', 'Полдень', 'Вечер', 'Полночь'];
@@ -1111,19 +1109,19 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v2.2 ЗАГРУЖЕН');
-            console.log('📅 Версия от 10 октября 2025 - 16:50');
+            console.log('🌟 IskrCLOCK v3.0 ЗАГРУЖЕН');
+            console.log('📅 Версия от 10 октября 2025 - 17:00');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('📻 Версия с реальными радиопотоками для GitHub Pages');
-            console.log('🎵 Доступные станции:');
+            console.log('🔊 ВЕРСИЯ 3.0 - УПРОЩЕННАЯ СИСТЕМА ЗВУКА');
+            console.log('   ✅ Убраны все флаги - состояние по классу кнопки');
+            console.log('   ✅ Один метод stopAllAudio() для всего');
+            console.log('   ✅ Нет проверок isRadioPlaying внутри playChord');
+            console.log('   ✅ Маркер [v3.0] во всех логах');
+            console.log('');
+            console.log('📻 Доступные станции:');
             console.log('   🎧 NTS Radio 1 & 2 (London)');
             console.log('   🎧 Rinse FM (London & Paris)');
             console.log('   🎧 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log('');
-            console.log('🔊 ВЕРСИЯ 2.2 - РАСШИРЕННОЕ ЛОГИРОВАНИЕ');
-            console.log('   - Детальные логи установки флага isRadioPlaying');
-            console.log('   - Логи каждого вызова playChord');
-            console.log('   - Отладка проблемы со звуком');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
@@ -1175,13 +1173,13 @@
             });
             
             console.log('✅ Все обработчики событий подключены');
-            console.log('🎉 IskrCLOCK v2.2 полностью готов к работе!');
+            console.log('🎉 IskrCLOCK v3.0 полностью готов к работе!');
             console.log('');
-            console.log('💡 Советы:');
-            console.log('   - Попробуйте NTS Radio 1 или 2 для лучшего качества');
-            console.log('   - Rinse FM - легендарная лондонская станция');
-            console.log('   - Используйте классический сигнал если радио не работает');
-            console.log('   - Откройте консоль чтобы видеть что происходит');
+            console.log('💡 Нажмите Play чтобы протестировать звук');
+            console.log('   Ожидаемые логи:');
+            console.log('   🎵 Toggle radio [v3.0]');
+            console.log('   🔔 Playing beep #1 [v3.0]');
+            console.log('   🔔 Playing beep #2 [v3.0] ...');
             console.log('═══════════════════════════════════════════════════════');
         });
     </script>
