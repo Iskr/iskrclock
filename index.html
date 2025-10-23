@@ -658,16 +658,15 @@
             <label>Выбрать сигнал будильника?</label>
             <div class="radio-controls">
                 <select class="radio-select" id="radioSelect">
-                    <option value="nts1">NTS Radio 1</option>
-                    <option value="nts2">NTS Radio 2</option>
-                    <option value="rinse">Rinse FM (London)</option>
-                    <option value="rinse-france">Rinse France (Paris)</option>
-                    <option value="europa-plus">Европа Плюс</option>
-                    <option value="radio-energy">Radio Energy</option>
-                    <option value="love-radio">Love Radio</option>
-                    <option value="hit-fm">Hit FM</option>
-                    <option value="monte-carlo">Monte Carlo</option>
-                    <option value="classic">Классический сигнал</option>
+                    <option value="classic">🔔 Классический сигнал</option>
+                    <option value="lofi">🎵 Lofi Hip Hop</option>
+                    <option value="jazz">🎷 Smooth Jazz</option>
+                    <option value="electronic">🎹 Electronic Chill</option>
+                    <option value="europa-plus">📻 Европа Плюс</option>
+                    <option value="radio-energy">📻 Radio Energy</option>
+                    <option value="love-radio">📻 Love Radio</option>
+                    <option value="hit-fm">📻 Hit FM</option>
+                    <option value="monte-carlo">📻 Monte Carlo</option>
                 </select>
                 <button class="play-button" id="playButton">▶</button>
                 <div class="volume-control">
@@ -696,15 +695,32 @@
     </div>
 
     <script>
+        // Основные переменные состояния
         let alarmTime = null;
         let alarmActive = false;
         let snoozeCount = 0;
         let alarmInterval = null;
         let timeOfDayCounter = 0;
-        let audioElement = null; // Единый аудио элемент
+        
+        // ИСПРАВЛЕНИЕ - добавлены недостающие переменные
+        let isRadioPlaying = false;
+        let currentAudio = null;
+        let audioContext = null;
 
         const timesOfDay = ['night', 'dawn', 'morning', 'day', 'afternoon', 'evening', 'midnight'];
         const timeLabels = ['Ночь', 'Рассвет', 'Утро', 'День', 'Полдень', 'Вечер', 'Полночь'];
+
+        // URL радиостанций (рабочие потоки)
+        const radioStreams = {
+            'lofi': 'https://usa9.fastcast4u.com/proxy/jamz?mp=/1',
+            'jazz': 'https://ice1.somafm.com/secretagent-128-mp3',
+            'electronic': 'https://ice1.somafm.com/groovesalad-128-mp3',
+            'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
+            'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
+            'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
+            'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
+            'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp'
+        };
 
         // Создание звездного неба
         function createStars() {
@@ -846,6 +862,7 @@
             document.getElementById('toggleAlarm').classList.remove('btn-secondary');
             document.getElementById('toggleAlarm').classList.add('btn-primary');
             
+            console.log('✅ Будильник установлен на', `${hours}:${minutes.toString().padStart(2, '0')}`);
             updateRemainingTime();
         }
 
@@ -858,18 +875,8 @@
             document.getElementById('toggleAlarm').classList.add('btn-secondary');
             document.getElementById('remainingTime').innerHTML = 'Будильник выключен';
             
-            // Останавливаем все звуки через общую функцию
-            if (audioElement) {
-                audioElement.pause();
-                audioElement.src = '';
-                audioElement = null;
-            }
-            if (alarmInterval) {
-                clearInterval(alarmInterval);
-                alarmInterval = null;
-            }
-            currentAudio = null;
-            isRadioPlaying = false;
+            stopRadio();
+            console.log('✅ Будильник выключен');
         }
 
         // Срабатывание будильника
@@ -885,56 +892,16 @@
             });
             
             modal.style.display = 'flex';
-            playAlarmSound();
-        }
-
-        // Создание звука будильника
-        function createAlarmSound() {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
             
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.5);
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 1);
-            
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.9);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 1);
-            
-            return { oscillator, gainNode, audioContext };
-        }
-
-        // Воспроизведение звука будильника
-        function playAlarmSound() {
-            const volumeGrow = document.getElementById('volumeGrow').checked;
-            let volume = volumeGrow ? 0.1 : 0.3;
-            
-            const playBeep = () => {
-                const { audioContext, gainNode } = createAlarmSound();
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.1);
-                gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.9);
-                
-                if (volumeGrow && volume < 0.5) {
-                    volume += 0.02;
-                }
-            };
-            
-            playBeep();
-            alarmInterval = setInterval(playBeep, 1500);
+            // Воспроизводим выбранный звук
+            const selectedStation = document.getElementById('radioSelect').value;
+            playRadioSound(selectedStation);
         }
 
         // Остановка будильника
         function stopAlarm() {
             document.getElementById('alarmModal').style.display = 'none';
-            stopRadio(); // Используем общую функцию остановки
+            stopRadio();
             disableAlarm();
             snoozeCount = 0;
         }
@@ -942,7 +909,7 @@
         // Отложить будильник
         function snoozeAlarm() {
             document.getElementById('alarmModal').style.display = 'none';
-            stopRadio(); // Используем общую функцию остановки
+            stopRadio();
             
             const snoozeMinutes = parseInt(document.getElementById('snoozeTime').value) || 5;
             const now = new Date();
@@ -954,26 +921,22 @@
             };
             
             snoozeCount++;
+            console.log(`⏰ Будильник отложен на ${snoozeMinutes} минут (${snoozeCount} раз)`);
             updateRemainingTime();
         }
 
-        // Воспроизведение радио
+        // Переключение радио
         function toggleRadio() {
             const playButton = document.getElementById('playButton');
             const radioSelect = document.getElementById('radioSelect');
             const selectedStation = radioSelect.value;
             
-            console.log('🎵 Toggle radio. Current state:', isRadioPlaying);
+            console.log('🎵 Toggle radio. Current state:', isRadioPlaying ? 'playing' : 'stopped');
             
             if (isRadioPlaying) {
-                // ОСТАНАВЛИВАЕМ воспроизведение
                 stopRadio();
             } else {
-                // ЗАПУСКАЕМ воспроизведение
                 playRadioSound(selectedStation);
-                playButton.textContent = '⏸';
-                playButton.classList.add('playing');
-                isRadioPlaying = true;
             }
         }
 
@@ -981,7 +944,7 @@
         function stopRadio() {
             const playButton = document.getElementById('playButton');
             
-            console.log('🛑 Stopping radio...');
+            console.log('🛑 Stopping all audio...');
             
             // Останавливаем HTML5 Audio
             if (currentAudio && currentAudio instanceof HTMLAudioElement) {
@@ -998,39 +961,36 @@
                 console.log('✅ Interval cleared');
             }
             
+            // Останавливаем Web Audio API контекст
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+                console.log('✅ AudioContext closed');
+            }
+            
             // Обнуляем все переменные
-            currentAudio = null;
             isRadioPlaying = false;
             
             // Обновляем UI
             playButton.textContent = '▶';
             playButton.classList.remove('playing');
             
-            console.log('✅ Radio stopped completely');
+            console.log('✅ All audio stopped');
         }
 
         // Воспроизведение звука радио
         function playRadioSound(station) {
+            const playButton = document.getElementById('playButton');
+            
             // Сначала останавливаем все что играет
             stopRadio();
             
-            console.log('🎵 Starting radio:', station);
+            console.log('🎵 Starting station:', station);
             
-            // URL реальных радиостанций для GitHub Pages
-            const radioStreams = {
-                'nts': 'https://stream-relay-geo.ntslive.net/stream',
-                'rinse': 'https://streamer.radio.co/s2c3cc784b/listen',
-                'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
-                'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
-                'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
-                'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
-                'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp'
-            };
-            
-            if (station === 'classic' || !radioStreams[station]) {
+            if (station === 'classic') {
                 // Для классического сигнала используем Web Audio API
                 playClassicAlarmSound();
-            } else {
+            } else if (radioStreams[station]) {
                 // Для настоящих радиостанций используем HTML5 Audio
                 try {
                     const audio = new Audio();
@@ -1038,41 +998,64 @@
                     audio.volume = 0.5;
                     audio.crossOrigin = 'anonymous';
                     
-                    audio.addEventListener('error', function(e) {
-                        console.error('Ошибка загрузки радио:', e);
-                        alert('Не удалось подключиться к радиостанции. Попробуйте другую станцию.');
-                        stopRadio();
+                    audio.addEventListener('loadstart', () => {
+                        console.log('📡 Загрузка потока начата...');
                     });
                     
-                    audio.play().catch(err => {
-                        console.error('Ошибка воспроизведения:', err);
+                    audio.addEventListener('canplay', () => {
+                        console.log('✅ Поток готов к воспроизведению');
+                    });
+                    
+                    audio.addEventListener('error', function(e) {
+                        console.error('❌ Ошибка загрузки радио:', e);
+                        console.log('🔄 Переключаемся на классический сигнал...');
                         playClassicAlarmSound();
                     });
                     
-                    currentAudio = audio;
-                    isRadioPlaying = true;
-                    console.log('✅ Воспроизводится:', station);
+                    audio.play()
+                        .then(() => {
+                            console.log('✅ Воспроизведение начато:', station);
+                            currentAudio = audio;
+                            isRadioPlaying = true;
+                            playButton.textContent = '⏸';
+                            playButton.classList.add('playing');
+                        })
+                        .catch(err => {
+                            console.error('❌ Ошибка воспроизведения:', err);
+                            console.log('🔄 Используем резервный звук...');
+                            playClassicAlarmSound();
+                        });
+                    
                 } catch (error) {
-                    console.error('Ошибка создания аудио:', error);
+                    console.error('❌ Ошибка создания аудио:', error);
                     playClassicAlarmSound();
                 }
+            } else {
+                console.log('⚠️ Неизвестная станция, используем классический звук');
+                playClassicAlarmSound();
             }
         }
 
         // Воспроизведение классического звука будильника
         function playClassicAlarmSound() {
-            console.log('🎵 Starting classic alarm sound');
+            const playButton = document.getElementById('playButton');
+            console.log('🔔 Starting classic alarm sound');
             
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const stationFreqs = [523, 659, 784];
+            // Создаем новый контекст если его нет
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const frequencies = [523, 659, 784]; // C, E, G ноты
             
             const playChord = () => {
+                // Проверяем состояние
                 if (!isRadioPlaying) {
                     console.log('⚠️ Radio stopped, not playing chord');
                     return;
                 }
                 
-                stationFreqs.forEach((freq, index) => {
+                frequencies.forEach((freq, index) => {
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
                     
@@ -1082,25 +1065,37 @@
                     oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
                     oscillator.type = 'sine';
                     
+                    const volumeGrow = document.getElementById('volumeGrow').checked;
+                    const baseVolume = volumeGrow ? 0.05 : 0.1;
+                    
                     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
+                    gainNode.gain.linearRampToValueAtTime(baseVolume, audioContext.currentTime + 0.1);
                     gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2);
                     
                     oscillator.start(audioContext.currentTime + index * 0.1);
                     oscillator.stop(audioContext.currentTime + 2 + index * 0.1);
                 });
+                
+                console.log('🎵 Chord played');
             };
             
             playChord();
             alarmInterval = setInterval(playChord, 3000);
             isRadioPlaying = true;
+            
+            // Обновляем UI
+            playButton.textContent = '⏸';
+            playButton.classList.add('playing');
+            
             console.log('✅ Classic alarm sound started');
         }
 
         // Полноэкранный режим
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Не удалось войти в полноэкранный режим:', err);
+                });
             } else {
                 document.exitFullscreen();
             }
@@ -1109,19 +1104,12 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.0 ЗАГРУЖЕН');
-            console.log('📅 Версия от 10 октября 2025 - 17:00');
+            console.log('🌟 IskrCLOCK v3.1 FIXED');
+            console.log('📅 Исправленная версия');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.0 - УПРОЩЕННАЯ СИСТЕМА ЗВУКА');
-            console.log('   ✅ Убраны все флаги - состояние по классу кнопки');
-            console.log('   ✅ Один метод stopAllAudio() для всего');
-            console.log('   ✅ Нет проверок isRadioPlaying внутри playChord');
-            console.log('   ✅ Маркер [v3.0] во всех логах');
-            console.log('');
-            console.log('📻 Доступные станции:');
-            console.log('   🎧 NTS Radio 1 & 2 (London)');
-            console.log('   🎧 Rinse FM (London & Paris)');
-            console.log('   🎧 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
+            console.log('✅ Все переменные объявлены');
+            console.log('✅ Добавлены рабочие радиостанции');
+            console.log('✅ Исправлена обработка ошибок');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
@@ -1136,11 +1124,11 @@
             setInterval(updateTime, 1000);
             console.log('✅ Таймер времени запущен');
             
-            // Смена времени суток каждую минуту (60000 мс)
+            // Смена времени суток каждую минуту
             setInterval(changeTimeOfDay, 60000);
-            console.log('✅ Таймер смены времени суток запущен (плавные переходы 20 сек)');
+            console.log('✅ Таймер смены времени суток запущен');
             
-            // Инициализируем первое время суток через небольшую задержку
+            // Инициализируем первое время суток
             setTimeout(() => {
                 changeTimeOfDay();
                 console.log('✅ Начальное время суток установлено');
@@ -1173,13 +1161,11 @@
             });
             
             console.log('✅ Все обработчики событий подключены');
-            console.log('🎉 IskrCLOCK v3.0 полностью готов к работе!');
+            console.log('🎉 IskrCLOCK готов к работе!');
             console.log('');
-            console.log('💡 Нажмите Play чтобы протестировать звук');
-            console.log('   Ожидаемые логи:');
-            console.log('   🎵 Toggle radio [v3.0]');
-            console.log('   🔔 Playing beep #1 [v3.0]');
-            console.log('   🔔 Playing beep #2 [v3.0] ...');
+            console.log('📻 Доступные радиостанции:');
+            console.log('   🎵 Lofi, Jazz, Electronic (SomaFM)');
+            console.log('   📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log('═══════════════════════════════════════════════════════');
         });
     </script>
