@@ -701,9 +701,8 @@
         let snoozeCount = 0;
         let alarmInterval = null;
         let timeOfDayCounter = 0;
-        
-        // ИСПРАВЛЕНИЕ - добавлены недостающие переменные
-        let isRadioPlaying = false;
+
+        // v3.0 - состояние по классу кнопки, без флагов
         let currentAudio = null;
         let audioContext = null;
 
@@ -930,10 +929,12 @@
             const playButton = document.getElementById('playButton');
             const radioSelect = document.getElementById('radioSelect');
             const selectedStation = radioSelect.value;
-            
-            console.log('🎵 Toggle radio. Current state:', isRadioPlaying ? 'playing' : 'stopped');
-            
-            if (isRadioPlaying) {
+
+            // v3.0 - проверяем состояние по классу кнопки
+            const isPlaying = playButton.classList.contains('playing');
+            console.log('🎵 [v3.0] Toggle radio. Current state:', isPlaying ? 'playing' : 'stopped');
+
+            if (isPlaying) {
                 stopRadio();
             } else {
                 playRadioSound(selectedStation);
@@ -967,15 +968,13 @@
                 audioContext = null;
                 console.log('✅ AudioContext closed');
             }
-            
-            // Обнуляем все переменные
-            isRadioPlaying = false;
-            
+
+            // v3.0 - состояние в классе кнопки, без флагов
             // Обновляем UI
             playButton.textContent = '▶';
             playButton.classList.remove('playing');
-            
-            console.log('✅ All audio stopped');
+
+            console.log('✅ [v3.0] All audio stopped');
         }
 
         // Воспроизведение звука радио
@@ -1014,9 +1013,9 @@
                     
                     audio.play()
                         .then(() => {
-                            console.log('✅ Воспроизведение начато:', station);
+                            console.log('✅ [v3.0] Воспроизведение начато:', station);
                             currentAudio = audio;
-                            isRadioPlaying = true;
+                            // v3.0 - состояние в классе кнопки
                             playButton.textContent = '⏸';
                             playButton.classList.add('playing');
                         })
@@ -1049,12 +1048,12 @@
             const frequencies = [523, 659, 784]; // C, E, G ноты
             
             const playChord = () => {
-                // Проверяем состояние
-                if (!isRadioPlaying) {
-                    console.log('⚠️ Radio stopped, not playing chord');
+                // v3.0 - проверяем состояние по классу кнопки
+                if (!playButton.classList.contains('playing')) {
+                    console.log('⚠️ [v3.0] Radio stopped, not playing chord');
                     return;
                 }
-                
+
                 frequencies.forEach((freq, index) => {
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
@@ -1081,13 +1080,13 @@
             
             playChord();
             alarmInterval = setInterval(playChord, 3000);
-            isRadioPlaying = true;
-            
+
+            // v3.0 - состояние в классе кнопки
             // Обновляем UI
             playButton.textContent = '⏸';
             playButton.classList.add('playing');
-            
-            console.log('✅ Classic alarm sound started');
+
+            console.log('✅ [v3.0] Classic alarm sound started');
         }
 
         // Полноэкранный режим
@@ -1104,12 +1103,18 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.1 FIXED');
-            console.log('📅 Исправленная версия');
+            console.log('🌟 IskrCLOCK v3.0 ЗАГРУЖЕН');
+            console.log('📅 Версия от 23 октября 2025 - Refactored Audio System');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('✅ Все переменные объявлены');
-            console.log('✅ Добавлены рабочие радиостанции');
-            console.log('✅ Исправлена обработка ошибок');
+            console.log('🔊 ВЕРСИЯ 3.0 - УПРОЩЕННАЯ СИСТЕМА ЗВУКА');
+            console.log(' ✅ Убраны все флаги - состояние по классу кнопки');
+            console.log(' ✅ Один метод stopRadio() для всего');
+            console.log(' ✅ Нет проверок isRadioPlaying внутри playChord');
+            console.log(' ✅ Маркер [v3.0] во всех логах');
+            console.log('');
+            console.log('📻 Доступные станции:');
+            console.log(' 🎧 Lofi, Jazz, Electronic (SomaFM)');
+            console.log(' 🎧 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
@@ -1126,7 +1131,7 @@
             
             // Смена времени суток каждую минуту
             setInterval(changeTimeOfDay, 60000);
-            console.log('✅ Таймер смены времени суток запущен');
+            console.log('✅ Таймер смены времени суток запущен (плавные переходы 20 сек)');
             
             // Инициализируем первое время суток
             setTimeout(() => {
@@ -1161,11 +1166,13 @@
             });
             
             console.log('✅ Все обработчики событий подключены');
-            console.log('🎉 IskrCLOCK готов к работе!');
+            console.log('🎉 IskrCLOCK v3.0 полностью готов к работе!');
             console.log('');
-            console.log('📻 Доступные радиостанции:');
-            console.log('   🎵 Lofi, Jazz, Electronic (SomaFM)');
-            console.log('   📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
+            console.log('💡 Нажмите Play чтобы протестировать звук');
+            console.log(' Ожидаемые логи:');
+            console.log(' 🎵 Toggle radio [v3.0]');
+            console.log(' 🔔 Playing beep #1 [v3.0]');
+            console.log(' 🔔 Playing beep #2 [v3.0] ...');
             console.log('═══════════════════════════════════════════════════════');
         });
     </script>
