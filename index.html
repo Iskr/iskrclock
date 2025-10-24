@@ -624,7 +624,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.7</span>
+            <span class="logo-version">v3.8</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -673,10 +673,6 @@
                     <option value="electronic">🎹 Electronic Chill</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
-                    <option value="rinse-uk">🎧 Rinse FM UK</option>
-                    <option value="rinse-france">🎧 Rinse FM France</option>
-                    <option value="rinse-kool">🎧 Rinse FM Kool</option>
-                    <option value="rinse-swu">🎧 Rinse FM SWU</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
                     <option value="radio-energy">📻 Radio Energy</option>
                     <option value="love-radio">📻 Love Radio</option>
@@ -724,7 +720,7 @@
         const timesOfDay = ['night', 'dawn', 'morning', 'day', 'afternoon', 'evening', 'midnight'];
         const timeLabels = ['Ночь', 'Рассвет', 'Утро', 'День', 'Полдень', 'Вечер', 'Полночь'];
 
-        // URL радиостанций (рабочие потоки)
+        // URL радиостанций (только проверенные рабочие потоки)
         const radioStreams = {
             'lofi': 'https://usa9.fastcast4u.com/proxy/jamz?mp=/1',
             'jazz': 'https://ice1.somafm.com/secretagent-128-mp3',
@@ -732,11 +728,6 @@
             // Лондонские станции - ГЛАВНЫЕ!
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
-            // Rinse FM - все 4 канала
-            'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
-            'rinse-france': 'https://admin.stream.rinse.fm/proxy/rinse_france/stream',
-            'rinse-kool': 'https://admin.stream.rinse.fm/proxy/rinse_kool/stream',
-            'rinse-swu': 'https://admin.stream.rinse.fm/proxy/rinse_swu/stream',
             // Русские станции
             'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
             'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
@@ -1195,20 +1186,18 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.7 ЗАГРУЖЕН');
-            console.log('📅 Версия от 24 октября 2025 - All Rinse FM Channels');
+            console.log('🌟 IskrCLOCK v3.8 ЗАГРУЖЕН');
+            console.log('📅 Версия от 24 октября 2025 - Stable Release');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.7 - ВСЕ 4 КАНАЛА RINSE FM!');
-            console.log(' ✅ Rinse FM UK (Лондон)');
-            console.log(' ✅ Rinse FM France (Франция)');
-            console.log(' ✅ Rinse FM Kool (Cool FM)');
-            console.log(' ✅ Rinse FM SWU (South West UK)');
-            console.log(' ✅ Эрмитаж FM (Санкт-Петербург) вернулся!');
+            console.log('🔊 ВЕРСИЯ 3.8 - СТАБИЛЬНАЯ (только рабочие станции)');
+            console.log(' ✅ Убраны все нерабочие Rinse FM (CORS ошибки)');
+            console.log(' ✅ Только проверенные и работающие станции');
+            console.log(' ✅ Эрмитаж FM (Санкт-Петербург)');
+            console.log(' ✅ Стабильная работа аудио');
             console.log('');
-            console.log('📻 Доступные станции (16):');
-            console.log(' 🎧 NTS Radio 1 & 2 (London)');
-            console.log(' 🎧 Rinse FM: UK, France, Kool, SWU - ВСЕ 4!');
-            console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
+            console.log('📻 Доступные станции (12):');
+            console.log(' 🎧 NTS Radio 1 & 2 (London) - работают!');
+            console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM) - работают!');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('═══════════════════════════════════════════════════════');
