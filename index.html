@@ -295,12 +295,18 @@
             color: white;
             font-size: 20px;
             font-weight: bold;
+            gap: 10px;
         }
 
         .logo::before {
             content: '⏰';
-            margin-right: 10px;
             font-size: 24px;
+        }
+
+        .logo-version {
+            font-size: 12px;
+            opacity: 0.7;
+            font-weight: normal;
         }
 
         .nav {
@@ -616,7 +622,10 @@
     </div>
 
     <header class="header">
-        <div class="logo">IskrCLOCK</div>
+        <div class="logo">
+            IskrCLOCK
+            <span class="logo-version">v3.4</span>
+        </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
             <a href="#" class="nav-item">⏲️ Таймеры</a>
@@ -670,7 +679,7 @@
                     <option value="love-radio">📻 Love Radio</option>
                     <option value="hit-fm">📻 Hit FM</option>
                     <option value="monte-carlo">📻 Monte Carlo</option>
-                    <option value="hermitage">🏛️ Эрмитаж FM</option>
+                    <option value="hermitage">🎻 Радио Орфей (классика)</option>
                 </select>
                 <button class="play-button" id="playButton">▶</button>
                 <div class="volume-control">
@@ -727,7 +736,8 @@
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
-            'hermitage': 'http://hermitage.fmstream.org/HermitageFM.mp3'
+            // Классическая музыка
+            'hermitage': 'https://orfey.mediateam.digital/orfey'
         };
 
         // Создание звездного неба
@@ -1187,14 +1197,14 @@
             console.log(' ✅ Резервный звук запускается только при ошибке');
             console.log(' ✅ Случайный порядок смены времени суток');
             console.log(' ✅ "Осталось времени" на одной строке');
-            console.log(' ✅ Добавлено радио Эрмитаж FM');
+            console.log(' ✅ Версия отображается в заголовке');
             console.log('');
             console.log('📻 Доступные станции:');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse FM (London)');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🏛️ Эрмитаж FM');
+            console.log(' 🎻 Радио Орфей (классическая музыка)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
