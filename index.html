@@ -729,7 +729,7 @@
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
-            'hermitage': 'https://stream.hermitagemuseum.org:8443/hermitage_hd'
+            'hermitage': 'http://hermitage.fmstream.org/HermitageFM.mp3'
         };
 
         // Создание звездного неба
@@ -959,18 +959,31 @@
 
             console.log('🛑 Stopping all audio...');
 
+            // СНАЧАЛА обновляем UI - это критично для предотвращения race conditions
+            playButton.textContent = '▶';
+            playButton.classList.remove('playing');
+
             // Устанавливаем флаг остановки для предотвращения race conditions
             audioStopping = true;
 
             // Останавливаем HTML5 Audio
             if (currentAudio && currentAudio instanceof HTMLAudioElement) {
-                // Удаляем все обработчики событий
+                // Удаляем все обработчики событий ПЕРЕД остановкой
                 currentAudio.onloadstart = null;
                 currentAudio.oncanplay = null;
                 currentAudio.onerror = null;
-                currentAudio.pause();
-                currentAudio.src = '';
-                currentAudio.load(); // Прерываем загрузку
+                currentAudio.onplay = null;
+                currentAudio.onpause = null;
+
+                try {
+                    currentAudio.pause();
+                    // НЕ очищаем src чтобы не вызвать ошибку загрузки
+                    // currentAudio.src = '';
+                    // currentAudio.load();
+                } catch (e) {
+                    console.log('⚠️ Error stopping audio:', e);
+                }
+
                 currentAudio = null;
                 console.log('✅ HTML5 Audio stopped');
             }
@@ -989,13 +1002,10 @@
                 console.log('✅ AudioContext closed');
             }
 
-            // v3.0 - состояние в классе кнопки, без флагов
-            // Обновляем UI
-            playButton.textContent = '▶';
-            playButton.classList.remove('playing');
-
             // Сбрасываем флаг остановки
-            audioStopping = false;
+            setTimeout(() => {
+                audioStopping = false;
+            }, 200);
 
             console.log('✅ [v3.0] All audio stopped');
         }
@@ -1043,17 +1053,33 @@
 
                     audio.addEventListener('error', function(e) {
                         if (errorHandled || audioStopping) return;
+
+                        // Проверяем что кнопка все еще в состоянии "playing"
+                        // Если пользователь уже нажал стоп - не запускаем резервный
+                        if (!playButton.classList.contains('playing')) {
+                            console.log('⚠️ User stopped playback, not starting backup alarm');
+                            return;
+                        }
+
                         errorHandled = true;
 
                         console.error('❌ Ошибка загрузки радио:', e);
                         console.log('🔄 Переключаемся на классический сигнал...');
 
                         // Очищаем проблемный audio
-                        audio.src = '';
-                        audio.load();
+                        try {
+                            audio.pause();
+                            audio.onloadstart = null;
+                            audio.oncanplay = null;
+                            audio.onerror = null;
+                        } catch (err) {
+                            console.log('⚠️ Error cleaning up audio:', err);
+                        }
 
-                        // Запускаем резервный звук
-                        playClassicAlarmSound();
+                        // Запускаем резервный звук только если кнопка все еще playing
+                        if (playButton.classList.contains('playing')) {
+                            playClassicAlarmSound();
+                        }
                     });
 
                     audio.play()
@@ -1071,16 +1097,32 @@
                         })
                         .catch(err => {
                             if (errorHandled || audioStopping) return;
+
+                            // Проверяем что кнопка все еще в состоянии "playing"
+                            if (!playButton.classList.contains('playing')) {
+                                console.log('⚠️ User stopped playback, not starting backup alarm');
+                                return;
+                            }
+
                             errorHandled = true;
 
                             console.error('❌ Ошибка воспроизведения:', err);
                             console.log('🔄 Используем резервный звук...');
 
                             // Очищаем проблемный audio
-                            audio.src = '';
-                            audio.load();
+                            try {
+                                audio.pause();
+                                audio.onloadstart = null;
+                                audio.oncanplay = null;
+                                audio.onerror = null;
+                            } catch (e) {
+                                console.log('⚠️ Error cleaning up audio:', e);
+                            }
 
-                            playClassicAlarmSound();
+                            // Запускаем резервный звук только если кнопка все еще playing
+                            if (playButton.classList.contains('playing')) {
+                                playClassicAlarmSound();
+                            }
                         });
 
                 } catch (error) {
@@ -1172,16 +1214,17 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.1 ЗАГРУЖЕН');
-            console.log('📅 Версия от 24 октября 2025 - Fixed Audio Issues');
+            console.log('🌟 IskrCLOCK v3.2 ЗАГРУЖЕН');
+            console.log('📅 Версия от 24 октября 2025 - Fixed Audio Loop');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.1 - ИСПРАВЛЕНЫ ПРОБЛЕМЫ АУДИО');
+            console.log('🔊 ВЕРСИЯ 3.2 - ИСПРАВЛЕН ЦИКЛ ПЕРЕЗАПУСКА АУДИО');
             console.log(' ✅ Исправлен бесконечный цикл запуска будильника');
-            console.log(' ✅ Исправлена остановка теста звука с первого раза');
-            console.log(' ✅ Добавлен флаг audioStopping для race conditions');
-            console.log(' ✅ Добавлена очистка обработчиков событий audio');
+            console.log(' ✅ Остановка теста звука работает с первого раза');
+            console.log(' ✅ UI обновляется ПЕРЕД остановкой аудио');
+            console.log(' ✅ Резервный звук НЕ запускается после нажатия стоп');
+            console.log(' ✅ Убрана очистка audio.src для предотвращения новых ошибок');
             console.log(' ✅ Случайный порядок смены времени суток');
-            console.log(' ✅ "Осталось времени" теперь на одной строке');
+            console.log(' ✅ "Осталось времени" на одной строке');
             console.log(' ✅ Добавлено радио Эрмитаж FM');
             console.log('');
             console.log('📻 Доступные станции:');
