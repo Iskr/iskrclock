@@ -624,7 +624,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.5</span>
+            <span class="logo-version">v3.6</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -674,14 +674,12 @@
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
                     <option value="rinse-fm">🎧 Rinse FM (London)</option>
-                    <option value="rinse-fm-france">🎧 Rinse FM France</option>
-                    <option value="rinse-fm-garage">🎧 Rinse FM Garage</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
                     <option value="radio-energy">📻 Radio Energy</option>
                     <option value="love-radio">📻 Love Radio</option>
                     <option value="hit-fm">📻 Hit FM</option>
                     <option value="monte-carlo">📻 Monte Carlo</option>
-                    <option value="hermitage">🎻 Радио Орфей (классика)</option>
+                    <option value="hermitage">🏛️ Эрмитаж FM (СПб)</option>
                 </select>
                 <button class="play-button" id="playButton">▶</button>
                 <div class="volume-control">
@@ -732,16 +730,14 @@
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'rinse-fm': 'https://streamer.radio.co/s2c3cc784b/listen',
-            'rinse-fm-france': 'https://streamer.radio.co/s8fb9c0338/listen',
-            'rinse-fm-garage': 'https://streamer.radio.co/sca4d87c71/listen',
             // Русские станции
             'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
             'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
-            // Классическая музыка
-            'hermitage': 'https://orfey.mediateam.digital/orfey'
+            // Питерские станции
+            'hermitage': 'https://listen.hermitagemuseum.org/hermitage-hd'
         };
 
         // Создание звездного неба
@@ -1192,21 +1188,21 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.5 ЗАГРУЖЕН');
-            console.log('📅 Версия от 24 октября 2025 - Added Rinse FM Channels');
+            console.log('🌟 IskrCLOCK v3.6 ЗАГРУЖЕН');
+            console.log('📅 Версия от 24 октября 2025 - Hermitage FM Fixed');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.5 - ДОБАВЛЕНЫ КАНАЛЫ RINSE FM');
-            console.log(' ✅ Добавлен Rinse FM France');
-            console.log(' ✅ Добавлен Rinse FM Garage');
+            console.log('🔊 ВЕРСИЯ 3.6 - ИСПРАВЛЕН ЭРМИТАЖ FM');
+            console.log(' ✅ Возвращён Эрмитаж FM (Санкт-Петербург)');
+            console.log(' ✅ Убраны нерабочие Rinse FM каналы (CORS)');
             console.log(' ✅ Радио работает стабильно');
             console.log(' ✅ Версия отображается в заголовке');
             console.log('');
-            console.log('📻 Доступные станции:');
+            console.log('📻 Доступные станции (13):');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
-            console.log(' 🎧 Rinse FM (London, France, Garage)');
+            console.log(' 🎧 Rinse FM (London)');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🎻 Радио Орфей (классическая музыка)');
+            console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
