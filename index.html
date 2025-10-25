@@ -624,7 +624,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.14</span>
+            <span class="logo-version">v3.16</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -674,6 +674,7 @@
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
                     <option value="electro-swing">🎵 Electro Swing Radio</option>
+                    <option value="rinse-uk">🎧 Rinse UK (London)</option>
                     <option value="rinse-france">🎧 Rinse France (Paris)</option>
                     <option value="fip">🇫🇷 FIP Radio (Paris)</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
@@ -734,6 +735,7 @@
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
+            'rinse-uk': 'http://admin.stream.rinse.fm:8820/stream',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
@@ -1043,10 +1045,19 @@
                 try {
                     const audio = new Audio();
                     audio.src = radioStreams[station];
-                    audio.volume = 0.5;
+
+                    // Проверяем нарастание громкости
+                    const volumeGrow = document.getElementById('volumeGrow').checked;
+                    if (volumeGrow) {
+                        audio.volume = 0; // Начинаем с 0
+                    } else {
+                        audio.volume = 0.5; // Сразу нормальная громкость
+                    }
+
                     audio.crossOrigin = 'anonymous';
 
                     let errorHandled = false; // Флаг для предотвращения множественных вызовов
+                    let volumeInterval = null; // Для нарастания громкости
 
                     // Устанавливаем состояние "playing" СРАЗУ - мы хотим играть
                     playButton.textContent = '⏸';
@@ -1093,6 +1104,34 @@
                         .then(() => {
                             console.log('✅ [v3.0] Воспроизведение начато:', station);
                             currentAudio = audio;
+
+                            // Если включено нарастание громкости - плавно увеличиваем
+                            if (volumeGrow) {
+                                const targetVolume = 0.5;
+                                const duration = 30000; // 30 секунд
+                                const steps = 100;
+                                const stepTime = duration / steps;
+                                const stepVolume = targetVolume / steps;
+                                let currentStep = 0;
+
+                                volumeInterval = setInterval(() => {
+                                    if (!audio || audio.paused || !playButton.classList.contains('playing')) {
+                                        clearInterval(volumeInterval);
+                                        return;
+                                    }
+
+                                    currentStep++;
+                                    if (currentStep >= steps) {
+                                        audio.volume = targetVolume;
+                                        clearInterval(volumeInterval);
+                                        console.log('🔊 Громкость достигла максимума');
+                                    } else {
+                                        audio.volume = currentStep * stepVolume;
+                                    }
+                                }, stepTime);
+
+                                console.log('📈 Нарастание громкости: 0 → 0.5 за 30 секунд');
+                            }
                         })
                         .catch(err => {
                             if (errorHandled) return;
