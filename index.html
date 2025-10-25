@@ -624,7 +624,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.13</span>
+            <span class="logo-version">v3.14</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -674,8 +674,8 @@
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
                     <option value="electro-swing">🎵 Electro Swing Radio</option>
-                    <option value="rinse-uk">🎧 Rinse UK (London)</option>
                     <option value="rinse-france">🎧 Rinse France (Paris)</option>
+                    <option value="fip">🇫🇷 FIP Radio (Paris)</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
                     <option value="radio-energy">📻 Radio Energy</option>
                     <option value="love-radio">📻 Love Radio</option>
@@ -715,6 +715,8 @@
         let alarmActive = false;
         let snoozeCount = 0;
         let alarmInterval = null;
+        let alarmTriggered = false; // Флаг для предотвращения множественных срабатываний
+        let lastCheckedMinute = -1; // Последняя проверенная минута
 
         // v3.0 - состояние по классу кнопки, без флагов
         let currentAudio = null;
@@ -732,8 +734,9 @@
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
-            'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
+            // Французские станции
+            'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
             'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
             'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
@@ -781,11 +784,19 @@
             if (alarmActive && alarmTime) {
                 const currentMinutes = now.getHours() * 60 + now.getMinutes();
                 const alarmMinutes = alarmTime.hours * 60 + alarmTime.minutes;
-                
-                if (currentMinutes === alarmMinutes) {
+
+                // Сбрасываем флаг когда минута изменилась
+                if (currentMinutes !== lastCheckedMinute) {
+                    alarmTriggered = false;
+                    lastCheckedMinute = currentMinutes;
+                }
+
+                // Срабатываем ТОЛЬКО ОДИН РАЗ за минуту
+                if (currentMinutes === alarmMinutes && !alarmTriggered) {
+                    alarmTriggered = true;
                     triggerAlarm();
                 }
-                
+
                 updateRemainingTime();
             }
         }
@@ -893,6 +904,7 @@
         function disableAlarm() {
             alarmActive = false;
             alarmTime = null;
+            alarmTriggered = false; // Сбрасываем флаг срабатывания
             document.getElementById('toggleAlarm').textContent = 'Включить';
             document.getElementById('toggleAlarm').classList.remove('btn-primary');
             document.getElementById('toggleAlarm').classList.add('btn-secondary');
@@ -927,22 +939,24 @@
             stopRadio();
             disableAlarm();
             snoozeCount = 0;
+            alarmTriggered = false; // Сбрасываем флаг срабатывания
         }
 
         // Отложить будильник
         function snoozeAlarm() {
             document.getElementById('alarmModal').style.display = 'none';
             stopRadio();
-            
+            alarmTriggered = false; // Сбрасываем флаг срабатывания
+
             const snoozeMinutes = parseInt(document.getElementById('snoozeTime').value) || 5;
             const now = new Date();
             now.setMinutes(now.getMinutes() + snoozeMinutes);
-            
+
             alarmTime = {
                 hours: now.getHours(),
                 minutes: now.getMinutes()
             };
-            
+
             snoozeCount++;
             console.log(`⏰ Будильник отложен на ${snoozeMinutes} минут (${snoozeCount} раз)`);
             updateRemainingTime();
