@@ -624,7 +624,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.19</span>
+            <span class="logo-version">v3.20</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -673,18 +673,14 @@
                     <option value="electronic">🎹 Electronic Chill</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
-                    <option value="bbc-radio-1">📻 BBC Radio 1 (UK)</option>
                     <option value="electro-swing">🎵 Electro Swing Radio</option>
                     <option value="rinse-france">🎧 Rinse France (Paris)</option>
-                    <option value="ibiza-sonica">🏝️ Ibiza Sonica</option>
                     <option value="fip">🇫🇷 FIP Radio (Paris)</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
                     <option value="radio-energy">📻 Radio Energy</option>
                     <option value="love-radio">📻 Love Radio</option>
                     <option value="hit-fm">📻 Hit FM</option>
                     <option value="monte-carlo">📻 Monte Carlo</option>
-                    <option value="studio-21">🎧 STUDIO 21</option>
-                    <option value="radio-metro">🚇 Радио МЕТРО</option>
                     <option value="hermitage">🏛️ Эрмитаж FM 90.1 (СПб)</option>
                 </select>
                 <button class="play-button" id="playButton">▶</button>
@@ -729,7 +725,7 @@
         const timesOfDay = ['night', 'dawn', 'morning', 'day', 'afternoon', 'evening', 'midnight'];
         const timeLabels = ['Ночь', 'Рассвет', 'Утро', 'День', 'Полдень', 'Вечер', 'Полночь'];
 
-        // URL радиостанций (только проверенные рабочие потоки)
+        // URL радиостанций (только проверенные рабочие потоки с CORS)
         const radioStreams = {
             'lofi': 'https://usa9.fastcast4u.com/proxy/jamz?mp=/1',
             'jazz': 'https://ice1.somafm.com/secretagent-128-mp3',
@@ -739,10 +735,6 @@
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
-            // Британские станции
-            'bbc-radio-1': 'https://lsn.lv/bbcradio.m3u8?station=bbc_radio_one&bitrate=320000',
-            // Испания
-            'ibiza-sonica': 'http://stream3.ibizasonica.com:8750/;*.mp3',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -751,8 +743,6 @@
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
-            'studio-21': 'https://live.studio21.ru/studio21_mp3_320',
-            'radio-metro': 'https://stream.radiometro.ru/radiometro',
             // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
@@ -1253,27 +1243,26 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.19 ЗАГРУЖЕН');
-            console.log('📅 Версия от 29 октября 2025 - New Stations Update');
+            console.log('🌟 IskrCLOCK v3.20 ЗАГРУЖЕН');
+            console.log('📅 Версия от 29 октября 2025 - Stable Release');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.19 - НОВЫЕ СТАНЦИИ!');
-            console.log(' ✅ Удалён нерабочий Rinse UK (CORS)');
-            console.log(' ➕ BBC Radio 1 (UK) - добавлено!');
-            console.log(' ➕ Ibiza Sonica - добавлено!');
-            console.log(' ➕ STUDIO 21 - добавлено!');
-            console.log(' ➕ Радио МЕТРО - добавлено!');
-            console.log(' 🔧 Улучшена разметка полей ввода времени');
+            console.log('🔊 ВЕРСИЯ 3.20 - СТАБИЛЬНАЯ (только рабочие CORS-потоки)');
+            console.log(' ✅ Удалён нерабочий Rinse UK (CORS блокировка)');
+            console.log(' ✅ Удалены станции без CORS поддержки');
+            console.log(' 🔧 Улучшена разметка: добавлена надпись "Часы"');
+            console.log(' 🔧 Все потоки проверены и работают');
             console.log('');
-            console.log('📻 Доступные станции (18):');
+            console.log('📻 Доступные станции (14):');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
-            console.log(' 📻 BBC Radio 1 (UK) ⭐ NEW');
-            console.log(' 🏝️ Ibiza Sonica ⭐ NEW');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
-            console.log(' 🎧 Rinse France, Electro Swing');
+            console.log(' 🎵 Electro Swing Radio');
+            console.log(' 🎧 Rinse France (Paris)');
+            console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🎧 STUDIO 21 ⭐ NEW');
-            console.log(' 🚇 Радио МЕТРО ⭐ NEW');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
+            console.log('');
+            console.log('⚠️ Примечание: BBC Radio 1, Ibiza Sonica, STUDIO 21, Radio Metro');
+            console.log('   не работают из-за CORS блокировки или неподдерживаемых форматов');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
