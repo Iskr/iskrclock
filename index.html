@@ -641,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.21</span>
+            <span class="logo-version">v3.22</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -693,12 +693,16 @@
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
                     <option value="electro-swing">🎵 Electro Swing Radio</option>
                     <option value="rinse-france">🎧 Rinse France (Paris)</option>
+                    <option value="rinse-uk">🎧 Rinse UK (London)</option>
+                    <option value="ibiza-sonica">🏝️ Ibiza Sonica</option>
                     <option value="fip">🇫🇷 FIP Radio (Paris)</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
                     <option value="radio-energy">📻 Radio Energy</option>
                     <option value="love-radio">📻 Love Radio</option>
                     <option value="hit-fm">📻 Hit FM</option>
                     <option value="monte-carlo">📻 Monte Carlo</option>
+                    <option value="studio-21">🎧 STUDIO 21</option>
+                    <option value="radio-metro">🚇 Радио МЕТРО</option>
                     <option value="hermitage">🏛️ Эрмитаж FM 90.1 (СПб)</option>
                 </select>
                 <button class="play-button" id="playButton">▶</button>
@@ -757,6 +761,9 @@
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
+            'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
+            // Испания
+            'ibiza-sonica': 'http://91.134.91.120:8000/ibizasonica',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -765,6 +772,8 @@
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
+            'studio-21': 'http://icecast-studio21.cdnvideo.ru/S21_2',
+            'radio-metro': 'http://stream.radiometro.ru:8230/',
             // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
@@ -1371,27 +1380,32 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.21 ЗАГРУЖЕН');
-            console.log('📅 Версия от 29 октября 2025 - YouTube Support');
+            console.log('🌟 IskrCLOCK v3.22 ЗАГРУЖЕН');
+            console.log('📅 Версия от 29 октября 2025 - FULL COLLECTION');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.21 - YOUTUBE ПОДДЕРЖКА!');
-            console.log(' ✅ Добавлена поддержка YouTube потоков');
-            console.log(' ➕ NINJA CHILL 24/7 RADIO (YouTube)');
-            console.log(' 🎥 YouTube IFrame Player API интегрирован');
-            console.log(' 🔧 Улучшена разметка: добавлена надпись "Часы"');
-            console.log(' 🔧 Все потоки проверены и работают');
+            console.log('🔊 ВЕРСИЯ 3.22 - ПОЛНАЯ КОЛЛЕКЦИЯ СТАНЦИЙ!');
+            console.log(' ✅ Добавлены все запрошенные станции');
+            console.log(' ➕ Rinse UK (London) - найден рабочий proxy');
+            console.log(' ➕ Ibiza Sonica - альтернативный поток');
+            console.log(' ➕ STUDIO 21 - CDN поток');
+            console.log(' ➕ Радио МЕТРО - рабочий поток');
+            console.log(' 🎥 YouTube поддержка (NINJA CHILL)');
             console.log('');
-            console.log('📻 Доступные станции (15):');
-            console.log(' 🥷 NINJA CHILL 24/7 (YouTube) ⭐ NEW');
+            console.log('📻 Доступные станции (19):');
+            console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
+            console.log(' 🎧 Rinse UK (London) ⭐ NEW');
+            console.log(' 🎧 Rinse France (Paris)');
+            console.log(' 🏝️ Ibiza Sonica ⭐ NEW');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
-            console.log(' 🎧 Rinse France (Paris)');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
+            console.log(' 🎧 STUDIO 21 ⭐ NEW');
+            console.log(' 🚇 Радио МЕТРО ⭐ NEW');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Теперь можно добавлять YouTube стримы через IFrame API!');
+            console.log('💡 Все станции найдены через GitHub, Reddit и radio directories!');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
