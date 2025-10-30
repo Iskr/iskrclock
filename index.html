@@ -641,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.22</span>
+            <span class="logo-version">v3.23</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -748,10 +748,18 @@
         let youtubePlayer = null;
         let youtubePlayerReady = false;
 
+        // CORS Proxy система с fallback
+        const corsProxies = [
+            'https://api.allorigins.win/raw?url=',
+            'https://thingproxy.freeboard.io/fetch/',
+            'https://corsproxy.io/?'
+        ];
+        let currentProxyIndex = 0;
+
         const timesOfDay = ['night', 'dawn', 'morning', 'day', 'afternoon', 'evening', 'midnight'];
         const timeLabels = ['Ночь', 'Рассвет', 'Утро', 'День', 'Полдень', 'Вечер', 'Полночь'];
 
-        // URL радиостанций (только проверенные рабочие потоки с CORS)
+        // URL радиостанций (с CORS и без)
         const radioStreams = {
             'lofi': 'https://usa9.fastcast4u.com/proxy/jamz?mp=/1',
             'jazz': 'https://ice1.somafm.com/secretagent-128-mp3',
@@ -778,10 +786,27 @@
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
 
+        // Станции требующие CORS proxy (без заголовков CORS)
+        const needsCorsProxy = ['rinse-uk', 'ibiza-sonica', 'studio-21', 'radio-metro'];
+
         // YouTube станции (ID видео)
         const youtubeStreams = {
             'ninja-chill': 'vgQyWl3EObY'
         };
+
+        // Получить URL с CORS proxy
+        function getProxiedURL(url, proxyIndex = currentProxyIndex) {
+            const proxy = corsProxies[proxyIndex];
+            const proxiedUrl = proxy + encodeURIComponent(url);
+            console.log(`🔄 Using CORS proxy #${proxyIndex}: ${proxy}`);
+            return proxiedUrl;
+        }
+
+        // Переключение на следующий proxy при ошибке
+        function switchToNextProxy() {
+            currentProxyIndex = (currentProxyIndex + 1) % corsProxies.length;
+            console.log(`⏭️ Switching to next proxy: #${currentProxyIndex}`);
+        }
 
         // YouTube Player API callback
         function onYouTubeIframeAPIReady() {
@@ -1122,7 +1147,15 @@
                 // Для настоящих радиостанций используем HTML5 Audio
                 try {
                     const audio = new Audio();
-                    audio.src = radioStreams[station];
+                    const originalUrl = radioStreams[station];
+
+                    // Проверяем нужен ли CORS proxy для этой станции
+                    if (needsCorsProxy.includes(station)) {
+                        audio.src = getProxiedURL(originalUrl);
+                        console.log(`🔐 Using CORS proxy for ${station}`);
+                    } else {
+                        audio.src = originalUrl;
+                    }
 
                     // Проверяем нарастание громкости
                     const volumeGrow = document.getElementById('volumeGrow').checked;
@@ -1153,16 +1186,13 @@
                         if (errorHandled) return;
 
                         // Проверяем что кнопка все еще в состоянии "playing"
-                        // Если пользователь уже нажал стоп - не запускаем резервный
                         if (!playButton.classList.contains('playing')) {
                             console.log('⚠️ User stopped playback, not starting backup alarm');
                             return;
                         }
 
                         errorHandled = true;
-
                         console.error('❌ Ошибка загрузки радио:', e);
-                        console.log('🔄 Переключаемся на классический сигнал...');
 
                         // Очищаем проблемный audio
                         try {
@@ -1174,8 +1204,18 @@
                             console.log('⚠️ Error cleaning up audio:', err);
                         }
 
-                        // Запускаем резервный звук
-                        playClassicAlarmSound();
+                        // Если это станция с CORS proxy, пробуем следующий proxy
+                        if (needsCorsProxy.includes(station) && currentProxyIndex < corsProxies.length - 1) {
+                            console.log('🔄 Пробуем следующий CORS proxy...');
+                            switchToNextProxy();
+                            // Рекурсивно пробуем снова с новым прокси
+                            setTimeout(() => playRadioSound(station), 500);
+                        } else {
+                            // Все прокси перепробованы или это не CORS станция
+                            console.log('🔄 Переключаемся на классический сигнал...');
+                            currentProxyIndex = 0; // Сбрасываем индекс для следующей попытки
+                            playClassicAlarmSound();
+                        }
                     });
 
                     audio.play()
@@ -1221,9 +1261,7 @@
                             }
 
                             errorHandled = true;
-
                             console.error('❌ Ошибка воспроизведения:', err);
-                            console.log('🔄 Используем резервный звук...');
 
                             // Очищаем проблемный audio
                             try {
@@ -1235,8 +1273,18 @@
                                 console.log('⚠️ Error cleaning up audio:', e);
                             }
 
-                            // Запускаем резервный звук
-                            playClassicAlarmSound();
+                            // Если это станция с CORS proxy, пробуем следующий proxy
+                            if (needsCorsProxy.includes(station) && currentProxyIndex < corsProxies.length - 1) {
+                                console.log('🔄 Пробуем следующий CORS proxy...');
+                                switchToNextProxy();
+                                // Рекурсивно пробуем снова с новым прокси
+                                setTimeout(() => playRadioSound(station), 500);
+                            } else {
+                                // Все прокси перепробованы или это не CORS станция
+                                console.log('🔄 Используем резервный звук...');
+                                currentProxyIndex = 0; // Сбрасываем индекс для следующей попытки
+                                playClassicAlarmSound();
+                            }
                         });
 
                 } catch (error) {
@@ -1380,32 +1428,33 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.22 ЗАГРУЖЕН');
-            console.log('📅 Версия от 29 октября 2025 - FULL COLLECTION');
+            console.log('🌟 IskrCLOCK v3.23 ЗАГРУЖЕН');
+            console.log('📅 Версия от 30 октября 2025 - CORS PROXY FIX');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.22 - ПОЛНАЯ КОЛЛЕКЦИЯ СТАНЦИЙ!');
-            console.log(' ✅ Добавлены все запрошенные станции');
-            console.log(' ➕ Rinse UK (London) - найден рабочий proxy');
-            console.log(' ➕ Ibiza Sonica - альтернативный поток');
-            console.log(' ➕ STUDIO 21 - CDN поток');
-            console.log(' ➕ Радио МЕТРО - рабочий поток');
+            console.log('🔊 ВЕРСИЯ 3.23 - CORS PROXY ОБХОД!');
+            console.log(' ✅ Интегрирована система CORS proxy');
+            console.log(' 🔄 3 публичных прокси с автопереключением');
+            console.log(' 🔐 allorigins.win, thingproxy, corsproxy.io');
+            console.log(' 🎧 Rinse UK, Ibiza Sonica через прокси');
+            console.log(' 🎧 STUDIO 21, Радио МЕТРО через прокси');
             console.log(' 🎥 YouTube поддержка (NINJA CHILL)');
             console.log('');
             console.log('📻 Доступные станции (19):');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
-            console.log(' 🎧 Rinse UK (London) ⭐ NEW');
+            console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🏝️ Ibiza Sonica ⭐ NEW');
+            console.log(' 🏝️ Ibiza Sonica 🔐 CORS proxy');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🎧 STUDIO 21 ⭐ NEW');
-            console.log(' 🚇 Радио МЕТРО ⭐ NEW');
+            console.log(' 🎧 STUDIO 21 🔐 CORS proxy');
+            console.log(' 🚇 Радио МЕТРО 🔐 CORS proxy');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Все станции найдены через GitHub, Reddit и radio directories!');
+            console.log('💡 CORS блокировки обходятся через публичные прокси!');
+            console.log('🔄 Автоматическое переключение между прокси при ошибках');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
