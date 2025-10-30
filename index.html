@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IskrCLOCK - Будильник с радио онлайн</title>
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         * {
             margin: 0;
@@ -278,6 +280,16 @@
         @keyframes cloudMove {
             0% { transform: translateX(0); }
             100% { transform: translateX(calc(100vw + 200px)); }
+        }
+
+        .youtube-player-container {
+            position: fixed;
+            top: -1000px;
+            left: -1000px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .header {
@@ -609,6 +621,11 @@
     </style>
 </head>
 <body>
+    <!-- YouTube Player (hidden) -->
+    <div class="youtube-player-container">
+        <div id="youtube-player"></div>
+    </div>
+
     <div class="mountain-bg" id="mountainBg"></div>
     <div class="stars" id="stars"></div>
     <div class="clouds" id="clouds">
@@ -624,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.20</span>
+            <span class="logo-version">v3.21</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -671,6 +688,7 @@
                     <option value="lofi">🎵 Lofi Hip Hop</option>
                     <option value="jazz">🎷 Smooth Jazz</option>
                     <option value="electronic">🎹 Electronic Chill</option>
+                    <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
                     <option value="electro-swing">🎵 Electro Swing Radio</option>
@@ -722,6 +740,10 @@
         let currentAudio = null;
         let audioContext = null;
 
+        // YouTube Player
+        let youtubePlayer = null;
+        let youtubePlayerReady = false;
+
         const timesOfDay = ['night', 'dawn', 'morning', 'day', 'afternoon', 'evening', 'midnight'];
         const timeLabels = ['Ночь', 'Рассвет', 'Утро', 'День', 'Полдень', 'Вечер', 'Полночь'];
 
@@ -746,6 +768,42 @@
             // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
+
+        // YouTube станции (ID видео)
+        const youtubeStreams = {
+            'ninja-chill': 'vgQyWl3EObY'
+        };
+
+        // YouTube Player API callback
+        function onYouTubeIframeAPIReady() {
+            youtubePlayer = new YT.Player('youtube-player', {
+                height: '1',
+                width: '1',
+                videoId: '',
+                playerVars: {
+                    autoplay: 0,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0
+                },
+                events: {
+                    'onReady': function(event) {
+                        youtubePlayerReady = true;
+                        console.log('✅ YouTube Player готов');
+                    },
+                    'onError': function(event) {
+                        console.error('❌ Ошибка YouTube Player:', event.data);
+                        const playButton = document.getElementById('playButton');
+                        if (playButton.classList.contains('playing')) {
+                            playClassicAlarmSound();
+                        }
+                    }
+                }
+            });
+        }
 
         // Создание звездного неба
         function createStars() {
@@ -989,6 +1047,16 @@
             playButton.textContent = '▶';
             playButton.classList.remove('playing');
 
+            // Останавливаем YouTube Player
+            if (youtubePlayer && youtubePlayerReady) {
+                try {
+                    youtubePlayer.stopVideo();
+                    console.log('✅ YouTube Player stopped');
+                } catch (e) {
+                    console.log('⚠️ Error stopping YouTube:', e);
+                }
+            }
+
             // Останавливаем HTML5 Audio
             if (currentAudio && currentAudio instanceof HTMLAudioElement) {
                 // Удаляем все обработчики событий ПЕРЕД остановкой
@@ -1038,6 +1106,9 @@
             if (station === 'classic') {
                 // Для классического сигнала используем Web Audio API
                 playClassicAlarmSound();
+            } else if (youtubeStreams[station]) {
+                // Для YouTube станций используем YouTube IFrame API
+                playYouTubeStation(station);
             } else if (radioStreams[station]) {
                 // Для настоящих радиостанций используем HTML5 Audio
                 try {
@@ -1229,6 +1300,63 @@
             console.log('✅ [v3.0] Classic alarm sound started');
         }
 
+        // Воспроизведение YouTube станции
+        function playYouTubeStation(station) {
+            const playButton = document.getElementById('playButton');
+            const videoId = youtubeStreams[station];
+
+            console.log('📺 Starting YouTube station:', station, 'ID:', videoId);
+
+            if (!youtubePlayerReady) {
+                console.log('⚠️ YouTube Player не готов, используем резервный звук');
+                playClassicAlarmSound();
+                return;
+            }
+
+            try {
+                // Обновляем UI
+                playButton.textContent = '⏸';
+                playButton.classList.add('playing');
+
+                // Загружаем и воспроизводим видео
+                youtubePlayer.loadVideoById(videoId);
+
+                // Проверяем нарастание громкости
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                if (volumeGrow) {
+                    youtubePlayer.setVolume(0);
+                    // Плавно увеличиваем громкость за 30 секунд
+                    let currentVolume = 0;
+                    const targetVolume = 50; // YouTube использует 0-100
+                    const steps = 100;
+                    const stepTime = 30000 / steps; // 30 секунд
+                    const stepVolume = targetVolume / steps;
+
+                    const volumeInterval = setInterval(() => {
+                        if (!playButton.classList.contains('playing')) {
+                            clearInterval(volumeInterval);
+                            return;
+                        }
+                        currentVolume += stepVolume;
+                        if (currentVolume >= targetVolume) {
+                            youtubePlayer.setVolume(targetVolume);
+                            clearInterval(volumeInterval);
+                            console.log('🔊 YouTube громкость достигла максимума');
+                        } else {
+                            youtubePlayer.setVolume(currentVolume);
+                        }
+                    }, stepTime);
+                } else {
+                    youtubePlayer.setVolume(50);
+                }
+
+                console.log('✅ YouTube station started');
+            } catch (error) {
+                console.error('❌ Ошибка воспроизведения YouTube:', error);
+                playClassicAlarmSound();
+            }
+        }
+
         // Полноэкранный режим
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
@@ -1243,16 +1371,18 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.20 ЗАГРУЖЕН');
-            console.log('📅 Версия от 29 октября 2025 - Stable Release');
+            console.log('🌟 IskrCLOCK v3.21 ЗАГРУЖЕН');
+            console.log('📅 Версия от 29 октября 2025 - YouTube Support');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.20 - СТАБИЛЬНАЯ (только рабочие CORS-потоки)');
-            console.log(' ✅ Удалён нерабочий Rinse UK (CORS блокировка)');
-            console.log(' ✅ Удалены станции без CORS поддержки');
+            console.log('🔊 ВЕРСИЯ 3.21 - YOUTUBE ПОДДЕРЖКА!');
+            console.log(' ✅ Добавлена поддержка YouTube потоков');
+            console.log(' ➕ NINJA CHILL 24/7 RADIO (YouTube)');
+            console.log(' 🎥 YouTube IFrame Player API интегрирован');
             console.log(' 🔧 Улучшена разметка: добавлена надпись "Часы"');
             console.log(' 🔧 Все потоки проверены и работают');
             console.log('');
-            console.log('📻 Доступные станции (14):');
+            console.log('📻 Доступные станции (15):');
+            console.log(' 🥷 NINJA CHILL 24/7 (YouTube) ⭐ NEW');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
@@ -1261,8 +1391,7 @@
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('⚠️ Примечание: BBC Radio 1, Ibiza Sonica, STUDIO 21, Radio Metro');
-            console.log('   не работают из-за CORS блокировки или неподдерживаемых форматов');
+            console.log('💡 Теперь можно добавлять YouTube стримы через IFrame API!');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
