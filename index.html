@@ -686,9 +686,7 @@
                 <select class="radio-select" id="radioSelect">
                     <option value="classic">🔔 Классический сигнал</option>
                     <option value="bbc-radio-1">📻 BBC Radio 1</option>
-                    <option value="lofi">🎵 Lofi Hip Hop</option>
-                    <option value="jazz">🎷 Smooth Jazz</option>
-                    <option value="electronic">🎹 Electronic Chill</option>
+                    <option value="npr">📻 NPR (National Public Radio)</option>
                     <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
@@ -763,9 +761,7 @@
         // URL радиостанций (с CORS и без)
         const radioStreams = {
             'bbc-radio-1': 'http://lstn.lv/bbc.m3u8?station=bbc_radio_one&bitrate=320000',
-            'lofi': 'https://usa9.fastcast4u.com/proxy/jamz?mp=/1',
-            'jazz': 'https://ice1.somafm.com/secretagent-128-mp3',
-            'electronic': 'https://ice1.somafm.com/groovesalad-128-mp3',
+            'npr': 'https://streams.kut.org/kut_aac-128',
             // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
@@ -1433,19 +1429,20 @@
             console.log('═══════════════════════════════════════════════════════');
             console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
             console.log(' 📻 BBC Radio 1 (NEW!)');
+            console.log(' 📻 NPR - National Public Radio (NEW!)');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' ✅ Радио МЕТРО напрямую (работает!)');
             console.log(' ✅ Rinse UK через CORS proxy (работает!)');
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
             console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
             console.log('');
-            console.log('📻 Доступные станции (19):');
+            console.log('📻 Доступные станции (17):');
             console.log(' 📻 BBC Radio 1 (London) ⭐ НОВАЯ!');
+            console.log(' 📻 NPR (USA) ⭐ НОВАЯ!');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
@@ -1455,6 +1452,7 @@
             console.log('');
             console.log('💡 Все радиостанции протестированы и работают!');
             console.log('🌍 Переключатель языка: Русский/English');
+            console.log('❌ Удалены: SomaFM станции (Lofi, Jazz, Electronic)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
