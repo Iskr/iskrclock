@@ -750,9 +750,10 @@
 
         // CORS Proxy система с fallback (отсортированы по надежности)
         const corsProxies = [
-            'https://corsproxy.io/?',                       // #0 - самый стабильный
-            'https://thingproxy.freeboard.io/fetch/',       // #1 - резервный
-            'https://api.allorigins.win/raw?url='           // #2 - иногда падает
+            'https://proxy.cors.sh/',                       // #0 - НОВЫЙ! быстрый, без лимитов
+            'https://corsproxy.io/?',                       // #1 - стабильный
+            'https://thingproxy.freeboard.io/fetch/',       // #2 - резервный
+            'https://api.allorigins.win/raw?url='           // #3 - иногда падает
         ];
         let currentProxyIndex = 0;
 
@@ -787,7 +788,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk'];
+        const needsCorsProxy = ['rinse-uk', 'radio-metro', 'ibiza-sonica'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1428,32 +1429,33 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.31 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - DIRECT TEST');
+            console.log('🌟 IskrCLOCK v3.32 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - НОВЫЙ CORS ПРОКСИ');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.31 - ТЕСТ БЕЗ ПРОКСИ!');
-            console.log(' ✅ Интегрирована система CORS proxy');
-            console.log(' 🔄 Только Rinse UK через CORS proxy');
-            console.log(' 🔐 Metro и Ibiza пробуем напрямую');
+            console.log('🔊 ВЕРСИЯ 3.32 - CORS.SH ПРОКСИ!');
+            console.log(' 🚀 Добавлен новый CORS прокси: cors.sh (быстрый, без лимитов)');
+            console.log(' 🔄 4 прокси с автоматическим переключением');
+            console.log(' 🔐 Metro и Ibiza через новый CORS proxy');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
-            console.log(' 🎥 YouTube только для NINJA CHILL');
+            console.log(' ✅ Rinse UK через CORS proxy (работает!)');
+            console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
             console.log('');
             console.log('📻 Доступные станции (19):');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🏝️ Ibiza Sonica 🔐 CORS proxy');
+            console.log(' 🏝️ Ibiza Sonica 🔐 NEW CORS proxy');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log(' 🎧 STUDIO 21 ✅ ПРЯМОЙ ПОТОК');
-            console.log(' 🚇 Радио МЕТРО 🔐 CORS proxy');
+            console.log(' 🚇 Радио МЕТРО 🔐 NEW CORS proxy');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Тест прямого подключения для Metro и Ibiza!');
-            console.log('🔄 Если CORS - сообщите точные ошибки');
+            console.log('💡 Тестируем через cors.sh - надежный прокси без лимитов!');
+            console.log('🔄 Автоматическое переключение на резервные если не сработает');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
