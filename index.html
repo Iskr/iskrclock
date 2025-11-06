@@ -641,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.29</span>
+            <span class="logo-version">v3.30</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -771,7 +771,7 @@
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
             // Испанские станции
-            'ibiza-sonica': 'http://91.134.91.120:8000/ibizasonica',
+            'ibiza-sonica': 'https://ssl1.viastreaming.net:7005/;',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -781,7 +781,7 @@
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
             'studio-21': 'https://stream.studio21.ru/studio2196.aacp',
-            'radio-metro': 'http://stream.radiometro.ru:8230/',
+            'radio-metro': 'https://radiometro.hostingradio.ru/radiometro128.mp3',
             // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
@@ -1428,10 +1428,10 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.29 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - MIXED APPROACH');
+            console.log('🌟 IskrCLOCK v3.30 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - NEW STREAM URLs');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.29 - СМЕШАННЫЙ ПОДХОД!');
+            console.log('🔊 ВЕРСИЯ 3.30 - НОВЫЕ URL ПОТОКОВ!');
             console.log(' ✅ Интегрирована система CORS proxy');
             console.log(' 🔄 3 станции через CORS proxy');
             console.log(' 🔐 Rinse UK, Metro, Ibiza через прокси');
@@ -1452,8 +1452,8 @@
             console.log(' 🚇 Радио МЕТРО 🔐 CORS proxy');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 STUDIO 21 работает напрямую без прокси!');
-            console.log('🔄 Metro и Ibiza через CORS прокси (Mixed Content)');
+            console.log('💡 Новые URL для Ibiza и Metro!');
+            console.log('🔄 Ibiza: ssl1.viastreaming.net | Metro: hostingradio.ru');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
