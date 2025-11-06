@@ -641,17 +641,17 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.31</span>
+            <span class="logo-version">v4.0</span>
         </div>
         <nav class="nav">
-            <a href="#" class="nav-item">⏰ Будильники</a>
-            <a href="#" class="nav-item">⏲️ Таймеры</a>
-            <a href="#" class="nav-item">⏱️ Секундомер</a>
-            <a href="#" class="nav-item">🧮 Калькулятор сна</a>
+            <a href="index.html" class="nav-item">⏰ Будильники</a>
+            <a href="timer.html" class="nav-item">⏲️ Таймеры</a>
+            <a href="stopwatch.html" class="nav-item">⏱️ Секундомер</a>
+            <a href="sleep-calculator.html" class="nav-item">🧮 Калькулятор сна</a>
         </nav>
         <select class="lang-selector">
-            <option>Русский</option>
-            <option>English</option>
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
         </select>
     </header>
 
@@ -1509,6 +1509,61 @@
             console.log(' 🔔 Playing beep #1 [v3.0]');
             console.log(' 🔔 Playing beep #2 [v3.0] ...');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Language switching
+            const translations = {
+                ru: {
+                    navAlarms: '⏰ Будильники',
+                    navTimer: '⏲️ Таймеры',
+                    navStopwatch: '⏱️ Секундомер',
+                    navSleep: '🧮 Калькулятор сна',
+                    alarmLabel: 'Будильник',
+                    radioLabel: 'Радио',
+                    alarmTime: 'Время будильника:'
+                },
+                en: {
+                    navAlarms: '⏰ Alarms',
+                    navTimer: '⏲️ Timer',
+                    navStopwatch: '⏱️ Stopwatch',
+                    navSleep: '🧮 Sleep Calculator',
+                    alarmLabel: 'Alarm',
+                    radioLabel: 'Radio',
+                    alarmTime: 'Alarm time:'
+                }
+            };
+
+            let currentLang = localStorage.getItem('language') || 'ru';
+
+            function switchLanguage(lang) {
+                currentLang = lang;
+                localStorage.setItem('language', lang);
+
+                const t = translations[lang];
+                const nav = document.querySelectorAll('.nav-item');
+                if (nav[0]) nav[0].textContent = t.navAlarms;
+                if (nav[1]) nav[1].textContent = t.navTimer;
+                if (nav[2]) nav[2].textContent = t.navStopwatch;
+                if (nav[3]) nav[3].textContent = t.navSleep;
+
+                const alarmLabel = document.querySelector('.alarm-section label');
+                if (alarmLabel) alarmLabel.textContent = t.alarmTime;
+
+                const radioLabel = document.querySelector('.radio-section label');
+                if (radioLabel) radioLabel.textContent = t.radioLabel;
+
+                document.querySelector('.lang-selector').value = lang;
+            }
+
+            document.querySelector('.lang-selector').addEventListener('change', (e) => {
+                switchLanguage(e.target.value);
+            });
+
+            // Set initial language
+            const langSelector = document.querySelector('.lang-selector');
+            langSelector.value = currentLang;
+            if (currentLang === 'en') {
+                switchLanguage('en');
+            }
         });
     </script>
 </body>

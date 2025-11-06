@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Секундомер онлайн - IskrCLOCK</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .stopwatch-display {
+            font-size: 72px;
+            font-weight: bold;
+            text-align: center;
+            color: #f5576c;
+            margin: 30px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .milliseconds {
+            font-size: 36px;
+            color: #f093fb;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-start {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-pause {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-reset {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-lap {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-back {
+            background: #9C27B0;
+            color: white;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .laps {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .lap-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: #f5f5f5;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+
+        .lap-item:nth-child(1) {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .lap-number {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .lap-item:nth-child(1) .lap-number {
+            color: white;
+        }
+
+        .lap-time {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #666;
+            min-height: 27px;
+        }
+
+        @media (max-width: 600px) {
+            .stopwatch-display {
+                font-size: 48px;
+            }
+
+            .milliseconds {
+                font-size: 24px;
+            }
+
+            button {
+                padding: 12px 24px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏱️ Секундомер</h1>
+
+        <div class="stopwatch-display" id="stopwatchDisplay">
+            <span id="timeDisplay">00:00:00</span><span class="milliseconds" id="msDisplay">.00</span>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="controls">
+            <button class="btn-start" id="startBtn" onclick="startStopwatch()">▶ Старт</button>
+            <button class="btn-pause" id="pauseBtn" onclick="pauseStopwatch()" style="display: none;">⏸ Пауза</button>
+            <button class="btn-lap" id="lapBtn" onclick="recordLap()" style="display: none;">⏲️ Круг</button>
+            <button class="btn-reset" onclick="resetStopwatch()">↻ Сброс</button>
+        </div>
+
+        <div class="laps" id="laps"></div>
+
+        <button class="btn-back" onclick="window.location.href='index.html'">← Назад к будильнику</button>
+    </div>
+
+    <script>
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+        let isRunning = false;
+        let lapNumber = 0;
+        let lastLapTime = 0;
+
+        const timeDisplay = document.getElementById('timeDisplay');
+        const msDisplay = document.getElementById('msDisplay');
+        const status = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const lapBtn = document.getElementById('lapBtn');
+        const lapsContainer = document.getElementById('laps');
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const milliseconds = Math.floor((ms % 1000) / 10);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            return {
+                time: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+                ms: `.${String(milliseconds).padStart(2, '0')}`
+            };
+        }
+
+        function updateDisplay() {
+            const currentTime = elapsedTime + (isRunning ? Date.now() - startTime : 0);
+            const formatted = formatTime(currentTime);
+            timeDisplay.textContent = formatted.time;
+            msDisplay.textContent = formatted.ms;
+        }
+
+        function startStopwatch() {
+            if (isRunning) return;
+
+            isRunning = true;
+            startTime = Date.now();
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            lapBtn.style.display = 'inline-block';
+            status.textContent = '⏱️ Секундомер запущен';
+
+            timerInterval = setInterval(updateDisplay, 10);
+        }
+
+        function pauseStopwatch() {
+            if (!isRunning) return;
+
+            isRunning = false;
+            elapsedTime += Date.now() - startTime;
+            clearInterval(timerInterval);
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            lapBtn.style.display = 'none';
+            status.textContent = '⏸️ Пауза';
+        }
+
+        function resetStopwatch() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            elapsedTime = 0;
+            startTime = 0;
+            lapNumber = 0;
+            lastLapTime = 0;
+            updateDisplay();
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            lapBtn.style.display = 'none';
+            status.textContent = '';
+            lapsContainer.innerHTML = '';
+        }
+
+        function recordLap() {
+            if (!isRunning) return;
+
+            lapNumber++;
+            const currentTime = elapsedTime + (Date.now() - startTime);
+            const lapTime = currentTime - lastLapTime;
+            lastLapTime = currentTime;
+
+            const formatted = formatTime(currentTime);
+            const lapFormatted = formatTime(lapTime);
+
+            const lapItem = document.createElement('div');
+            lapItem.className = 'lap-item';
+            lapItem.innerHTML = `
+                <span class="lap-number">Круг ${lapNumber}</span>
+                <span class="lap-time">${formatted.time}${formatted.ms} <small>(+${lapFormatted.time}${lapFormatted.ms})</small></span>
+            `;
+
+            lapsContainer.insertBefore(lapItem, lapsContainer.firstChild);
+        }
+
+        updateDisplay();
+    </script>
+</body>
+</html>
