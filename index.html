@@ -641,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.30</span>
+            <span class="logo-version">v3.31</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -787,7 +787,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk', 'radio-metro', 'ibiza-sonica'];
+        const needsCorsProxy = ['rinse-uk'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1428,13 +1428,13 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.30 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - NEW STREAM URLs');
+            console.log('🌟 IskrCLOCK v3.31 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - DIRECT TEST');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.30 - НОВЫЕ URL ПОТОКОВ!');
+            console.log('🔊 ВЕРСИЯ 3.31 - ТЕСТ БЕЗ ПРОКСИ!');
             console.log(' ✅ Интегрирована система CORS proxy');
-            console.log(' 🔄 3 станции через CORS proxy');
-            console.log(' 🔐 Rinse UK, Metro, Ibiza через прокси');
+            console.log(' 🔄 Только Rinse UK через CORS proxy');
+            console.log(' 🔐 Metro и Ibiza пробуем напрямую');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' 🎥 YouTube только для NINJA CHILL');
             console.log('');
@@ -1452,8 +1452,8 @@
             console.log(' 🚇 Радио МЕТРО 🔐 CORS proxy');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Новые URL для Ibiza и Metro!');
-            console.log('🔄 Ibiza: ssl1.viastreaming.net | Metro: hostingradio.ru');
+            console.log('💡 Тест прямого подключения для Metro и Ibiza!');
+            console.log('🔄 Если CORS - сообщите точные ошибки');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
