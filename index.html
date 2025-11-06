@@ -788,7 +788,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk', 'radio-metro', 'ibiza-sonica'];
+        const needsCorsProxy = ['rinse-uk', 'ibiza-sonica'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1429,13 +1429,12 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.32 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - НОВЫЙ CORS ПРОКСИ');
+            console.log('🌟 IskrCLOCK v3.34 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - METRO DIRECT TEST');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.32 - CORS.SH ПРОКСИ!');
-            console.log(' 🚀 Добавлен новый CORS прокси: cors.sh (быстрый, без лимитов)');
-            console.log(' 🔄 4 прокси с автоматическим переключением');
-            console.log(' 🔐 Metro и Ibiza через новый CORS proxy');
+            console.log('🔊 ВЕРСИЯ 3.34 - METRO БЕЗ ПРОКСИ!');
+            console.log(' 🚇 METRO с новым URL пробуем напрямую');
+            console.log(' 🔄 Все CORS прокси провалились - тестируем direct');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' ✅ Rinse UK через CORS proxy (работает!)');
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
@@ -1445,17 +1444,17 @@
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🏝️ Ibiza Sonica 🔐 NEW CORS proxy');
+            console.log(' 🏝️ Ibiza Sonica 🔐 CORS proxy (ищем URL)');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log(' 🎧 STUDIO 21 ✅ ПРЯМОЙ ПОТОК');
-            console.log(' 🚇 Радио МЕТРО 🔐 NEW CORS proxy');
+            console.log(' 🚇 Радио МЕТРО ✅ ПРОБУЕМ ПРЯМОЙ ПОТОК');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Тестируем через cors.sh - надежный прокси без лимитов!');
-            console.log('🔄 Автоматическое переключение на резервные если не сработает');
+            console.log('💡 Metro: новый URL напрямую (если работает в браузере - должно работать!)');
+            console.log('🔍 Ibiza: нужен stream URL с mytuner (F12 → Network → запусти радио)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
