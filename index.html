@@ -641,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.25</span>
+            <span class="logo-version">v3.27</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -748,11 +748,11 @@
         let youtubePlayer = null;
         let youtubePlayerReady = false;
 
-        // CORS Proxy система с fallback
+        // CORS Proxy система с fallback (отсортированы по надежности)
         const corsProxies = [
-            'https://api.allorigins.win/raw?url=',
-            'https://thingproxy.freeboard.io/fetch/',
-            'https://corsproxy.io/?'
+            'https://corsproxy.io/?',                       // #0 - самый стабильный
+            'https://thingproxy.freeboard.io/fetch/',       // #1 - резервный
+            'https://api.allorigins.win/raw?url='           // #2 - иногда падает
         ];
         let currentProxyIndex = 0;
 
@@ -771,7 +771,7 @@
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
             // Испанские станции
-            'ibiza-sonica': 'http://s1.sonicabroadcast.com:7005/;',
+            'ibiza-sonica': 'http://ibizaglobalradio.streaming-pro.com:8024/ibizaglobalradio.mp3',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -781,7 +781,7 @@
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
             'studio-21': 'https://stream.studio21.ru/studio2196.aacp',
-            'radio-metro': 'https://stream.radiometro.ru:8443/metro.mp3',
+            'radio-metro': 'http://stream.radiometro.ru:8230/',
             // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
@@ -1428,13 +1428,13 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.25 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - ORIGINAL STREAMS');
+            console.log('🌟 IskrCLOCK v3.27 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - PROXY PRIORITY');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.25 - ОРИГИНАЛЬНЫЕ ПОТОКИ!');
+            console.log('🔊 ВЕРСИЯ 3.27 - ПРИОРИТЕТ ПРОКСИ!');
             console.log(' ✅ Интегрирована система CORS proxy');
-            console.log(' 🔄 3 публичных прокси с автопереключением');
-            console.log(' 🔐 allorigins.win, thingproxy, corsproxy.io');
+            console.log(' 🔄 3 публичных прокси отсортированы по надежности');
+            console.log(' 🔐 corsproxy.io, thingproxy, allorigins.win');
             console.log(' 🎧 4 станции через CORS proxy');
             console.log(' 🎥 YouTube только для NINJA CHILL');
             console.log('');
@@ -1443,17 +1443,17 @@
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🏝️ Ibiza Sonica 🔐 CORS proxy');
+            console.log(' 🏝️ Ibiza Global Radio 🔐 CORS proxy');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🎧 STUDIO 21 🔐 CORS proxy');
+            console.log(' 🎧 STUDIO 21 🔐 CORS proxy ✅');
             console.log(' 🚇 Радио МЕТРО 🔐 CORS proxy');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Используем оригинальные потоки с CORS прокси!');
-            console.log('🔄 Автопереключение между 3 прокси при ошибках');
+            console.log('💡 Прокси отсортированы по стабильности!');
+            console.log('🔄 corsproxy.io теперь первый (самый надежный)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
