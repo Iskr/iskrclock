@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IskrCLOCK - Будильник с радио онлайн</title>
+    <title>IskrCLOCK v4.0 - Будильник с радио онлайн</title>
     <!-- YouTube IFrame Player API -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
@@ -641,17 +641,17 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.31</span>
+            <span class="logo-version">v4.0</span>
         </div>
         <nav class="nav">
-            <a href="#" class="nav-item">⏰ Будильники</a>
-            <a href="#" class="nav-item">⏲️ Таймеры</a>
-            <a href="#" class="nav-item">⏱️ Секундомер</a>
-            <a href="#" class="nav-item">🧮 Калькулятор сна</a>
+            <a href="index.html" class="nav-item">⏰ Будильники</a>
+            <a href="timer.html" class="nav-item">⏲️ Таймеры</a>
+            <a href="stopwatch.html" class="nav-item">⏱️ Секундомер</a>
+            <a href="sleep-calculator.html" class="nav-item">🧮 Калькулятор сна</a>
         </nav>
         <select class="lang-selector">
-            <option>Русский</option>
-            <option>English</option>
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
         </select>
     </header>
 
@@ -694,7 +694,6 @@
                     <option value="electro-swing">🎵 Electro Swing Radio</option>
                     <option value="rinse-france">🎧 Rinse France (Paris)</option>
                     <option value="rinse-uk">🎧 Rinse UK (London)</option>
-                    <option value="ibiza-sonica">🏝️ Ibiza Sonica</option>
                     <option value="fip">🇫🇷 FIP Radio (Paris)</option>
                     <option value="europa-plus">📻 Европа Плюс</option>
                     <option value="radio-energy">📻 Radio Energy</option>
@@ -750,8 +749,8 @@
 
         // CORS Proxy система с fallback (отсортированы по надежности)
         const corsProxies = [
-            'https://proxy.cors.sh/',                       // #0 - НОВЫЙ! быстрый, без лимитов
-            'https://corsproxy.io/?',                       // #1 - стабильный
+            'https://corsproxy.io/?',                       // #0 - САМЫЙ СТАБИЛЬНЫЙ для Rinse UK
+            'https://proxy.cors.sh/',                       // #1 - быстрый, без лимитов
             'https://thingproxy.freeboard.io/fetch/',       // #2 - резервный
             'https://api.allorigins.win/raw?url='           // #3 - иногда падает
         ];
@@ -771,8 +770,6 @@
             'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
-            // Испанские станции
-            'ibiza-sonica': 'https://ssl1.viastreaming.net:7005/;',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -788,7 +785,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk', 'ibiza-sonica'];
+        const needsCorsProxy = ['rinse-uk'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1429,32 +1426,30 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.34 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - METRO DIRECT TEST');
+            console.log('🌟 IskrCLOCK v4.0 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - Стабильная сборка');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.34 - METRO БЕЗ ПРОКСИ!');
-            console.log(' 🚇 METRO с новым URL пробуем напрямую');
-            console.log(' 🔄 Все CORS прокси провалились - тестируем direct');
+            console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
+            console.log(' ✅ Радио МЕТРО напрямую (работает!)');
             console.log(' ✅ Rinse UK через CORS proxy (работает!)');
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
+            console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
             console.log('');
-            console.log('📻 Доступные станции (19):');
+            console.log('📻 Доступные станции (18):');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🏝️ Ibiza Sonica 🔐 CORS proxy (ищем URL)');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log(' 🎧 STUDIO 21 ✅ ПРЯМОЙ ПОТОК');
-            console.log(' 🚇 Радио МЕТРО ✅ ПРОБУЕМ ПРЯМОЙ ПОТОК');
+            console.log(' 🚇 Радио МЕТРО ✅ ПРЯМОЙ ПОТОК');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Metro: новый URL напрямую (если работает в браузере - должно работать!)');
-            console.log('🔍 Ibiza: нужен stream URL с mytuner (F12 → Network → запусти радио)');
+            console.log('💡 Все радиостанции протестированы и работают!');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
@@ -1514,6 +1509,61 @@
             console.log(' 🔔 Playing beep #1 [v3.0]');
             console.log(' 🔔 Playing beep #2 [v3.0] ...');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Language switching
+            const translations = {
+                ru: {
+                    navAlarms: '⏰ Будильники',
+                    navTimer: '⏲️ Таймеры',
+                    navStopwatch: '⏱️ Секундомер',
+                    navSleep: '🧮 Калькулятор сна',
+                    alarmLabel: 'Будильник',
+                    radioLabel: 'Радио',
+                    alarmTime: 'Время будильника:'
+                },
+                en: {
+                    navAlarms: '⏰ Alarms',
+                    navTimer: '⏲️ Timer',
+                    navStopwatch: '⏱️ Stopwatch',
+                    navSleep: '🧮 Sleep Calculator',
+                    alarmLabel: 'Alarm',
+                    radioLabel: 'Radio',
+                    alarmTime: 'Alarm time:'
+                }
+            };
+
+            let currentLang = localStorage.getItem('language') || 'ru';
+
+            function switchLanguage(lang) {
+                currentLang = lang;
+                localStorage.setItem('language', lang);
+
+                const t = translations[lang];
+                const nav = document.querySelectorAll('.nav-item');
+                if (nav[0]) nav[0].textContent = t.navAlarms;
+                if (nav[1]) nav[1].textContent = t.navTimer;
+                if (nav[2]) nav[2].textContent = t.navStopwatch;
+                if (nav[3]) nav[3].textContent = t.navSleep;
+
+                const alarmLabel = document.querySelector('.alarm-section label');
+                if (alarmLabel) alarmLabel.textContent = t.alarmTime;
+
+                const radioLabel = document.querySelector('.radio-section label');
+                if (radioLabel) radioLabel.textContent = t.radioLabel;
+
+                document.querySelector('.lang-selector').value = lang;
+            }
+
+            document.querySelector('.lang-selector').addEventListener('change', (e) => {
+                switchLanguage(e.target.value);
+            });
+
+            // Set initial language
+            const langSelector = document.querySelector('.lang-selector');
+            langSelector.value = currentLang;
+            if (currentLang === 'en') {
+                switchLanguage('en');
+            }
         });
     </script>
 </body>

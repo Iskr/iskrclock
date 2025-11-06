@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор сна - IskrCLOCK</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            background: #e0e0e0;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        input[type="time"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type="time"]:focus {
+            border-color: #667eea;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 30px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .info-box p {
+            color: #1565C0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .time-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .time-option {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .time-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .time-option.best {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            position: relative;
+        }
+
+        .time-option.best::before {
+            content: '⭐ Лучшее';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FFC107;
+            color: #333;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .time-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .cycles-count {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .btn-back {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            .time-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .time-value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Калькулятор сна</h1>
+        <p class="subtitle">Средний цикл сна составляет 90 минут</p>
+
+        <div class="mode-selector">
+            <div class="mode-btn active" onclick="selectMode('wakeup')" id="wakeupModeBtn">
+                🌅 Когда проснуться?
+            </div>
+            <div class="mode-btn" onclick="selectMode('bedtime')" id="bedtimeModeBtn">
+                😴 Когда лечь спать?
+            </div>
+        </div>
+
+        <div class="input-section">
+            <label id="inputLabel">Во сколько вы хотите лечь спать?</label>
+            <input type="time" id="timeInput" value="23:00">
+        </div>
+
+        <button class="calculate-btn" onclick="calculate()">🔮 Рассчитать</button>
+
+        <div class="results" id="results">
+            <div class="info-box">
+                <p id="infoText">
+                    Среднестатистическому человеку нужно около 14 минут, чтобы заснуть.
+                    Просыпаться лучше всего между циклами сна, а не во время глубокой фазы.
+                </p>
+            </div>
+
+            <h3 class="results-title" id="resultsTitle"></h3>
+            <div class="time-options" id="timeOptions"></div>
+        </div>
+
+        <button class="btn-back" onclick="window.location.href='index.html'">← Назад к будильнику</button>
+    </div>
+
+    <script>
+        let currentMode = 'wakeup';
+        const SLEEP_CYCLE = 90; // minutes
+        const FALL_ASLEEP_TIME = 14; // minutes
+
+        function selectMode(mode) {
+            currentMode = mode;
+            const wakeupBtn = document.getElementById('wakeupModeBtn');
+            const bedtimeBtn = document.getElementById('bedtimeModeBtn');
+            const inputLabel = document.getElementById('inputLabel');
+            const results = document.getElementById('results');
+
+            if (mode === 'wakeup') {
+                wakeupBtn.classList.add('active');
+                bedtimeBtn.classList.remove('active');
+                inputLabel.textContent = 'Во сколько вы хотите лечь спать?';
+            } else {
+                bedtimeBtn.classList.add('active');
+                wakeupBtn.classList.remove('active');
+                inputLabel.textContent = 'Во сколько вы хотите проснуться?';
+            }
+
+            results.classList.remove('show');
+        }
+
+        function calculate() {
+            const timeInput = document.getElementById('timeInput').value;
+            if (!timeInput) {
+                alert('Пожалуйста, выберите время');
+                return;
+            }
+
+            const [hours, minutes] = timeInput.split(':').map(Number);
+            const inputDate = new Date();
+            inputDate.setHours(hours, minutes, 0, 0);
+
+            const results = document.getElementById('results');
+            const resultsTitle = document.getElementById('resultsTitle');
+            const timeOptions = document.getElementById('timeOptions');
+            const infoText = document.getElementById('infoText');
+
+            timeOptions.innerHTML = '';
+
+            if (currentMode === 'wakeup') {
+                resultsTitle.textContent = '⏰ Вам стоит проснуться в:';
+                infoText.innerHTML = `Если вы ляжете спать в <strong>${formatTime(inputDate)}</strong> и заснете примерно через ${FALL_ASLEEP_TIME} минут, лучшее время для пробуждения:`;
+
+                // Add fall asleep time
+                const fallAsleepDate = new Date(inputDate.getTime() + FALL_ASLEEP_TIME * 60000);
+
+                // Calculate wake up times for 4, 5, 6 cycles (6, 7.5, 9 hours)
+                const cycles = [4, 5, 6];
+                cycles.forEach((cycle, index) => {
+                    const wakeTime = new Date(fallAsleepDate.getTime() + cycle * SLEEP_CYCLE * 60000);
+                    const hours = cycle * SLEEP_CYCLE / 60;
+
+                    const option = document.createElement('div');
+                    option.className = 'time-option' + (index === 1 ? ' best' : '');
+                    option.innerHTML = `
+                        <div class="time-value">${formatTime(wakeTime)}</div>
+                        <div class="cycles-count">${cycle} циклов (${hours} ч)</div>
+                    `;
+                    timeOptions.appendChild(option);
+                });
+            } else {
+                resultsTitle.textContent = '😴 Вам стоит лечь спать в:';
+                infoText.innerHTML = `Если вы хотите проснуться в <strong>${formatTime(inputDate)}</strong>, лучшее время чтобы лечь спать (с учетом ${FALL_ASLEEP_TIME} мин на засыпание):`;
+
+                // Calculate bedtimes for 4, 5, 6 cycles
+                const cycles = [6, 5, 4];
+                cycles.forEach((cycle, index) => {
+                    const totalMinutes = cycle * SLEEP_CYCLE + FALL_ASLEEP_TIME;
+                    const bedTime = new Date(inputDate.getTime() - totalMinutes * 60000);
+                    const hours = cycle * SLEEP_CYCLE / 60;
+
+                    const option = document.createElement('div');
+                    option.className = 'time-option' + (index === 1 ? ' best' : '');
+                    option.innerHTML = `
+                        <div class="time-value">${formatTime(bedTime)}</div>
+                        <div class="cycles-count">${cycle} циклов (${hours} ч)</div>
+                    `;
+                    timeOptions.appendChild(option);
+                });
+            }
+
+            results.classList.add('show');
+        }
+
+        function formatTime(date) {
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        // Set current time
+        const now = new Date();
+        document.getElementById('timeInput').value = formatTime(now);
+    </script>
+</body>
+</html>
