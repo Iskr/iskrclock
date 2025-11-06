@@ -641,7 +641,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v3.24</span>
+            <span class="logo-version">v3.25</span>
         </div>
         <nav class="nav">
             <a href="#" class="nav-item">⏰ Будильники</a>
@@ -770,6 +770,8 @@
             'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
+            // Испанские станции
+            'ibiza-sonica': 'http://s1.sonicabroadcast.com:7005/;',
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -778,19 +780,18 @@
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
             'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
+            'studio-21': 'https://stream.studio21.ru/studio2196.aacp',
+            'radio-metro': 'https://stream.radiometro.ru:8443/metro.mp3',
             // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk'];
+        const needsCorsProxy = ['rinse-uk', 'ibiza-sonica', 'studio-21', 'radio-metro'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
-            'ninja-chill': 'vgQyWl3EObY',
-            'ibiza-sonica': 'dT_SvVp-Dt8',  // Ibiza Global Radio 24/7
-            'studio-21': 'q5O_dWzPn_8',     // Russian Hip-Hop 24/7
-            'radio-metro': 'jfKfPfyJRdk'     // Lofi Girl (альтернатива Metro)
+            'ninja-chill': 'vgQyWl3EObY'
         };
 
         // Получить URL с CORS proxy
@@ -1427,32 +1428,32 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v3.24 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - YOUTUBE MIGRATION');
+            console.log('🌟 IskrCLOCK v3.25 ЗАГРУЖЕН');
+            console.log('📅 Версия от 6 ноября 2025 - ORIGINAL STREAMS');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 3.24 - YOUTUBE МИГРАЦИЯ!');
+            console.log('🔊 ВЕРСИЯ 3.25 - ОРИГИНАЛЬНЫЕ ПОТОКИ!');
             console.log(' ✅ Интегрирована система CORS proxy');
             console.log(' 🔄 3 публичных прокси с автопереключением');
             console.log(' 🔐 allorigins.win, thingproxy, corsproxy.io');
-            console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
-            console.log(' 🎥 YouTube поддержка расширена');
+            console.log(' 🎧 4 станции через CORS proxy');
+            console.log(' 🎥 YouTube только для NINJA CHILL');
             console.log('');
             console.log('📻 Доступные станции (19):');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🏝️ Ibiza Sonica (YouTube) 🎥');
+            console.log(' 🏝️ Ibiza Sonica 🔐 CORS proxy');
             console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🎧 STUDIO 21 (YouTube) 🎥');
-            console.log(' 🚇 Радио МЕТРО (YouTube) 🎥');
+            console.log(' 🎧 STUDIO 21 🔐 CORS proxy');
+            console.log(' 🚇 Радио МЕТРО 🔐 CORS proxy');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
-            console.log('💡 Мигрировано на YouTube: Ibiza Sonica, STUDIO 21, Радио МЕТРО');
-            console.log('🔄 Прямые потоки были сломаны, YouTube более надежен!');
+            console.log('💡 Используем оригинальные потоки с CORS прокси!');
+            console.log('🔄 Автопереключение между 3 прокси при ошибках');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
