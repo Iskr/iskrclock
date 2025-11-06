@@ -685,9 +685,8 @@
             <div class="radio-controls">
                 <select class="radio-select" id="radioSelect">
                     <option value="classic">🔔 Классический сигнал</option>
-                    <option value="lofi">🎵 Lofi Hip Hop</option>
-                    <option value="jazz">🎷 Smooth Jazz</option>
-                    <option value="electronic">🎹 Electronic Chill</option>
+                    <option value="bbc-radio-1">📻 BBC Radio 1</option>
+                    <option value="npr">📻 NPR (National Public Radio)</option>
                     <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
@@ -761,9 +760,8 @@
 
         // URL радиостанций (с CORS и без)
         const radioStreams = {
-            'lofi': 'https://usa9.fastcast4u.com/proxy/jamz?mp=/1',
-            'jazz': 'https://ice1.somafm.com/secretagent-128-mp3',
-            'electronic': 'https://ice1.somafm.com/groovesalad-128-mp3',
+            'bbc-radio-1': 'http://lstn.lv/bbc.m3u8?station=bbc_radio_one&bitrate=320000',
+            'npr': 'https://streams.kut.org/kut_aac-128',
             // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
@@ -1430,18 +1428,21 @@
             console.log('📅 Версия от 6 ноября 2025 - Стабильная сборка');
             console.log('═══════════════════════════════════════════════════════');
             console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
+            console.log(' 📻 BBC Radio 1 (NEW!)');
+            console.log(' 📻 NPR - National Public Radio (NEW!)');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' ✅ Радио МЕТРО напрямую (работает!)');
             console.log(' ✅ Rinse UK через CORS proxy (работает!)');
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
             console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
             console.log('');
-            console.log('📻 Доступные станции (18):');
+            console.log('📻 Доступные станции (17):');
+            console.log(' 📻 BBC Radio 1 (London) ⭐ НОВАЯ!');
+            console.log(' 📻 NPR (USA) ⭐ НОВАЯ!');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🎵 Lofi, Jazz, Electronic (SomaFM)');
             console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
@@ -1450,6 +1451,8 @@
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
             console.log('💡 Все радиостанции протестированы и работают!');
+            console.log('🌍 Переключатель языка: Русский/English');
+            console.log('❌ Удалены: SomaFM станции (Lofi, Jazz, Electronic)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
@@ -1513,22 +1516,26 @@
             // Language switching
             const translations = {
                 ru: {
-                    navAlarms: '⏰ Будильники',
-                    navTimer: '⏲️ Таймеры',
-                    navStopwatch: '⏱️ Секундомер',
-                    navSleep: '🧮 Калькулятор сна',
-                    alarmLabel: 'Будильник',
-                    radioLabel: 'Радио',
-                    alarmTime: 'Время будильника:'
+                    title: 'Будильник с радио онлайн',
+                    loading: 'Загрузка...',
+                    hours: 'Часы',
+                    minutes: 'Минуты',
+                    snooze: 'Подремать (мин)',
+                    selectAlarmSound: 'Выбрать сигнал будильника?',
+                    classicBeep: '🔔 Классический сигнал',
+                    europaPlus: '📻 Европа Плюс',
+                    radioMetro: '🚇 Радио МЕТРО'
                 },
                 en: {
-                    navAlarms: '⏰ Alarms',
-                    navTimer: '⏲️ Timer',
-                    navStopwatch: '⏱️ Stopwatch',
-                    navSleep: '🧮 Sleep Calculator',
-                    alarmLabel: 'Alarm',
-                    radioLabel: 'Radio',
-                    alarmTime: 'Alarm time:'
+                    title: 'Online Alarm Clock with Radio',
+                    loading: 'Loading...',
+                    hours: 'Hours',
+                    minutes: 'Minutes',
+                    snooze: 'Snooze (min)',
+                    selectAlarmSound: 'Select alarm sound:',
+                    classicBeep: '🔔 Classic Beep',
+                    europaPlus: '📻 Europa Plus',
+                    radioMetro: '🚇 Radio METRO'
                 }
             };
 
@@ -1539,17 +1546,36 @@
                 localStorage.setItem('language', lang);
 
                 const t = translations[lang];
+
+                // Update navigation
                 const nav = document.querySelectorAll('.nav-item');
-                if (nav[0]) nav[0].textContent = t.navAlarms;
-                if (nav[1]) nav[1].textContent = t.navTimer;
-                if (nav[2]) nav[2].textContent = t.navStopwatch;
-                if (nav[3]) nav[3].textContent = t.navSleep;
+                if (nav[0]) nav[0].textContent = lang === 'ru' ? '⏰ Будильники' : '⏰ Alarms';
+                if (nav[1]) nav[1].textContent = lang === 'ru' ? '⏲️ Таймеры' : '⏲️ Timer';
+                if (nav[2]) nav[2].textContent = lang === 'ru' ? '⏱️ Секундомер' : '⏱️ Stopwatch';
+                if (nav[3]) nav[3].textContent = lang === 'ru' ? '🧮 Калькулятор сна' : '🧮 Sleep Calculator';
 
-                const alarmLabel = document.querySelector('.alarm-section label');
-                if (alarmLabel) alarmLabel.textContent = t.alarmTime;
+                // Update main title
+                const title = document.querySelector('.title');
+                if (title) title.textContent = t.title;
 
+                // Update labels
+                const labels = document.querySelectorAll('.time-input-group label');
+                if (labels[0]) labels[0].textContent = t.hours;
+                if (labels[1]) labels[1].textContent = t.minutes;
+                if (labels[2]) labels[2].textContent = t.snooze;
+
+                // Update radio section label
                 const radioLabel = document.querySelector('.radio-section label');
-                if (radioLabel) radioLabel.textContent = t.radioLabel;
+                if (radioLabel) radioLabel.textContent = t.selectAlarmSound;
+
+                // Update select options
+                const selectOptions = document.querySelectorAll('#radioSelect option');
+                selectOptions.forEach(option => {
+                    const value = option.value;
+                    if (value === 'classic') option.textContent = t.classicBeep;
+                    else if (value === 'europa-plus') option.textContent = t.europaPlus;
+                    else if (value === 'radio-metro') option.textContent = t.radioMetro;
+                });
 
                 document.querySelector('.lang-selector').value = lang;
             }
