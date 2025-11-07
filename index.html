@@ -685,7 +685,6 @@
             <div class="radio-controls">
                 <select class="radio-select" id="radioSelect">
                     <option value="classic">🔔 Классический сигнал</option>
-                    <option value="bbc-radio-1">📻 BBC Radio 1</option>
                     <option value="npr">📻 NPR (National Public Radio)</option>
                     <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
@@ -760,7 +759,6 @@
 
         // URL радиостанций (с CORS и без)
         const radioStreams = {
-            'bbc-radio-1': 'http://lstn.lv/bbc.m3u8?station=bbc_radio_one&bitrate=320000',
             'npr': 'https://streams.kut.org/4426_128.mp3?aw_0_1st.playerid=kut-free',
             // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
@@ -783,7 +781,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk', 'bbc-radio-1'];
+        const needsCorsProxy = ['rinse-uk'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1428,7 +1426,6 @@
             console.log('📅 Версия от 6 ноября 2025 - Стабильная сборка');
             console.log('═══════════════════════════════════════════════════════');
             console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
-            console.log(' 📻 BBC Radio 1 (NEW!)');
             console.log(' 📻 NPR - National Public Radio (NEW!)');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' ✅ Радио МЕТРО напрямую (работает!)');
@@ -1436,8 +1433,7 @@
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
             console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
             console.log('');
-            console.log('📻 Доступные станции (17):');
-            console.log(' 📻 BBC Radio 1 (London) ⭐ НОВАЯ!');
+            console.log('📻 Доступные станции (16):');
             console.log(' 📻 NPR (USA) ⭐ НОВАЯ!');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
@@ -1452,7 +1448,7 @@
             console.log('');
             console.log('💡 Все радиостанции протестированы и работают!');
             console.log('🌍 Переключатель языка: Русский/English');
-            console.log('❌ Удалены: SomaFM станции (Lofi, Jazz, Electronic)');
+            console.log('❌ Удалены: BBC Radio 1 (HLS не поддерживается), SomaFM');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
