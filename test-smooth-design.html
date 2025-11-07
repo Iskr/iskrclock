@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IskrCLOCK - Тест плавных переходов</title>
+    <title>IskrCLOCK - Тест плавных переходов v2.0</title>
     <style>
         * {
             margin: 0;
@@ -13,64 +13,99 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
             overflow: hidden;
             position: relative;
-            transition: background 30s ease-in-out;
+            transition: background 40s ease-in-out;
         }
 
-        /* Времена суток с более плавными градиентами */
-        body.night {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Плавные переходы через близкие цвета - темная ночь к светлому дню */
+        /* Ночные сцены - темно-синие тона */
+        body.scene-01-deep-night {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         }
 
-        body.late-night {
-            background: linear-gradient(135deg, #4a5f8c 0%, #5a3d7a 100%);
-        }
-
-        body.pre-dawn {
-            background: linear-gradient(135deg, #3d4e6f 0%, #6b4d7a 100%);
-        }
-
-        body.dawn {
-            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 50%, #ffd1ff 100%);
-        }
-
-        body.early-morning {
-            background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
-        }
-
-        body.morning {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        }
-
-        body.late-morning {
-            background: linear-gradient(135deg, #96e6a1 0%, #d4fc79 100%);
-        }
-
-        body.day {
-            background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
-        }
-
-        body.afternoon {
-            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-        }
-
-        body.late-afternoon {
-            background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%);
-        }
-
-        body.evening {
-            background: linear-gradient(135deg, #fc466b 0%, #3f5efb 100%);
-        }
-
-        body.late-evening {
-            background: linear-gradient(135deg, #a44086 0%, #4a3d80 100%);
-        }
-
-        body.midnight {
+        body.scene-02-night {
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        }
+
+        body.scene-03-late-night {
+            background: linear-gradient(135deg, #3d5a80 0%, #4a5f8c 100%);
+        }
+
+        body.scene-04-pre-dawn {
+            background: linear-gradient(135deg, #4e6f9e 0%, #5a7bb5 100%);
+        }
+
+        /* Рассветные сцены - добавляем розовый к синему */
+        body.scene-05-early-dawn {
+            background: linear-gradient(135deg, #6080b8 0%, #7892c2 50%, #8e86c0 100%);
+        }
+
+        body.scene-06-dawn {
+            background: linear-gradient(135deg, #8a92d5 0%, #a89fd8 50%, #c8a8db 100%);
+        }
+
+        body.scene-07-sunrise {
+            background: linear-gradient(135deg, #d8b0e8 0%, #e8c0f0 50%, #f0d0f8 100%);
+        }
+
+        /* Утренние сцены - светлые пастельные */
+        body.scene-08-early-morning {
+            background: linear-gradient(135deg, #f0d8fc 0%, #f5e0ff 50%, #fae8ff 100%);
+        }
+
+        body.scene-09-morning {
+            background: linear-gradient(135deg, #fceaff 0%, #fff0fa 50%, #fff5f0 100%);
+        }
+
+        body.scene-10-late-morning {
+            background: linear-gradient(135deg, #fff8f0 0%, #fffbf5 50%, #fffef8 100%);
+        }
+
+        /* Дневные сцены - яркие светлые */
+        body.scene-11-midday {
+            background: linear-gradient(135deg, #fffff0 0%, #fffff8 50%, #fffffa 100%);
+        }
+
+        body.scene-12-afternoon {
+            background: linear-gradient(135deg, #fffef8 0%, #fffcf0 50%, #fffae8 100%);
+        }
+
+        body.scene-13-late-afternoon {
+            background: linear-gradient(135deg, #fff8e0 0%, #fff0d0 50%, #ffe8c0 100%);
+        }
+
+        /* Вечерние сцены - теплые оранжевые к красным */
+        body.scene-14-early-evening {
+            background: linear-gradient(135deg, #ffe0b0 0%, #ffd0a0 50%, #ffc090 100%);
+        }
+
+        body.scene-15-evening {
+            background: linear-gradient(135deg, #ffb080 0%, #ffa070 50%, #ff9060 100%);
+        }
+
+        body.scene-16-sunset {
+            background: linear-gradient(135deg, #ff8050 0%, #ff7060 50%, #ff6070 100%);
+        }
+
+        /* Поздний вечер - красный к фиолетовому */
+        body.scene-17-late-evening {
+            background: linear-gradient(135deg, #f05080 0%, #e04090 50%, #d030a0 100%);
+        }
+
+        body.scene-18-dusk {
+            background: linear-gradient(135deg, #c020a8 0%, #a020b0 50%, #8020b8 100%);
+        }
+
+        body.scene-19-early-night {
+            background: linear-gradient(135deg, #6020b0 0%, #5020a0 50%, #402090 100%);
+        }
+
+        /* Возврат к ночи - фиолетовый к синему */
+        body.scene-20-night-transition {
+            background: linear-gradient(135deg, #302080 0%, #282070 50%, #202060 100%);
         }
 
         .mountain-bg {
@@ -84,50 +119,61 @@
             transition: filter 30s ease-in-out, opacity 30s ease-in-out;
         }
 
-        .mountain-bg.night,
-        .mountain-bg.late-night,
-        .mountain-bg.pre-dawn {
-            filter: hue-rotate(0deg) brightness(0.8) saturate(0.9);
-        }
-
-        .mountain-bg.dawn {
-            filter: hue-rotate(320deg) brightness(1.1) saturate(1.3);
-        }
-
-        .mountain-bg.early-morning {
-            filter: hue-rotate(280deg) brightness(1.2) saturate(1.2);
-        }
-
-        .mountain-bg.morning {
-            filter: hue-rotate(200deg) brightness(1.4) saturate(1.3);
-        }
-
-        .mountain-bg.late-morning {
-            filter: hue-rotate(180deg) brightness(1.5) saturate(1.2);
-        }
-
-        .mountain-bg.day {
-            filter: hue-rotate(150deg) brightness(1.6) saturate(1.2);
-        }
-
-        .mountain-bg.afternoon {
-            filter: hue-rotate(120deg) brightness(1.5) saturate(1.1);
-        }
-
-        .mountain-bg.late-afternoon {
-            filter: hue-rotate(80deg) brightness(1.3) saturate(1.2);
-        }
-
-        .mountain-bg.evening {
-            filter: hue-rotate(40deg) brightness(1.1) saturate(1.4);
-        }
-
-        .mountain-bg.late-evening {
-            filter: hue-rotate(20deg) brightness(0.9) saturate(1.2);
-        }
-
-        .mountain-bg.midnight {
+        /* Горы - плавные переходы фильтров */
+        .mountain-bg.scene-01-deep-night,
+        .mountain-bg.scene-02-night,
+        .mountain-bg.scene-03-late-night,
+        .mountain-bg.scene-04-pre-dawn {
             filter: hue-rotate(0deg) brightness(0.7) saturate(0.8);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-05-early-dawn,
+        .mountain-bg.scene-06-dawn {
+            filter: hue-rotate(320deg) brightness(0.9) saturate(1.0);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-07-sunrise,
+        .mountain-bg.scene-08-early-morning {
+            filter: hue-rotate(280deg) brightness(1.1) saturate(1.1);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-09-morning,
+        .mountain-bg.scene-10-late-morning {
+            filter: hue-rotate(200deg) brightness(1.3) saturate(1.2);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-11-midday,
+        .mountain-bg.scene-12-afternoon {
+            filter: hue-rotate(150deg) brightness(1.5) saturate(1.2);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-13-late-afternoon,
+        .mountain-bg.scene-14-early-evening {
+            filter: hue-rotate(100deg) brightness(1.3) saturate(1.2);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-15-evening,
+        .mountain-bg.scene-16-sunset {
+            filter: hue-rotate(50deg) brightness(1.1) saturate(1.3);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-17-late-evening,
+        .mountain-bg.scene-18-dusk {
+            filter: hue-rotate(20deg) brightness(0.9) saturate(1.2);
+            transition: filter 40s ease-in-out;
+        }
+
+        .mountain-bg.scene-19-early-night,
+        .mountain-bg.scene-20-night-transition {
+            filter: hue-rotate(0deg) brightness(0.8) saturate(0.9);
+            transition: filter 40s ease-in-out;
         }
 
         .stars {
@@ -207,18 +253,39 @@
             transition: filter 30s ease-in-out;
         }
 
-        .house.day,
-        .house.afternoon,
-        .house.morning,
-        .house.late-morning,
-        .house.late-afternoon {
+        /* Домик днем - светлый */
+        .house.scene-09-morning,
+        .house.scene-10-late-morning,
+        .house.scene-11-midday,
+        .house.scene-12-afternoon,
+        .house.scene-13-late-afternoon {
             filter: brightness(1.3) saturate(1.2);
+            transition: filter 40s ease-in-out;
         }
 
-        .house.night,
-        .house.late-night,
-        .house.midnight {
+        /* Домик ночью - темный */
+        .house.scene-01-deep-night,
+        .house.scene-02-night,
+        .house.scene-03-late-night,
+        .house.scene-19-early-night,
+        .house.scene-20-night-transition {
             filter: brightness(0.8) saturate(0.9);
+            transition: filter 40s ease-in-out;
+        }
+
+        /* Домик в переходное время */
+        .house.scene-04-pre-dawn,
+        .house.scene-05-early-dawn,
+        .house.scene-06-dawn,
+        .house.scene-07-sunrise,
+        .house.scene-08-early-morning,
+        .house.scene-14-early-evening,
+        .house.scene-15-evening,
+        .house.scene-16-sunset,
+        .house.scene-17-late-evening,
+        .house.scene-18-dusk {
+            filter: brightness(1.0) saturate(1.0);
+            transition: filter 40s ease-in-out;
         }
 
         .house::before {
@@ -244,22 +311,42 @@
             transition: all 30s ease-in-out;
         }
 
-        .house-window.day,
-        .house-window.afternoon,
-        .house-window.morning,
-        .house-window.late-morning,
-        .house-window.late-afternoon {
+        /* Окно днем - голубое (свет не горит) */
+        .house-window.scene-09-morning,
+        .house-window.scene-10-late-morning,
+        .house-window.scene-11-midday,
+        .house-window.scene-12-afternoon,
+        .house-window.scene-13-late-afternoon {
             background: #87CEEB;
             box-shadow: none;
+            transition: all 40s ease-in-out;
         }
 
-        .house-window.night,
-        .house-window.late-night,
-        .house-window.evening,
-        .house-window.late-evening,
-        .house-window.midnight {
+        /* Окно вечером и ночью - желтое (свет горит) */
+        .house-window.scene-01-deep-night,
+        .house-window.scene-02-night,
+        .house-window.scene-03-late-night,
+        .house-window.scene-14-early-evening,
+        .house-window.scene-15-evening,
+        .house-window.scene-16-sunset,
+        .house-window.scene-17-late-evening,
+        .house-window.scene-18-dusk,
+        .house-window.scene-19-early-night,
+        .house-window.scene-20-night-transition {
             background: #FFD700;
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            transition: all 40s ease-in-out;
+        }
+
+        /* Окно на рассвете - переходное состояние */
+        .house-window.scene-04-pre-dawn,
+        .house-window.scene-05-early-dawn,
+        .house-window.scene-06-dawn,
+        .house-window.scene-07-sunrise,
+        .house-window.scene-08-early-morning {
+            background: #b8d4e8;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+            transition: all 40s ease-in-out;
         }
 
         .clouds {
@@ -544,7 +631,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">Тест плавных переходов</span>
+            <span class="logo-version">Тест плавных переходов v2.0 | 2025-11-07 22:15</span>
         </div>
     </header>
 
@@ -565,8 +652,8 @@
 
             <div class="control-group">
                 <label for="transitionDuration">Плавность перехода (длительность анимации)</label>
-                <input type="range" id="transitionDuration" min="10" max="60" value="30" step="5">
-                <div class="value-display"><span id="durationValue">30</span> сек</div>
+                <input type="range" id="transitionDuration" min="10" max="60" value="40" step="5">
+                <div class="value-display"><span id="durationValue">40</span> сек</div>
             </div>
 
             <div class="control-group">
@@ -584,39 +671,48 @@
         </div>
 
         <div class="info-panel">
-            <h3>Информация о тесте</h3>
+            <h3>Информация о тесте v2.0</h3>
             <ul>
-                <li>13 сцен с плавными градиентными переходами</li>
-                <li>Переходы между соседними сценами предотвращают мерцание</li>
-                <li>Увеличенная длительность анимации (30 сек) для максимальной плавности</li>
-                <li>Все элементы (фон, горы, солнце, луна, облака) синхронизированы</li>
-                <li>Разнообразие дизайна сохранено через большое количество сцен</li>
+                <li>20 сцен с микро-шаговыми цветовыми переходами</li>
+                <li>Каждый цвет плавно перетекает в следующий без резких скачков</li>
+                <li>Увеличенная длительность анимации (40 сек) для максимальной плавности</li>
+                <li>Цветовой круг: синий → фиолетовый → розовый → светлый → оранжевый → красный → фиолетовый → синий</li>
+                <li>Все элементы (фон, горы, солнце, луна, облака, окно) синхронизированы</li>
+                <li>Разнообразие дизайна сохранено через большое количество уникальных сцен</li>
             </ul>
         </div>
     </div>
 
     <script>
-        // Сцены времени суток (13 сцен для плавных переходов)
+        // Сцены времени суток (20 сцен для максимально плавных переходов)
+        // Цвета меняются постепенно: ночь (синий) → рассвет (фиолетовый-розовый) → день (светлый) → закат (оранжевый-красный) → вечер (фиолетовый) → ночь
         const timeScenes = [
-            { name: 'night', label: 'Ночь' },
-            { name: 'late-night', label: 'Поздняя ночь' },
-            { name: 'pre-dawn', label: 'Предрассветная тьма' },
-            { name: 'dawn', label: 'Рассвет' },
-            { name: 'early-morning', label: 'Раннее утро' },
-            { name: 'morning', label: 'Утро' },
-            { name: 'late-morning', label: 'Позднее утро' },
-            { name: 'day', label: 'День' },
-            { name: 'afternoon', label: 'Полдень' },
-            { name: 'late-afternoon', label: 'Поздний полдень' },
-            { name: 'evening', label: 'Вечер' },
-            { name: 'late-evening', label: 'Поздний вечер' },
-            { name: 'midnight', label: 'Полночь' }
+            { name: 'scene-01-deep-night', label: '🌑 Глубокая ночь' },
+            { name: 'scene-02-night', label: '🌙 Ночь' },
+            { name: 'scene-03-late-night', label: '🌙 Поздняя ночь' },
+            { name: 'scene-04-pre-dawn', label: '🌌 Предрассветная тьма' },
+            { name: 'scene-05-early-dawn', label: '🌅 Ранний рассвет' },
+            { name: 'scene-06-dawn', label: '🌅 Рассвет' },
+            { name: 'scene-07-sunrise', label: '🌄 Восход солнца' },
+            { name: 'scene-08-early-morning', label: '🌄 Раннее утро' },
+            { name: 'scene-09-morning', label: '☀️ Утро' },
+            { name: 'scene-10-late-morning', label: '☀️ Позднее утро' },
+            { name: 'scene-11-midday', label: '🌞 Полдень' },
+            { name: 'scene-12-afternoon', label: '🌤️ День' },
+            { name: 'scene-13-late-afternoon', label: '🌤️ Поздний день' },
+            { name: 'scene-14-early-evening', label: '🌆 Ранний вечер' },
+            { name: 'scene-15-evening', label: '🌆 Вечер' },
+            { name: 'scene-16-sunset', label: '🌇 Закат' },
+            { name: 'scene-17-late-evening', label: '🌆 Поздний вечер' },
+            { name: 'scene-18-dusk', label: '🌃 Сумерки' },
+            { name: 'scene-19-early-night', label: '🌃 Ранняя ночь' },
+            { name: 'scene-20-night-transition', label: '🌙 Переход к ночи' }
         ];
 
         let currentSceneIndex = 0;
         let transitionInterval = null;
         let transitionSpeed = 60; // секунды
-        let transitionDuration = 30; // секунды
+        let transitionDuration = 40; // секунды (увеличено!)
         let sequentialMode = true;
 
         // Создание звездного неба
@@ -677,12 +773,22 @@
             // Обновляем элементы в зависимости от времени суток
             const sceneName = currentScene.name;
 
-            // Определяем категорию времени суток
-            const isNightTime = ['night', 'late-night', 'pre-dawn', 'midnight'].includes(sceneName);
-            const isDayTime = ['late-morning', 'day', 'afternoon', 'late-afternoon'].includes(sceneName);
-            const isTransitionTime = ['dawn', 'early-morning', 'morning', 'evening', 'late-evening'].includes(sceneName);
+            // Определяем категорию времени суток по номеру сцены (1-20)
+            const sceneNumber = sceneIndex + 1;
 
-            // Звезды и луна
+            // Ночные сцены (1-4, 19-20): звезды + луна
+            const isNightTime = sceneNumber <= 4 || sceneNumber >= 19;
+
+            // Дневные сцены (9-13): солнце + облака
+            const isDayTime = sceneNumber >= 9 && sceneNumber <= 13;
+
+            // Утренние сцены (5-8): рассвет, постепенно появляется солнце
+            const isMorningTime = sceneNumber >= 5 && sceneNumber <= 8;
+
+            // Вечерние сцены (14-18): закат, солнце уходит
+            const isEveningTime = sceneNumber >= 14 && sceneNumber <= 18;
+
+            // Звезды и луна - видны ночью
             if (isNightTime) {
                 stars.classList.remove('hidden');
                 moon.classList.remove('hidden');
@@ -691,15 +797,15 @@
                 moon.classList.add('hidden');
             }
 
-            // Солнце
-            if (isDayTime) {
+            // Солнце - видно днем и частично утром/вечером
+            if (isDayTime || isMorningTime) {
                 sun.classList.add('visible');
             } else {
                 sun.classList.remove('visible');
             }
 
-            // Облака
-            if (isDayTime || isTransitionTime) {
+            // Облака - видны днем, утром и вечером
+            if (isDayTime || isMorningTime || isEveningTime) {
                 clouds.classList.add('visible');
             } else {
                 clouds.classList.remove('visible');
@@ -795,14 +901,17 @@
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🎨 IskrCLOCK - Тест плавных переходов');
+            console.log('🎨 IskrCLOCK - Тест плавных переходов v2.0');
+            console.log('📅 Обновлено: 2025-11-07 22:15');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('✨ Особенности:');
-            console.log('  • 13 сцен с промежуточными состояниями');
-            console.log('  • Увеличенная длительность переходов (30 сек)');
-            console.log('  • Последовательные переходы без резких скачков');
+            console.log('✨ Особенности v2.0:');
+            console.log('  • 20 сцен с микро-шаговыми переходами');
+            console.log('  • Увеличенная длительность переходов (40 сек)');
+            console.log('  • Близкие цвета между соседними сценами');
+            console.log('  • Цветовой круг: синий → розовый → светлый → оранжевый → красный → фиолетовый → синий');
+            console.log('  • Последовательные переходы БЕЗ резких скачков');
             console.log('  • Настраиваемая скорость и плавность');
-            console.log('  • Синхронизация всех элементов');
+            console.log('  • Полная синхронизация всех элементов');
             console.log('═══════════════════════════════════════════════════════');
 
             // Создаем звезды
