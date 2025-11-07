@@ -374,7 +374,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.5.0 - WAV/FLAC + Radio M3U Upload</p>
+            <p class="version">v1.5.1 - 350MB File Limit</p>
         </div>
 
         <div class="nav-links">
@@ -482,8 +482,8 @@
         const DB_VERSION = 1;
         const STORE_NAME = 'audioFiles';
 
-        // File size limit (50MB per file - enough for high quality music)
-        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+        // File size limit (350MB per file - enough for FLAC albums and long mixes)
+        const MAX_FILE_SIZE = 350 * 1024 * 1024; // 350 MB
 
         // CORS Proxy система с fallback (для HTTP стримов на HTTPS странице)
         const corsProxies = [
