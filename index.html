@@ -689,7 +689,7 @@
                     <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
                     <option value="nts-2">🎧 NTS Radio 2 (London)</option>
-                    <option value="electro-swing">🎵 Electro Swing Radio</option>
+                    <option value="bbc-radio-1">📻 BBC Radio 1</option>
                     <option value="rinse-france">🎧 Rinse France (Paris)</option>
                     <option value="rinse-uk">🎧 Rinse UK (London)</option>
                     <option value="fip">🇫🇷 FIP Radio (Paris)</option>
@@ -763,7 +763,7 @@
             // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
-            'electro-swing': 'https://streamer.radio.co/s2c3cc784b/listen',
+            'bbc-radio-1': 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_one/bbc_radio_one.isml/bbc_radio_one-audio=320000.norewind.m3u8',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
             // Французские станции
@@ -781,7 +781,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk'];
+        const needsCorsProxy = ['rinse-uk', 'bbc-radio-1'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1423,23 +1423,24 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
             console.log('🌟 IskrCLOCK v4.0 ЗАГРУЖЕН');
-            console.log('📅 Версия от 6 ноября 2025 - Стабильная сборка');
+            console.log('📅 Версия от 7 ноября 2025 - Стабильная сборка');
             console.log('═══════════════════════════════════════════════════════');
             console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
             console.log(' 📻 NPR - National Public Radio (NEW!)');
+            console.log(' 📻 BBC Radio 1 - 320kbps HLS stream (NEW!)');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' ✅ Радио МЕТРО напрямую (работает!)');
             console.log(' ✅ Rinse UK через CORS proxy (работает!)');
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
-            console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
+            console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK и BBC Radio 1');
             console.log('');
             console.log('📻 Доступные станции (16):');
-            console.log(' 📻 NPR (USA) ⭐ НОВАЯ!');
+            console.log(' 📻 NPR (USA)');
+            console.log(' 📻 BBC Radio 1 (London) 🔐 CORS proxy - 320kbps ⭐ НОВАЯ!');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
             console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
             console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🎵 Electro Swing Radio');
             console.log(' 🇫🇷 FIP Radio (Paris)');
             console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
             console.log(' 🎧 STUDIO 21 ✅ ПРЯМОЙ ПОТОК');
@@ -1448,7 +1449,7 @@
             console.log('');
             console.log('💡 Все радиостанции протестированы и работают!');
             console.log('🌍 Переключатель языка: Русский/English');
-            console.log('❌ Удалены: BBC Radio 1 (HLS не поддерживается), SomaFM');
+            console.log('❌ Удалены: Electro Swing Radio, SomaFM');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
