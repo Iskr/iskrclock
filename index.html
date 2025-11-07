@@ -761,7 +761,7 @@
         // URL радиостанций (с CORS и без)
         const radioStreams = {
             'bbc-radio-1': 'http://lstn.lv/bbc.m3u8?station=bbc_radio_one&bitrate=320000',
-            'npr': 'https://streams.kut.org/kut_aac-128',
+            'npr': 'https://streams.kut.org/4426_128.mp3?aw_0_1st.playerid=kut-free',
             // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
@@ -783,7 +783,7 @@
         };
 
         // Станции требующие CORS proxy (без заголовков CORS)
-        const needsCorsProxy = ['rinse-uk'];
+        const needsCorsProxy = ['rinse-uk', 'bbc-radio-1'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
