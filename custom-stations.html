@@ -526,7 +526,7 @@
         <div class="header">
             <h1 class="page-title">🎵 Пользовательские станции</h1>
             <p class="page-subtitle">Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.8.0 - YouTube Playlists + i18n</p>
+            <p class="version">v2.0 - Complete i18n + YouTube Playlists</p>
         </div>
 
         <div class="nav-links">
@@ -567,7 +567,7 @@
                 </div>
 
                 <div class="form-group" id="urlGroup">
-                    <label for="stationUrl">URL / YouTube ID</label>
+                    <label for="stationUrl" id="urlLabel">URL / YouTube ID</label>
                     <input type="text" id="stationUrl" placeholder="https://example.com/stream.mp3">
                     <p class="help-text" id="urlHelp">Для YouTube укажите ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)</p>
                 </div>
@@ -575,24 +575,24 @@
                 <div id="radioOrDivider" class="or-divider" style="display: none;">ИЛИ</div>
 
                 <div class="form-group" id="radioFileGroup" style="display: none;">
-                    <label for="radioFile">Выберите .m3u или .m3u8 плейлист</label>
+                    <label for="radioFile" id="radioFileLabel">Выберите .m3u или .m3u8 плейлист</label>
                     <input type="file" id="radioFile" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl">
-                    <p class="help-text">Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.</p>
+                    <p class="help-text" id="radioFileHelp">Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.</p>
                 </div>
 
                 <div class="form-group" id="fileGroup" style="display: none;">
-                    <label for="localFiles">Выберите аудио файлы</label>
+                    <label for="localFiles" id="localFilesLabel">Выберите аудио файлы</label>
                     <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
-                    <p class="help-text">Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.</p>
+                    <p class="help-text" id="localFilesHelp">Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.</p>
                     <div class="file-list" id="fileList"></div>
                 </div>
 
                 <div class="form-group add-tracks-section" id="youtubePlaylistSection" style="display: none;">
-                    <h3>🎵 Управление плейлистом YouTube</h3>
-                    <p class="help-text">Создайте плейлист, добавляя видео по одному или сразу несколько через запятую</p>
+                    <h3 id="youtubePlaylistTitle">🎵 Создать плейлист YouTube</h3>
+                    <p class="help-text" id="youtubePlaylistHelp">Добавьте несколько видео в плейлист. Можно вставить одну ссылку или несколько через запятую</p>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <input type="text" id="youtubeTrackUrl" placeholder="YouTube URL или ID (или несколько через запятую)" style="flex: 1;">
-                        <button type="button" class="btn btn-secondary btn-small" onclick="addYouTubeTrack()">➕ Добавить</button>
+                        <input type="text" id="youtubeTrackUrl" placeholder="Вставьте YouTube URL или ID" style="flex: 1;">
+                        <button type="button" class="btn btn-primary btn-small" onclick="addYouTubeTrack()">➕ Добавить в плейлист</button>
                     </div>
                     <div class="file-list" id="youtubeTrackList" style="margin-top: 10px;"></div>
                 </div>
@@ -1027,29 +1027,23 @@
                 const url = document.getElementById('stationUrl').value.trim();
 
                 if (type === 'youtube') {
-                    // Check if we have playlist or single video
+                    // Check if we have playlist tracks
                     if (selectedYouTubeTracks.length > 0) {
                         // Playlist mode - save all tracks
                         stationData.videoIds = selectedYouTubeTracks.map(t => t.id);
                         stationData.isPlaylist = true;
                         console.log(`✅ YouTube playlist created with ${selectedYouTubeTracks.length} tracks`);
-                    } else if (url) {
-                        // Single video mode
-                        const videoId = extractYouTubeId(url);
-                        if (!videoId) {
-                            alert('Не удалось извлечь YouTube ID. Проверьте ссылку или введите ID вручную (например: dQw4w9WgXcQ)');
-                            return;
-                        }
-                        stationData.url = videoId;
-                        stationData.isPlaylist = false;
-                        console.log(`✅ YouTube ID extracted: ${videoId}`);
                     } else {
-                        alert('Добавьте хотя бы одно видео в плейлист или введите URL');
+                        const lang = localStorage.getItem('language') || 'ru';
+                        alert(lang === 'en'
+                            ? 'Please add at least one video to the playlist using the "Add to Playlist" button'
+                            : 'Добавьте хотя бы одно видео в плейлист с помощью кнопки "Добавить в плейлист"');
                         return;
                     }
                 } else {
                     if (!url) {
-                        alert('Пожалуйста, укажите URL');
+                        const lang = localStorage.getItem('language') || 'ru';
+                        alert(lang === 'en' ? 'Please provide a URL' : 'Пожалуйста, укажите URL');
                         return;
                     }
                     stationData.url = url;
@@ -1757,6 +1751,7 @@
             const type = document.getElementById('stationType').value;
             const urlHelp = document.getElementById('urlHelp');
             const urlInput = document.getElementById('stationUrl');
+            const urlLabel = document.getElementById('urlLabel');
             const urlGroup = document.getElementById('urlGroup');
             const fileGroup = document.getElementById('fileGroup');
             const radioFileGroup = document.getElementById('radioFileGroup');
@@ -1770,6 +1765,8 @@
             radioOrDivider.style.display = 'none';
             youtubePlaylistSection.style.display = 'none';
 
+            const lang = localStorage.getItem('language') || 'ru';
+
             if (type === 'local') {
                 fileGroup.style.display = 'block';
             } else if (type === 'radio') {
@@ -1777,13 +1774,25 @@
                 urlGroup.style.display = 'block';
                 radioOrDivider.style.display = 'block';
                 radioFileGroup.style.display = 'block';
-                urlHelp.textContent = 'URL радио-потока (MP3/AAC/HLS/.m3u8). Формат определяется автоматически. HTTP потоки работают через CORS прокси.';
-                urlInput.placeholder = 'http://example.com/stream.mp3 или http://example.com/stream.m3u8';
+
+                if (lang === 'en') {
+                    urlHelp.textContent = 'Radio stream URL (MP3/AAC/HLS/.m3u8). Format detected automatically. HTTP streams work via CORS proxy.';
+                    urlInput.placeholder = 'http://example.com/stream.mp3 or http://example.com/stream.m3u8';
+                    urlLabel.textContent = 'Stream URL';
+                } else {
+                    urlHelp.textContent = 'URL радио-потока (MP3/AAC/HLS/.m3u8). Формат определяется автоматически. HTTP потоки работают через CORS прокси.';
+                    urlInput.placeholder = 'http://example.com/stream.mp3 или http://example.com/stream.m3u8';
+                    urlLabel.textContent = 'URL потока';
+                }
             } else if (type === 'youtube') {
-                urlGroup.style.display = 'block';
                 youtubePlaylistSection.style.display = 'block';
-                urlHelp.textContent = 'Добавьте одно видео или создайте плейлист ниже';
-                urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ (необязательно если используете плейлист)';
+                urlGroup.style.display = 'none'; // Hide single URL field, only show playlist section
+
+                if (lang === 'en') {
+                    // Already set by translation
+                } else {
+                    // Already set by default
+                }
             }
         }
 
@@ -2082,23 +2091,27 @@
                     navHome: '⏰ Главная',
                     navTimer: '⏲️ Таймер',
                     navStopwatch: '⏱️ Секундомер',
-                    nowPlaying: 'Сейчас играет',
                     previousBtn: '⏮️ Предыдущий',
                     stopBtn: '⏹️ Стоп',
                     nextBtn: '⏭️ Следующий',
                     addStationTitle: '➕ Добавить станцию или трек',
                     stationName: 'Название',
+                    stationNamePlaceholder: 'Например: Моя станция',
                     stationType: 'Тип',
+                    typeHelp: 'URL прямого потока радиостанции. HTTP потоки работают через CORS прокси.',
                     typeRadio: '📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)',
                     typeLocal: '🎵 Локальные файлы (MP3/FLAC/WAV)',
-                    typeYoutube: '📺 YouTube (ID видео)',
-                    urlLabel: 'URL / YouTube ID',
+                    typeYoutube: '📺 YouTube плейлист',
+                    urlLabel: 'URL потока',
                     orDivider: 'ИЛИ',
-                    selectM3U: 'Выберите .m3u или .m3u8 плейлист',
-                    selectAudioFiles: 'Выберите аудио файлы',
-                    youtubePlaylistTitle: '🎵 Управление плейлистом YouTube',
-                    youtubePlaylistHelp: 'Создайте плейлист, добавляя видео по одному или сразу несколько через запятую',
-                    addTrackBtn: '➕ Добавить',
+                    radioFileLabel: 'Выберите .m3u или .m3u8 плейлист',
+                    radioFileHelp: 'Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.',
+                    localFilesLabel: 'Выберите аудио файлы',
+                    localFilesHelp: 'Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.',
+                    youtubePlaylistTitle: '🎵 Создать плейлист YouTube',
+                    youtubePlaylistHelp: 'Добавьте несколько видео в плейлист. Можно вставить одну ссылку или несколько через запятую',
+                    youtubeTrackPlaceholder: 'Вставьте YouTube URL или ID',
+                    addToPlaylistBtn: '➕ Добавить в плейлист',
                     submitBtn: 'Добавить',
                     myStationsTitle: '📻 Мои станции',
                     emptyStateText: 'Станции ещё не добавлены',
@@ -2113,23 +2126,27 @@
                     navHome: '⏰ Home',
                     navTimer: '⏲️ Timer',
                     navStopwatch: '⏱️ Stopwatch',
-                    nowPlaying: 'Now Playing',
                     previousBtn: '⏮️ Previous',
                     stopBtn: '⏹️ Stop',
                     nextBtn: '⏭️ Next',
                     addStationTitle: '➕ Add Station or Track',
                     stationName: 'Name',
+                    stationNamePlaceholder: 'For example: My Station',
                     stationType: 'Type',
+                    typeHelp: 'Direct radio stream URL. HTTP streams work via CORS proxy.',
                     typeRadio: '📻 Radio Stream (MP3/AAC/HLS/.m3u/.m3u8)',
                     typeLocal: '🎵 Local Files (MP3/FLAC/WAV)',
-                    typeYoutube: '📺 YouTube (Video ID)',
-                    urlLabel: 'URL / YouTube ID',
+                    typeYoutube: '📺 YouTube Playlist',
+                    urlLabel: 'Stream URL',
                     orDivider: 'OR',
-                    selectM3U: 'Select .m3u or .m3u8 playlist',
-                    selectAudioFiles: 'Select audio files',
-                    youtubePlaylistTitle: '🎵 Manage YouTube Playlist',
-                    youtubePlaylistHelp: 'Create a playlist by adding videos one by one or multiple separated by commas',
-                    addTrackBtn: '➕ Add',
+                    radioFileLabel: 'Select .m3u or .m3u8 playlist',
+                    radioFileHelp: 'Upload a local playlist file (.m3u or .m3u8) with radio station or HLS stream.',
+                    localFilesLabel: 'Select audio files',
+                    localFilesHelp: 'Select one or more files (MP3, FLAC, WAV). Select multiple for a playlist.',
+                    youtubePlaylistTitle: '🎵 Create YouTube Playlist',
+                    youtubePlaylistHelp: 'Add multiple videos to the playlist. Paste one link or multiple separated by commas',
+                    youtubeTrackPlaceholder: 'Paste YouTube URL or ID',
+                    addToPlaylistBtn: '➕ Add to Playlist',
                     submitBtn: 'Add',
                     myStationsTitle: '📻 My Stations',
                     emptyStateText: 'No stations added yet',
@@ -2179,15 +2196,53 @@
                     cardTitles[1].innerHTML = `${t.myStationsTitle} (<span id="stationCount">${stationCount.textContent}</span>)`;
                 }
 
+                // Station name
                 const formLabels = document.querySelectorAll('.form-group label');
                 if (formLabels[0]) formLabels[0].textContent = t.stationName;
                 if (formLabels[1]) formLabels[1].textContent = t.stationType;
-                if (formLabels[2]) formLabels[2].textContent = t.urlLabel;
+
+                const stationNameInput = document.getElementById('stationName');
+                if (stationNameInput) stationNameInput.placeholder = t.stationNamePlaceholder;
+
+                // Type help
+                const typeHelp = document.getElementById('typeHelp');
+                if (typeHelp) typeHelp.textContent = t.typeHelp;
 
                 const typeOptions = document.querySelectorAll('#stationType option');
                 if (typeOptions[0]) typeOptions[0].textContent = t.typeRadio;
                 if (typeOptions[1]) typeOptions[1].textContent = t.typeLocal;
                 if (typeOptions[2]) typeOptions[2].textContent = t.typeYoutube;
+
+                // Radio file labels
+                const radioFileLabel = document.getElementById('radioFileLabel');
+                if (radioFileLabel) radioFileLabel.textContent = t.radioFileLabel;
+
+                const radioFileHelp = document.getElementById('radioFileHelp');
+                if (radioFileHelp) radioFileHelp.textContent = t.radioFileHelp;
+
+                // Local files labels
+                const localFilesLabel = document.getElementById('localFilesLabel');
+                if (localFilesLabel) localFilesLabel.textContent = t.localFilesLabel;
+
+                const localFilesHelp = document.getElementById('localFilesHelp');
+                if (localFilesHelp) localFilesHelp.textContent = t.localFilesHelp;
+
+                // YouTube playlist
+                const youtubePlaylistTitle = document.getElementById('youtubePlaylistTitle');
+                if (youtubePlaylistTitle) youtubePlaylistTitle.textContent = t.youtubePlaylistTitle;
+
+                const youtubePlaylistHelp = document.getElementById('youtubePlaylistHelp');
+                if (youtubePlaylistHelp) youtubePlaylistHelp.textContent = t.youtubePlaylistHelp;
+
+                const youtubeTrackUrl = document.getElementById('youtubeTrackUrl');
+                if (youtubeTrackUrl) youtubeTrackUrl.placeholder = t.youtubeTrackPlaceholder;
+
+                const addToPlaylistBtn = document.querySelector('button[onclick="addYouTubeTrack()"]');
+                if (addToPlaylistBtn) addToPlaylistBtn.textContent = t.addToPlaylistBtn;
+
+                // OR divider
+                const orDivider = document.getElementById('radioOrDivider');
+                if (orDivider) orDivider.textContent = t.orDivider;
 
                 const submitBtn = document.querySelector('button[type="submit"]');
                 if (submitBtn) submitBtn.textContent = t.submitBtn;
@@ -2199,6 +2254,16 @@
                     if (emptyP[0]) emptyP[0].textContent = t.emptyStateText;
                     if (emptyP[1]) emptyP[1].textContent = t.emptyStateHelp;
                 }
+
+                // Modal
+                const modalPlaylistName = document.getElementById('modalPlaylistName');
+                if (modalPlaylistName && modalPlaylistName.textContent.includes('Редактировать')) {
+                    // Only update if it's the default text
+                    modalPlaylistName.textContent = t.editPlaylistTitle;
+                }
+
+                // Update form fields visibility based on current type
+                updateFormFields();
 
                 document.querySelector('.lang-selector').value = lang;
             }

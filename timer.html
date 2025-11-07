@@ -165,11 +165,45 @@
                 font-size: 20px;
             }
         }
+
+        .lang-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-selector:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .lang-selector option {
+            background: #667eea;
+            color: white;
+        }
     </style>
 </head>
 <body>
+    <select class="lang-selector">
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="en">🇬🇧 English</option>
+    </select>
+
     <div class="container">
-        <h1>⏲️ Таймер</h1>
+        <h1 class="page-title">⏲️ Таймер</h1>
 
         <div class="timer-display" id="timerDisplay">00:00:00</div>
 
@@ -177,34 +211,34 @@
 
         <div class="time-inputs" id="timeInputs">
             <div class="time-input-group">
-                <label>Часы</label>
+                <label class="label-hours">Часы</label>
                 <input type="number" id="hours" min="0" max="23" value="0">
             </div>
             <div class="time-input-group">
-                <label>Минуты</label>
+                <label class="label-minutes">Минуты</label>
                 <input type="number" id="minutes" min="0" max="59" value="5">
             </div>
             <div class="time-input-group">
-                <label>Секунды</label>
+                <label class="label-seconds">Секунды</label>
                 <input type="number" id="seconds" min="0" max="59" value="0">
             </div>
         </div>
 
         <div class="presets">
-            <button class="preset-btn" onclick="setPreset(1, 0, 0)">1 мин</button>
-            <button class="preset-btn" onclick="setPreset(5, 0, 0)">5 мин</button>
-            <button class="preset-btn" onclick="setPreset(10, 0, 0)">10 мин</button>
-            <button class="preset-btn" onclick="setPreset(15, 0, 0)">15 мин</button>
-            <button class="preset-btn" onclick="setPreset(30, 0, 0)">30 мин</button>
+            <button class="preset-btn" onclick="setPreset(1, 0, 0)"><span class="preset-1">1 мин</span></button>
+            <button class="preset-btn" onclick="setPreset(5, 0, 0)"><span class="preset-5">5 мин</span></button>
+            <button class="preset-btn" onclick="setPreset(10, 0, 0)"><span class="preset-10">10 мин</span></button>
+            <button class="preset-btn" onclick="setPreset(15, 0, 0)"><span class="preset-15">15 мин</span></button>
+            <button class="preset-btn" onclick="setPreset(30, 0, 0)"><span class="preset-30">30 мин</span></button>
         </div>
 
         <div class="controls">
-            <button class="btn-start" id="startBtn" onclick="startTimer()">▶ Старт</button>
-            <button class="btn-pause" id="pauseBtn" onclick="pauseTimer()" style="display: none;">⏸ Пауза</button>
-            <button class="btn-reset" onclick="resetTimer()">↻ Сброс</button>
+            <button class="btn-start" id="startBtn" onclick="startTimer()"><span class="btn-start-text">▶ Старт</span></button>
+            <button class="btn-pause" id="pauseBtn" onclick="pauseTimer()" style="display: none;"><span class="btn-pause-text">⏸ Пауза</span></button>
+            <button class="btn-reset" onclick="resetTimer()"><span class="btn-reset-text">↻ Сброс</span></button>
         </div>
 
-        <button class="btn-back" onclick="window.location.href='index.html'">← Назад к будильнику</button>
+        <button class="btn-back" onclick="window.location.href='index.html'"><span class="btn-back-text">← Назад к будильнику</span></button>
     </div>
 
     <audio id="alarmSound" preload="auto">
@@ -328,6 +362,211 @@
         }
 
         updateDisplay();
+
+        // ========== Translation System ==========
+        const translations = {
+            ru: {
+                pageTitle: '⏲️ Таймер',
+                documentTitle: 'Таймер онлайн - IskrCLOCK',
+                labelHours: 'Часы',
+                labelMinutes: 'Минуты',
+                labelSeconds: 'Секунды',
+                preset1: '1 мин',
+                preset5: '5 мин',
+                preset10: '10 мин',
+                preset15: '15 мин',
+                preset30: '30 мин',
+                btnStart: '▶ Старт',
+                btnPause: '⏸ Пауза',
+                btnReset: '↻ Сброс',
+                btnBack: '← Назад к будильнику',
+                statusWarning: '⚠️ Установите время таймера',
+                statusRunning: '⏱️ Таймер запущен',
+                statusPaused: '⏸️ Пауза',
+                statusFinished: '✅ Время вышло!',
+                notificationTitle: '⏲️ Таймер завершен!',
+                notificationBody: 'Время вышло!'
+            },
+            en: {
+                pageTitle: '⏲️ Timer',
+                documentTitle: 'Online Timer - IskrCLOCK',
+                labelHours: 'Hours',
+                labelMinutes: 'Minutes',
+                labelSeconds: 'Seconds',
+                preset1: '1 min',
+                preset5: '5 min',
+                preset10: '10 min',
+                preset15: '15 min',
+                preset30: '30 min',
+                btnStart: '▶ Start',
+                btnPause: '⏸ Pause',
+                btnReset: '↻ Reset',
+                btnBack: '← Back to Alarm',
+                statusWarning: '⚠️ Set timer duration',
+                statusRunning: '⏱️ Timer running',
+                statusPaused: '⏸️ Paused',
+                statusFinished: '✅ Time is up!',
+                notificationTitle: '⏲️ Timer completed!',
+                notificationBody: 'Time is up!'
+            }
+        };
+
+        let currentLang = localStorage.getItem('language') || 'ru';
+
+        function switchLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            const t = translations[lang];
+
+            // Update document title
+            document.title = t.documentTitle;
+
+            // Update page elements
+            const pageTitle = document.querySelector('.page-title');
+            if (pageTitle) pageTitle.textContent = t.pageTitle;
+
+            const labelHours = document.querySelector('.label-hours');
+            if (labelHours) labelHours.textContent = t.labelHours;
+
+            const labelMinutes = document.querySelector('.label-minutes');
+            if (labelMinutes) labelMinutes.textContent = t.labelMinutes;
+
+            const labelSeconds = document.querySelector('.label-seconds');
+            if (labelSeconds) labelSeconds.textContent = t.labelSeconds;
+
+            // Update preset buttons
+            const preset1 = document.querySelector('.preset-1');
+            if (preset1) preset1.textContent = t.preset1;
+
+            const preset5 = document.querySelector('.preset-5');
+            if (preset5) preset5.textContent = t.preset5;
+
+            const preset10 = document.querySelector('.preset-10');
+            if (preset10) preset10.textContent = t.preset10;
+
+            const preset15 = document.querySelector('.preset-15');
+            if (preset15) preset15.textContent = t.preset15;
+
+            const preset30 = document.querySelector('.preset-30');
+            if (preset30) preset30.textContent = t.preset30;
+
+            // Update control buttons
+            const btnStartText = document.querySelector('.btn-start-text');
+            if (btnStartText) btnStartText.textContent = t.btnStart;
+
+            const btnPauseText = document.querySelector('.btn-pause-text');
+            if (btnPauseText) btnPauseText.textContent = t.btnPause;
+
+            const btnResetText = document.querySelector('.btn-reset-text');
+            if (btnResetText) btnResetText.textContent = t.btnReset;
+
+            const btnBackText = document.querySelector('.btn-back-text');
+            if (btnBackText) btnBackText.textContent = t.btnBack;
+
+            // Update status if showing specific messages
+            if (status.textContent) {
+                if (status.textContent.includes('Установите время') || status.textContent.includes('Set timer')) {
+                    status.textContent = t.statusWarning;
+                } else if (status.textContent.includes('запущен') || status.textContent.includes('running')) {
+                    status.textContent = t.statusRunning;
+                } else if (status.textContent.includes('Пауза') || status.textContent.includes('Paused')) {
+                    status.textContent = t.statusPaused;
+                } else if (status.textContent.includes('Время вышло') || status.textContent.includes('Time is up')) {
+                    status.textContent = t.statusFinished;
+                }
+            }
+
+            document.querySelector('.lang-selector').value = lang;
+        }
+
+        // Override finishTimer to use translations
+        const originalFinishTimer = finishTimer;
+        finishTimer = function() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            remainingSeconds = 0;
+            updateDisplay();
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            const t = translations[currentLang];
+            status.textContent = t.statusFinished;
+            status.classList.add('finished');
+
+            // Play alarm sound
+            alarmSound.play();
+
+            // Notification if supported
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(t.notificationTitle, {
+                    body: t.notificationBody,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">⏲️</text></svg>'
+                });
+            }
+        };
+
+        // Override startTimer to use translations
+        const originalStartTimer = startTimer;
+        startTimer = function() {
+            if (isRunning) return;
+
+            if (remainingSeconds === 0) {
+                const hours = parseInt(document.getElementById('hours').value) || 0;
+                const minutes = parseInt(document.getElementById('minutes').value) || 0;
+                const seconds = parseInt(document.getElementById('seconds').value) || 0;
+
+                totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                remainingSeconds = totalSeconds;
+
+                if (totalSeconds === 0) {
+                    const t = translations[currentLang];
+                    status.textContent = t.statusWarning;
+                    return;
+                }
+            }
+
+            isRunning = true;
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            timeInputs.style.display = 'none';
+            const t = translations[currentLang];
+            status.textContent = t.statusRunning;
+            status.classList.remove('finished');
+
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateDisplay();
+
+                if (remainingSeconds <= 0) {
+                    finishTimer();
+                }
+            }, 1000);
+        };
+
+        // Override pauseTimer to use translations
+        const originalPauseTimer = pauseTimer;
+        pauseTimer = function() {
+            if (!isRunning) return;
+
+            isRunning = false;
+            clearInterval(timerInterval);
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            const t = translations[currentLang];
+            status.textContent = t.statusPaused;
+        };
+
+        document.querySelector('.lang-selector').addEventListener('change', (e) => {
+            switchLanguage(e.target.value);
+        });
+
+        // Set initial language
+        const langSelector = document.querySelector('.lang-selector');
+        langSelector.value = currentLang;
+        if (currentLang === 'en') {
+            switchLanguage('en');
+        } else {
+            switchLanguage('ru');
+        }
     </script>
 </body>
 </html>
