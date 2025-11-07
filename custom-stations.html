@@ -348,7 +348,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.1.0 - IndexedDB Storage</p>
+            <p class="version">v1.2.0 - CORS Proxy Support</p>
         </div>
 
         <div class="nav-links">
@@ -428,6 +428,8 @@
         let currentPlayingId = null;
         let currentPlaylist = null;
         let currentTrackIndex = 0;
+        let currentStationUrl = null; // Для retry с разными CORS прокси
+        let currentStationType = null;
 
         // Selected files for upload
         let selectedFiles = [];
@@ -440,6 +442,15 @@
 
         // File size limit (5MB recommended for individual files)
         const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+        // CORS Proxy система с fallback (для HTTP стримов на HTTPS странице)
+        const corsProxies = [
+            'https://corsproxy.io/?',                       // #0 - САМЫЙ СТАБИЛЬНЫЙ
+            'https://proxy.cors.sh/',                       // #1 - быстрый, без лимитов
+            'https://thingproxy.freeboard.io/fetch/',       // #2 - резервный
+            'https://api.allorigins.win/raw?url='           // #3 - иногда падает
+        ];
+        let currentProxyIndex = 0;
 
         // YouTube Player API callback
         function onYouTubeIframeAPIReady() {
@@ -546,6 +557,32 @@
                 };
                 request.onerror = () => reject(request.error);
             });
+        }
+
+        // Получить URL с CORS proxy
+        function getProxiedURL(url, proxyIndex = currentProxyIndex) {
+            const proxy = corsProxies[proxyIndex];
+            const proxiedUrl = proxy + encodeURIComponent(url);
+            console.log(`🔄 Using CORS proxy #${proxyIndex}: ${proxy}`);
+            return proxiedUrl;
+        }
+
+        // Переключение на следующий proxy при ошибке
+        function switchToNextProxy() {
+            currentProxyIndex = (currentProxyIndex + 1) % corsProxies.length;
+            console.log(`⏭️ Switching to next proxy: #${currentProxyIndex}`);
+        }
+
+        // Проверка, нужен ли CORS proxy (для HTTP стримов)
+        function needsCorsProxy(url) {
+            try {
+                const urlObj = new URL(url);
+                // Если это HTTP (не HTTPS), нужен прокси для работы на HTTPS странице
+                return urlObj.protocol === 'http:';
+            } catch (e) {
+                console.error('Invalid URL:', url);
+                return false;
+            }
         }
 
         // Format file size
@@ -980,9 +1017,24 @@
         function playRadioStation(url) {
             try {
                 const audio = new Audio();
-                audio.src = url;
+                const originalUrl = url;
+
+                // Сохраняем для retry
+                currentStationUrl = originalUrl;
+                currentStationType = 'radio';
+
+                // Проверяем нужен ли CORS proxy (для HTTP стримов)
+                if (needsCorsProxy(originalUrl)) {
+                    audio.src = getProxiedURL(originalUrl);
+                    console.log(`🔐 HTTP stream detected, using CORS proxy for: ${originalUrl}`);
+                } else {
+                    audio.src = originalUrl;
+                }
+
                 audio.volume = 0.5;
                 audio.crossOrigin = 'anonymous';
+
+                let errorHandled = false;
 
                 audio.addEventListener('loadstart', () => {
                     console.log('📡 Loading stream...');
@@ -993,9 +1045,36 @@
                 });
 
                 audio.addEventListener('error', (e) => {
+                    if (errorHandled) return;
+                    errorHandled = true;
+
                     console.error('❌ Stream error:', e);
-                    alert('Ошибка воспроизведения. Проверьте URL.');
-                    stopAllAudio();
+
+                    // Очищаем проблемный audio
+                    try {
+                        audio.pause();
+                        audio.onloadstart = null;
+                        audio.oncanplay = null;
+                        audio.onerror = null;
+                    } catch (err) {
+                        console.log('⚠️ Error cleaning up audio:', err);
+                    }
+
+                    // Если это HTTP стрим с прокси, пробуем следующий прокси
+                    if (needsCorsProxy(originalUrl) && currentProxyIndex < corsProxies.length - 1) {
+                        console.log('🔄 Пробуем следующий CORS proxy...');
+                        switchToNextProxy();
+                        // Рекурсивно пробуем снова с новым прокси
+                        setTimeout(() => playRadioStation(originalUrl), 500);
+                    } else {
+                        // Все прокси перепробованы или это не HTTP стрим
+                        if (needsCorsProxy(originalUrl)) {
+                            console.log('❌ Все CORS прокси не сработали');
+                            currentProxyIndex = 0; // Сбрасываем индекс для следующей попытки
+                        }
+                        alert('Ошибка воспроизведения. Проверьте URL или попробуйте другой поток.');
+                        stopAllAudio();
+                    }
                 });
 
                 audio.play()
@@ -1004,8 +1083,10 @@
                         currentAudio = audio;
                     })
                     .catch(err => {
-                        console.error('❌ Play error:', err);
-                        alert('Не удалось воспроизвести поток.');
+                        if (!errorHandled) {
+                            console.error('❌ Play error:', err);
+                            alert('Не удалось воспроизвести поток.');
+                        }
                     });
 
             } catch (error) {
