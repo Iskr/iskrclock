@@ -374,7 +374,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.4.0 - Local HLS File Upload</p>
+            <p class="version">v1.4.1 - Fixed Local M3U + 50MB Limit</p>
         </div>
 
         <div class="nav-links">
@@ -474,8 +474,8 @@
         const DB_VERSION = 1;
         const STORE_NAME = 'audioFiles';
 
-        // File size limit (5MB recommended for individual files)
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+        // File size limit (50MB per file - enough for high quality music)
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
         // CORS Proxy система с fallback (для HTTP стримов на HTTPS странице)
         const corsProxies = [
@@ -1046,7 +1046,7 @@
                     playYouTubeStation(station.url);
                     break;
                 case 'hls':
-                    playHLSStation(station.url);
+                    playHLSStation(station.url, station.isLocalFile);
                     break;
                 case 'radio':
                 default:
@@ -1249,7 +1249,7 @@
         }
 
         // Play HLS stream (or parse plain M3U playlist)
-        async function playHLSStation(url) {
+        async function playHLSStation(url, isLocalFile = false) {
             if (!Hls.isSupported()) {
                 alert('HLS не поддерживается в этом браузере');
                 return;
@@ -1263,7 +1263,11 @@
                 currentStationType = 'hls';
 
                 // Check if this is a plain .m3u playlist (not HLS .m3u8)
-                if (url.endsWith('.m3u') && !url.endsWith('.m3u8')) {
+                // For local files (data URLs), we need to parse and check
+                const shouldParsePlainM3U = url.endsWith('.m3u') && !url.endsWith('.m3u8');
+                const isDataURL = url.startsWith('data:');
+
+                if (shouldParsePlainM3U || (isLocalFile && isDataURL)) {
                     console.log('📄 Detected plain .m3u playlist, parsing...');
                     const result = await parseM3UPlaylist(url);
 
