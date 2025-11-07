@@ -492,6 +492,27 @@
             background: #f44336;
         }
 
+        .btn-manage-stations {
+            background: rgba(255, 165, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .btn-manage-stations:hover {
+            background: rgba(255, 165, 0, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
         .volume-control {
             display: flex;
             align-items: center;
@@ -661,7 +682,6 @@
             <a href="timer.html" class="nav-item">⏲️ Таймеры</a>
             <a href="stopwatch.html" class="nav-item">⏱️ Секундомер</a>
             <a href="sleep-calculator.html" class="nav-item">🧮 Калькулятор сна</a>
-            <a href="custom-stations.html" class="nav-item">🎵 Свои станции</a>
         </nav>
         <select class="lang-selector">
             <option value="ru">Русский</option>
@@ -701,6 +721,7 @@
                     <!-- Will be populated dynamically -->
                 </select>
                 <button class="play-button" id="playButton">▶</button>
+                <a href="custom-stations.html" class="btn-manage-stations">🎵 Управление станциями</a>
                 <div class="volume-control">
                     <span class="volume-label">Нарастает?</span>
                     <input type="checkbox" id="volumeGrow" checked>
