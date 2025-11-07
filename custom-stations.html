@@ -424,6 +424,15 @@
         // Selected files for upload
         let selectedFiles = [];
 
+        // IndexedDB for storing large files
+        let db = null;
+        const DB_NAME = 'IskrClockDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'audioFiles';
+
+        // File size limit (5MB recommended for individual files)
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
         // YouTube Player API callback
         function onYouTubeIframeAPIReady() {
             youtubePlayer = new YT.Player('youtube-player', {
@@ -449,6 +458,106 @@
                     }
                 }
             });
+        }
+
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => {
+                    console.error('❌ IndexedDB error:', request.error);
+                    reject(request.error);
+                };
+
+                request.onsuccess = () => {
+                    db = request.result;
+                    console.log('✅ IndexedDB initialized');
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        objectStore.createIndex('stationId', 'stationId', { unique: false });
+                        console.log('✅ IndexedDB object store created');
+                    }
+                };
+            });
+        }
+
+        // Save file to IndexedDB
+        function saveFileToDB(stationId, fileIndex, fileName, fileData) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+
+                const data = {
+                    stationId: stationId,
+                    fileIndex: fileIndex,
+                    name: fileName,
+                    data: fileData
+                };
+
+                const request = objectStore.add(data);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Load files from IndexedDB for a station
+        function loadFilesFromDB(stationId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const index = objectStore.index('stationId');
+                const request = index.getAll(stationId);
+
+                request.onsuccess = () => {
+                    const files = request.result.sort((a, b) => a.fileIndex - b.fileIndex);
+                    resolve(files);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Delete files from IndexedDB for a station
+        function deleteFilesFromDB(stationId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const index = objectStore.index('stationId');
+                const request = index.getAllKeys(stationId);
+
+                request.onsuccess = () => {
+                    const keys = request.result;
+                    keys.forEach(key => objectStore.delete(key));
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Check file size
+        function checkFileSize(file) {
+            if (file.size > MAX_FILE_SIZE) {
+                return {
+                    ok: false,
+                    message: `Файл "${file.name}" слишком большой (${formatFileSize(file.size)}). Максимум: ${formatFileSize(MAX_FILE_SIZE)}`
+                };
+            }
+            return { ok: true };
         }
 
         // Load custom stations from localStorage
@@ -488,12 +597,13 @@
                     'local': '🎵 Локально'
                 };
 
-                const isPlaylist = station.type === 'local' && station.files && station.files.length > 1;
+                const fileCount = station.fileCount || 0;
+                const isPlaylist = station.type === 'local' && fileCount > 1;
                 const playlistClass = isPlaylist ? 'playlist' : '';
-                const playlistBadge = isPlaylist ? `<span class="station-type">📀 Плейлист (${station.files.length} треков)</span>` : '';
+                const playlistBadge = isPlaylist ? `<span class="station-type">📀 Плейлист (${fileCount} треков)</span>` : '';
 
                 const urlDisplay = station.type === 'local'
-                    ? `${station.files ? station.files.length : 0} файл(ов)`
+                    ? `${fileCount} файл(ов)`
                     : escapeHtml(station.url || '');
 
                 return `
@@ -569,7 +679,9 @@
                 return;
             }
 
-            let stationData = { name, type };
+            // Generate unique station ID
+            const stationId = 'station_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            let stationData = { name, type, id: stationId };
 
             if (type === 'local') {
                 // Handle local files
@@ -578,19 +690,36 @@
                     return;
                 }
 
+                // Check file sizes
+                for (const file of selectedFiles) {
+                    const sizeCheck = checkFileSize(file);
+                    if (!sizeCheck.ok) {
+                        alert(sizeCheck.message);
+                        return;
+                    }
+                }
+
                 try {
-                    const files = await Promise.all(
-                        selectedFiles.map(file => readFileAsBase64(file))
-                    );
+                    console.log(`📦 Processing ${selectedFiles.length} file(s)...`);
 
-                    stationData.files = files.map((data, index) => ({
-                        name: selectedFiles[index].name,
-                        data: data
-                    }));
+                    // Read and save files to IndexedDB
+                    for (let i = 0; i < selectedFiles.length; i++) {
+                        const file = selectedFiles[i];
+                        console.log(`📄 Reading file ${i + 1}/${selectedFiles.length}: ${file.name} (${formatFileSize(file.size)})`);
 
-                    console.log(`✅ Loaded ${files.length} file(s)`);
+                        const fileData = await readFileAsBase64(file);
+                        await saveFileToDB(stationId, i, file.name, fileData);
+
+                        console.log(`✅ Saved to IndexedDB: ${file.name}`);
+                    }
+
+                    // Store only file count in station metadata
+                    stationData.fileCount = selectedFiles.length;
+
+                    console.log(`✅ All ${selectedFiles.length} file(s) saved to IndexedDB`);
                 } catch (error) {
-                    alert('Ошибка чтения файлов: ' + error.message);
+                    console.error('❌ Error saving files:', error);
+                    alert('Ошибка сохранения файлов: ' + error.message);
                     return;
                 }
             } else {
@@ -637,7 +766,7 @@
         }
 
         // Delete station
-        function deleteStation(index) {
+        async function deleteStation(index) {
             if (!confirm('Удалить эту станцию?')) {
                 return;
             }
@@ -648,6 +777,19 @@
             }
 
             const stations = loadCustomStations();
+            const station = stations[index];
+
+            // Clean up IndexedDB if this is a local station
+            if (station && station.type === 'local' && station.id) {
+                try {
+                    console.log(`🗑️ Deleting files from IndexedDB for station: ${station.id}`);
+                    await deleteFilesFromDB(station.id);
+                    console.log('✅ Files deleted from IndexedDB');
+                } catch (error) {
+                    console.error('❌ Error deleting files from IndexedDB:', error);
+                }
+            }
+
             stations.splice(index, 1);
             saveCustomStations(stations);
             renderStations();
@@ -655,7 +797,7 @@
         }
 
         // Toggle play/stop
-        function togglePlay(index) {
+        async function togglePlay(index) {
             const indexStr = String(index);
             const btnElement = document.getElementById(`play-btn-${index}`);
 
@@ -685,9 +827,29 @@
                     currentPlayingId = indexStr;
                     currentTrackIndex = 0;
 
-                    if (station.type === 'local' && station.files && station.files.length > 0) {
-                        currentPlaylist = station.files;
-                        playLocalTrack(0, station.name);
+                    if (station.type === 'local') {
+                        // Load files from IndexedDB
+                        try {
+                            console.log(`📂 Loading files from IndexedDB for station: ${station.id}`);
+                            const files = await loadFilesFromDB(station.id);
+
+                            if (files.length === 0) {
+                                alert('Файлы не найдены. Возможно, станция была создана в старой версии.');
+                                btnElement.textContent = '▶ Play';
+                                currentPlayingId = null;
+                                return;
+                            }
+
+                            console.log(`✅ Loaded ${files.length} file(s) from IndexedDB`);
+                            currentPlaylist = files;
+                            playLocalTrack(0, station.name);
+                        } catch (error) {
+                            console.error('❌ Error loading files:', error);
+                            alert('Ошибка загрузки файлов: ' + error.message);
+                            btnElement.textContent = '▶ Play';
+                            currentPlayingId = null;
+                            return;
+                        }
                     } else {
                         currentPlaylist = null;
                         playStation(station, indexStr);
@@ -706,7 +868,7 @@
                 'radio': 'Радио поток',
                 'hls': 'HLS поток',
                 'youtube': 'YouTube',
-                'local': `Локально (${station.files ? station.files.length : 0} треков)`
+                'local': `Локально (${station.fileCount || 0} треков)`
             };
             return types[station.type] || station.type;
         }
@@ -1013,13 +1175,23 @@
         });
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('═══════════════════════════════════════════════════════');
             console.log('🎵 Custom Stations Page Loaded');
             console.log('🔧 HLS.js version:', Hls.version);
             console.log('🔧 HLS.js supported:', Hls.isSupported());
             console.log('📁 LocalStorage available:', typeof(Storage) !== 'undefined');
+            console.log('💾 IndexedDB available:', typeof(indexedDB) !== 'undefined');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Initialize IndexedDB
+            try {
+                await initDB();
+                console.log('✅ IndexedDB ready');
+            } catch (error) {
+                console.error('❌ Failed to initialize IndexedDB:', error);
+                alert('Ошибка инициализации базы данных. Локальные файлы могут не работать.');
+            }
 
             renderStations();
         });
