@@ -348,7 +348,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.2.0 - CORS Proxy Support</p>
+            <p class="version">v1.2.1 - HLS + CORS Proxy</p>
         </div>
 
         <div class="nav-links">
@@ -383,10 +383,10 @@
                     <select id="stationType" required>
                         <option value="radio">📻 Радио-поток (MP3/AAC)</option>
                         <option value="local">🎵 Локальные файлы (MP3)</option>
-                        <option value="hls">🎶 HLS поток (.m3u8)</option>
+                        <option value="hls">🎶 HLS поток (.m3u/.m3u8)</option>
                         <option value="youtube">📺 YouTube (ID видео)</option>
                     </select>
-                    <p class="help-text" id="typeHelp">URL прямого потока радиостанции (http:// или https://)</p>
+                    <p class="help-text" id="typeHelp">URL прямого потока радиостанции. HTTP потоки работают через CORS прокси.</p>
                 </div>
 
                 <div class="form-group" id="urlGroup">
@@ -1104,14 +1104,31 @@
 
             try {
                 const audio = new Audio();
+                const originalUrl = url;
+
+                // Сохраняем для retry
+                currentStationUrl = originalUrl;
+                currentStationType = 'hls';
+
+                // Проверяем нужен ли CORS proxy (для HTTP стримов)
+                let sourceUrl;
+                if (needsCorsProxy(originalUrl)) {
+                    sourceUrl = getProxiedURL(originalUrl);
+                    console.log(`🔐 HTTP HLS stream detected, using CORS proxy for: ${originalUrl}`);
+                } else {
+                    sourceUrl = originalUrl;
+                }
+
                 hlsInstance = new Hls({
                     debug: false,
                     enableWorker: true,
                     lowLatencyMode: true
                 });
 
-                hlsInstance.loadSource(url);
+                hlsInstance.loadSource(sourceUrl);
                 hlsInstance.attachMedia(audio);
+
+                let errorHandled = false;
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
                     console.log('✅ [HLS] Manifest parsed');
@@ -1128,11 +1145,50 @@
                 });
 
                 hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+                    if (errorHandled) return;
+
                     console.error('❌ [HLS] Error:', data.type, data.details);
 
                     if (data.fatal) {
-                        alert('Критическая ошибка HLS: ' + data.details);
-                        stopAllAudio();
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                // Если это HTTP стрим с прокси, пробуем следующий прокси
+                                if (needsCorsProxy(originalUrl) && currentProxyIndex < corsProxies.length - 1) {
+                                    errorHandled = true;
+                                    console.log('🔄 [HLS] Пробуем следующий CORS proxy...');
+
+                                    // Очищаем старый HLS instance
+                                    try {
+                                        hlsInstance.destroy();
+                                        hlsInstance = null;
+                                    } catch (e) {
+                                        console.log('⚠️ Error destroying HLS:', e);
+                                    }
+
+                                    switchToNextProxy();
+                                    // Рекурсивно пробуем снова с новым прокси
+                                    setTimeout(() => playHLSStation(originalUrl), 500);
+                                } else {
+                                    // Все прокси перепробованы
+                                    if (needsCorsProxy(originalUrl)) {
+                                        console.log('❌ [HLS] Все CORS прокси не сработали');
+                                        currentProxyIndex = 0;
+                                    }
+                                    alert('Критическая ошибка HLS: ' + data.details);
+                                    stopAllAudio();
+                                }
+                                break;
+
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.log('⚠️ [HLS] Trying to recover from media error...');
+                                hlsInstance.recoverMediaError();
+                                break;
+
+                            default:
+                                alert('Критическая ошибка HLS: ' + data.details);
+                                stopAllAudio();
+                                break;
+                        }
                     }
                 });
 
@@ -1279,13 +1335,13 @@
                         urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
                         break;
                     case 'hls':
-                        urlHelp.textContent = 'URL HLS манифеста (.m3u8)';
-                        urlInput.placeholder = 'https://example.com/stream.m3u8';
+                        urlHelp.textContent = 'URL HLS манифеста (.m3u или .m3u8). HTTP потоки работают через CORS прокси.';
+                        urlInput.placeholder = 'http://example.com/stream.m3u или https://example.com/stream.m3u8';
                         break;
                     case 'radio':
                     default:
-                        urlHelp.textContent = 'URL прямого потока (MP3/AAC)';
-                        urlInput.placeholder = 'https://example.com/stream.mp3';
+                        urlHelp.textContent = 'URL прямого потока (MP3/AAC). HTTP потоки работают через CORS прокси.';
+                        urlInput.placeholder = 'http://example.com/stream.mp3 или https://example.com/stream.mp3';
                         break;
                 }
             }
