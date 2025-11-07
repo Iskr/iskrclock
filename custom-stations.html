@@ -348,7 +348,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.2.2 - HLS Segments + CORS Proxy</p>
+            <p class="version">v1.3.0 - M3U Playlist Support</p>
         </div>
 
         <div class="nav-links">
@@ -1095,6 +1095,40 @@
             }
         }
 
+        // Parse plain M3U playlist and extract stream URL
+        async function parseM3UPlaylist(url) {
+            console.log(`📄 Parsing .m3u playlist: ${url}`);
+
+            try {
+                // Use CORS proxy if needed
+                const fetchUrl = needsCorsProxy(url) ? getProxiedURL(url) : url;
+
+                const response = await fetch(fetchUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const text = await response.text();
+                console.log(`📄 .m3u content length: ${text.length} bytes`);
+
+                // Parse M3U: extract first HTTP(S) URL
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                        console.log(`✅ Found stream URL in .m3u: ${trimmed}`);
+                        return { success: true, streamUrl: trimmed };
+                    }
+                }
+
+                console.log('❌ No valid stream URL found in .m3u');
+                return { success: false, error: 'No stream URL found in playlist' };
+            } catch (error) {
+                console.error('❌ Failed to parse .m3u:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
         // Custom HLS loader that uses CORS proxy for all HTTP requests
         class CorsProxyLoader extends Hls.DefaultConfig.loader {
             constructor(config) {
@@ -1112,20 +1146,37 @@
             }
         }
 
-        // Play HLS stream
-        function playHLSStation(url) {
+        // Play HLS stream (or parse plain M3U playlist)
+        async function playHLSStation(url) {
             if (!Hls.isSupported()) {
                 alert('HLS не поддерживается в этом браузере');
                 return;
             }
 
             try {
-                const audio = new Audio();
                 const originalUrl = url;
 
                 // Сохраняем для retry
                 currentStationUrl = originalUrl;
                 currentStationType = 'hls';
+
+                // Check if this is a plain .m3u playlist (not HLS .m3u8)
+                if (url.endsWith('.m3u') && !url.endsWith('.m3u8')) {
+                    console.log('📄 Detected plain .m3u playlist, parsing...');
+                    const result = await parseM3UPlaylist(url);
+
+                    if (result.success) {
+                        console.log(`🎵 Playing extracted stream: ${result.streamUrl}`);
+                        // Play as regular radio stream
+                        playRadioStation(result.streamUrl);
+                        return;
+                    } else {
+                        console.log('⚠️ .m3u parsing failed, trying as HLS anyway...');
+                        // Fall through to try HLS
+                    }
+                }
+
+                const audio = new Audio();
 
                 // Check if needs CORS proxy
                 const needsProxy = needsCorsProxy(originalUrl);
@@ -1357,7 +1408,7 @@
                         urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
                         break;
                     case 'hls':
-                        urlHelp.textContent = 'URL HLS манифеста (.m3u или .m3u8). HTTP потоки работают через CORS прокси.';
+                        urlHelp.textContent = 'URL HLS манифеста (.m3u8) или плейлиста (.m3u с URL потока внутри). HTTP потоки работают через CORS прокси.';
                         urlInput.placeholder = 'http://example.com/stream.m3u или https://example.com/stream.m3u8';
                         break;
                     case 'radio':
