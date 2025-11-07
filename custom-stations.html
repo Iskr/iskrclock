@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользовательские станции - IskrCLOCK</title>
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- HLS.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-group input[type="file"] {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group select {
+            cursor: pointer;
+        }
+
+        .form-group select option {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-play {
+            background: #2196F3;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn-play:hover {
+            background: #1976D2;
+        }
+
+        .btn-play.playing {
+            background: #f44336;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .stations-list {
+            margin-top: 20px;
+        }
+
+        .station-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .station-item.playlist {
+            border-left: 4px solid #FF9800;
+        }
+
+        .station-info {
+            flex: 1;
+        }
+
+        .station-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .station-url {
+            font-size: 12px;
+            opacity: 0.7;
+            word-break: break-all;
+        }
+
+        .station-type {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-top: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            margin-right: 5px;
+        }
+
+        .station-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.7;
+        }
+
+        .help-text {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .youtube-player-container {
+            position: fixed;
+            top: -1000px;
+            left: -1000px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .player-controls {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .player-controls.active {
+            display: block;
+        }
+
+        .now-playing {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .now-playing-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .now-playing-info {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .file-list {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-remove {
+            background: #f44336;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .station-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .station-actions {
+                margin-top: 10px;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- YouTube Player (hidden) -->
+    <div class="youtube-player-container">
+        <div id="youtube-player"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Пользовательские станции</h1>
+            <p>Добавьте свои радиостанции, треки и плейлисты</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">⏰ Главная</a>
+            <a href="timer.html">⏲️ Таймер</a>
+            <a href="stopwatch.html">⏱️ Секундомер</a>
+        </div>
+
+        <!-- Player Controls -->
+        <div class="player-controls" id="playerControls">
+            <div class="now-playing">
+                <div class="now-playing-title" id="nowPlayingTitle">—</div>
+                <div class="now-playing-info" id="nowPlayingInfo">—</div>
+            </div>
+            <div class="control-buttons">
+                <button class="btn btn-secondary" onclick="previousTrack()">⏮️ Предыдущий</button>
+                <button class="btn btn-danger" onclick="stopAllAudio()">⏹️ Стоп</button>
+                <button class="btn btn-secondary" onclick="nextTrack()">⏭️ Следующий</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>➕ Добавить станцию или трек</h2>
+            <form id="addStationForm">
+                <div class="form-group">
+                    <label for="stationName">Название</label>
+                    <input type="text" id="stationName" placeholder="Например: Моя станция" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="stationType">Тип</label>
+                    <select id="stationType" required>
+                        <option value="radio">📻 Радио-поток (MP3/AAC)</option>
+                        <option value="local">🎵 Локальные файлы (MP3)</option>
+                        <option value="hls">🎶 HLS поток (.m3u8)</option>
+                        <option value="youtube">📺 YouTube (ID видео)</option>
+                    </select>
+                    <p class="help-text" id="typeHelp">URL прямого потока радиостанции (http:// или https://)</p>
+                </div>
+
+                <div class="form-group" id="urlGroup">
+                    <label for="stationUrl">URL / YouTube ID</label>
+                    <input type="text" id="stationUrl" placeholder="https://example.com/stream.mp3">
+                    <p class="help-text" id="urlHelp">Для YouTube укажите только ID (например: dQw4w9WgXcQ)</p>
+                </div>
+
+                <div class="form-group" id="fileGroup" style="display: none;">
+                    <label for="localFiles">Выберите MP3 файлы</label>
+                    <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg" multiple>
+                    <p class="help-text">Выберите один или несколько MP3 файлов. Для плейлиста выберите несколько.</p>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>📻 Мои станции (<span id="stationCount">0</span>)</h2>
+            <div class="stations-list" id="stationsList">
+                <div class="empty-state">
+                    <p>Станции ещё не добавлены</p>
+                    <p style="font-size: 12px; margin-top: 10px;">Добавьте свою первую станцию выше ⬆️</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // YouTube Player
+        let youtubePlayer = null;
+        let youtubePlayerReady = false;
+
+        // Current playing audio
+        let currentAudio = null;
+        let hlsInstance = null;
+        let currentPlayingId = null;
+        let currentPlaylist = null;
+        let currentTrackIndex = 0;
+
+        // Selected files for upload
+        let selectedFiles = [];
+
+        // YouTube Player API callback
+        function onYouTubeIframeAPIReady() {
+            youtubePlayer = new YT.Player('youtube-player', {
+                height: '1',
+                width: '1',
+                videoId: '',
+                playerVars: {
+                    autoplay: 0,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0
+                },
+                events: {
+                    'onReady': function(event) {
+                        youtubePlayerReady = true;
+                        console.log('✅ YouTube Player ready');
+                    },
+                    'onError': function(event) {
+                        console.error('❌ YouTube Player error:', event.data);
+                    }
+                }
+            });
+        }
+
+        // Load custom stations from localStorage
+        function loadCustomStations() {
+            const saved = localStorage.getItem('customStations');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        // Save custom stations to localStorage
+        function saveCustomStations(stations) {
+            localStorage.setItem('customStations', JSON.stringify(stations));
+        }
+
+        // Render stations list
+        function renderStations() {
+            const stations = loadCustomStations();
+            const listContainer = document.getElementById('stationsList');
+            const countElement = document.getElementById('stationCount');
+
+            countElement.textContent = stations.length;
+
+            if (stations.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>Станции ещё не добавлены</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Добавьте свою первую станцию выше ⬆️</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = stations.map((station, index) => {
+                const typeLabels = {
+                    'radio': '📻 Radio',
+                    'hls': '🎶 HLS',
+                    'youtube': '📺 YouTube',
+                    'local': '🎵 Локально'
+                };
+
+                const isPlaylist = station.type === 'local' && station.files && station.files.length > 1;
+                const playlistClass = isPlaylist ? 'playlist' : '';
+                const playlistBadge = isPlaylist ? `<span class="station-type">📀 Плейлист (${station.files.length} треков)</span>` : '';
+
+                const urlDisplay = station.type === 'local'
+                    ? `${station.files ? station.files.length : 0} файл(ов)`
+                    : escapeHtml(station.url || '');
+
+                return `
+                    <div class="station-item ${playlistClass}">
+                        <div class="station-info">
+                            <div class="station-name">${escapeHtml(station.name)}</div>
+                            <div class="station-url">${urlDisplay}</div>
+                            <span class="station-type">${typeLabels[station.type]}</span>
+                            ${playlistBadge}
+                        </div>
+                        <div class="station-actions">
+                            <button class="btn btn-play" onclick="togglePlay('${index}')">
+                                <span id="play-btn-${index}">▶ Play</span>
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteStation(${index})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle file selection
+        document.getElementById('localFiles').addEventListener('change', function(e) {
+            selectedFiles = Array.from(e.target.files);
+            renderFileList();
+        });
+
+        // Render selected files list
+        function renderFileList() {
+            const container = document.getElementById('fileList');
+
+            if (selectedFiles.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = selectedFiles.map((file, index) => `
+                <div class="file-item">
+                    <span>🎵 ${escapeHtml(file.name)}</span>
+                    <button class="file-remove" onclick="removeFile(${index})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // Remove file from selection
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+
+            // Update file input
+            const input = document.getElementById('localFiles');
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            input.files = dt.files;
+        }
+
+        // Add new station
+        document.getElementById('addStationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('stationName').value.trim();
+            const type = document.getElementById('stationType').value;
+
+            if (!name) {
+                alert('Пожалуйста, введите название');
+                return;
+            }
+
+            let stationData = { name, type };
+
+            if (type === 'local') {
+                // Handle local files
+                if (selectedFiles.length === 0) {
+                    alert('Выберите хотя бы один MP3 файл');
+                    return;
+                }
+
+                try {
+                    const files = await Promise.all(
+                        selectedFiles.map(file => readFileAsBase64(file))
+                    );
+
+                    stationData.files = files.map((data, index) => ({
+                        name: selectedFiles[index].name,
+                        data: data
+                    }));
+
+                    console.log(`✅ Loaded ${files.length} file(s)`);
+                } catch (error) {
+                    alert('Ошибка чтения файлов: ' + error.message);
+                    return;
+                }
+            } else {
+                // Handle URL-based stations
+                const url = document.getElementById('stationUrl').value.trim();
+
+                if (!url) {
+                    alert('Пожалуйста, укажите URL или YouTube ID');
+                    return;
+                }
+
+                // Validate YouTube ID
+                if (type === 'youtube' && url.includes('/')) {
+                    alert('Для YouTube укажите только ID видео (например: dQw4w9WgXcQ)');
+                    return;
+                }
+
+                stationData.url = url;
+            }
+
+            const stations = loadCustomStations();
+            stations.push(stationData);
+            saveCustomStations(stations);
+
+            // Reset form
+            document.getElementById('stationName').value = '';
+            document.getElementById('stationUrl').value = '';
+            document.getElementById('localFiles').value = '';
+            selectedFiles = [];
+            renderFileList();
+
+            renderStations();
+            console.log('✅ Station added:', name);
+        });
+
+        // Read file as base64
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Delete station
+        function deleteStation(index) {
+            if (!confirm('Удалить эту станцию?')) {
+                return;
+            }
+
+            // Stop if currently playing this station
+            if (currentPlayingId === String(index)) {
+                stopAllAudio();
+            }
+
+            const stations = loadCustomStations();
+            stations.splice(index, 1);
+            saveCustomStations(stations);
+            renderStations();
+            console.log('✅ Station deleted');
+        }
+
+        // Toggle play/stop
+        function togglePlay(index) {
+            const indexStr = String(index);
+            const btnElement = document.getElementById(`play-btn-${index}`);
+
+            if (currentPlayingId === indexStr) {
+                // Stop current
+                stopAllAudio();
+                btnElement.textContent = '▶ Play';
+                btnElement.parentElement.classList.remove('playing');
+                currentPlayingId = null;
+                hidePlayerControls();
+            } else {
+                // Stop previous if playing
+                if (currentPlayingId !== null) {
+                    stopAllAudio();
+                    const prevBtn = document.getElementById(`play-btn-${currentPlayingId}`);
+                    if (prevBtn) {
+                        prevBtn.textContent = '▶ Play';
+                        prevBtn.parentElement.classList.remove('playing');
+                    }
+                }
+
+                // Start new
+                const stations = loadCustomStations();
+                const station = stations[parseInt(index)];
+
+                if (station) {
+                    currentPlayingId = indexStr;
+                    currentTrackIndex = 0;
+
+                    if (station.type === 'local' && station.files && station.files.length > 0) {
+                        currentPlaylist = station.files;
+                        playLocalTrack(0, station.name);
+                    } else {
+                        currentPlaylist = null;
+                        playStation(station, indexStr);
+                    }
+
+                    btnElement.textContent = '⏸ Stop';
+                    btnElement.parentElement.classList.add('playing');
+                    showPlayerControls(station.name, getStationInfo(station));
+                }
+            }
+        }
+
+        // Get station info for display
+        function getStationInfo(station) {
+            const types = {
+                'radio': 'Радио поток',
+                'hls': 'HLS поток',
+                'youtube': 'YouTube',
+                'local': `Локально (${station.files ? station.files.length : 0} треков)`
+            };
+            return types[station.type] || station.type;
+        }
+
+        // Play station based on type
+        function playStation(station, id) {
+            console.log('🎵 Playing:', station.name, '(' + station.type + ')');
+
+            switch (station.type) {
+                case 'youtube':
+                    playYouTubeStation(station.url);
+                    break;
+                case 'hls':
+                    playHLSStation(station.url);
+                    break;
+                case 'radio':
+                default:
+                    playRadioStation(station.url);
+                    break;
+            }
+        }
+
+        // Play local track from playlist
+        function playLocalTrack(trackIndex, playlistName) {
+            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
+                console.error('Invalid track index');
+                return;
+            }
+
+            const track = currentPlaylist[trackIndex];
+            currentTrackIndex = trackIndex;
+
+            console.log(`🎵 Playing track ${trackIndex + 1}/${currentPlaylist.length}: ${track.name}`);
+
+            try {
+                const audio = new Audio();
+                audio.src = track.data;
+                audio.volume = 0.5;
+
+                audio.addEventListener('canplay', () => {
+                    console.log('✅ Track ready');
+                });
+
+                audio.addEventListener('error', (e) => {
+                    console.error('❌ Track error:', e);
+                    alert('Ошибка воспроизведения трека.');
+                    nextTrack();
+                });
+
+                audio.addEventListener('ended', () => {
+                    console.log('✅ Track ended, playing next...');
+                    nextTrack();
+                });
+
+                audio.play()
+                    .then(() => {
+                        console.log('✅ Playback started');
+                        currentAudio = audio;
+                        updateNowPlaying(track.name, `Трек ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
+                    })
+                    .catch(err => {
+                        console.error('❌ Play error:', err);
+                        alert('Не удалось воспроизвести трек.');
+                    });
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Ошибка создания аудио.');
+            }
+        }
+
+        // Play regular radio stream
+        function playRadioStation(url) {
+            try {
+                const audio = new Audio();
+                audio.src = url;
+                audio.volume = 0.5;
+                audio.crossOrigin = 'anonymous';
+
+                audio.addEventListener('loadstart', () => {
+                    console.log('📡 Loading stream...');
+                });
+
+                audio.addEventListener('canplay', () => {
+                    console.log('✅ Stream ready');
+                });
+
+                audio.addEventListener('error', (e) => {
+                    console.error('❌ Stream error:', e);
+                    alert('Ошибка воспроизведения. Проверьте URL.');
+                    stopAllAudio();
+                });
+
+                audio.play()
+                    .then(() => {
+                        console.log('✅ Playback started');
+                        currentAudio = audio;
+                    })
+                    .catch(err => {
+                        console.error('❌ Play error:', err);
+                        alert('Не удалось воспроизвести поток.');
+                    });
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                alert('Ошибка создания аудио.');
+            }
+        }
+
+        // Play HLS stream
+        function playHLSStation(url) {
+            if (!Hls.isSupported()) {
+                alert('HLS не поддерживается в этом браузере');
+                return;
+            }
+
+            try {
+                const audio = new Audio();
+                hlsInstance = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true
+                });
+
+                hlsInstance.loadSource(url);
+                hlsInstance.attachMedia(audio);
+
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                    console.log('✅ [HLS] Manifest parsed');
+                    audio.volume = 0.5;
+                    audio.play()
+                        .then(() => {
+                            console.log('✅ [HLS] Playback started');
+                            currentAudio = audio;
+                        })
+                        .catch(err => {
+                            console.error('❌ [HLS] Play error:', err);
+                            alert('Не удалось воспроизвести HLS поток.');
+                        });
+                });
+
+                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('❌ [HLS] Error:', data.type, data.details);
+
+                    if (data.fatal) {
+                        alert('Критическая ошибка HLS: ' + data.details);
+                        stopAllAudio();
+                    }
+                });
+
+            } catch (error) {
+                console.error('❌ [HLS] Error:', error);
+                alert('Ошибка создания HLS плеера.');
+            }
+        }
+
+        // Play YouTube station
+        function playYouTubeStation(videoId) {
+            if (!youtubePlayerReady) {
+                alert('YouTube Player ещё не готов. Попробуйте снова.');
+                return;
+            }
+
+            try {
+                youtubePlayer.loadVideoById(videoId);
+                youtubePlayer.setVolume(50);
+                console.log('✅ YouTube playback started');
+            } catch (error) {
+                console.error('❌ YouTube error:', error);
+                alert('Ошибка воспроизведения YouTube.');
+            }
+        }
+
+        // Next track
+        function nextTrack() {
+            if (!currentPlaylist || currentPlaylist.length === 0) {
+                console.log('No playlist active');
+                return;
+            }
+
+            const nextIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+
+            stopAllAudio();
+
+            const stations = loadCustomStations();
+            const station = stations[parseInt(currentPlayingId)];
+
+            playLocalTrack(nextIndex, station.name);
+        }
+
+        // Previous track
+        function previousTrack() {
+            if (!currentPlaylist || currentPlaylist.length === 0) {
+                console.log('No playlist active');
+                return;
+            }
+
+            const prevIndex = currentTrackIndex - 1 >= 0 ? currentTrackIndex - 1 : currentPlaylist.length - 1;
+
+            stopAllAudio();
+
+            const stations = loadCustomStations();
+            const station = stations[parseInt(currentPlayingId)];
+
+            playLocalTrack(prevIndex, station.name);
+        }
+
+        // Stop all audio
+        function stopAllAudio() {
+            // Stop YouTube
+            if (youtubePlayer && youtubePlayerReady) {
+                try {
+                    youtubePlayer.stopVideo();
+                } catch (e) {
+                    console.log('⚠️ Error stopping YouTube:', e);
+                }
+            }
+
+            // Stop HLS
+            if (hlsInstance) {
+                try {
+                    hlsInstance.destroy();
+                    hlsInstance = null;
+                } catch (e) {
+                    console.log('⚠️ Error destroying HLS:', e);
+                }
+            }
+
+            // Stop HTML5 Audio
+            if (currentAudio) {
+                try {
+                    currentAudio.pause();
+                    currentAudio = null;
+                } catch (e) {
+                    console.log('⚠️ Error stopping audio:', e);
+                }
+            }
+
+            console.log('✅ All audio stopped');
+
+            // Reset UI
+            if (currentPlayingId !== null) {
+                const btnElement = document.getElementById(`play-btn-${currentPlayingId}`);
+                if (btnElement) {
+                    btnElement.textContent = '▶ Play';
+                    btnElement.parentElement.classList.remove('playing');
+                }
+                currentPlayingId = null;
+            }
+
+            hidePlayerControls();
+        }
+
+        // Show player controls
+        function showPlayerControls(title, info) {
+            const controls = document.getElementById('playerControls');
+            controls.classList.add('active');
+            updateNowPlaying(title, info);
+        }
+
+        // Hide player controls
+        function hidePlayerControls() {
+            const controls = document.getElementById('playerControls');
+            controls.classList.remove('active');
+        }
+
+        // Update now playing info
+        function updateNowPlaying(title, info) {
+            document.getElementById('nowPlayingTitle').textContent = title;
+            document.getElementById('nowPlayingInfo').textContent = info;
+        }
+
+        // Update help text based on selected type
+        document.getElementById('stationType').addEventListener('change', function(e) {
+            const type = e.target.value;
+            const urlHelp = document.getElementById('urlHelp');
+            const urlInput = document.getElementById('stationUrl');
+            const urlGroup = document.getElementById('urlGroup');
+            const fileGroup = document.getElementById('fileGroup');
+
+            if (type === 'local') {
+                urlGroup.style.display = 'none';
+                fileGroup.style.display = 'block';
+            } else {
+                urlGroup.style.display = 'block';
+                fileGroup.style.display = 'none';
+
+                switch (type) {
+                    case 'youtube':
+                        urlHelp.textContent = 'Введите YouTube ID (например: dQw4w9WgXcQ)';
+                        urlInput.placeholder = 'dQw4w9WgXcQ';
+                        break;
+                    case 'hls':
+                        urlHelp.textContent = 'URL HLS манифеста (.m3u8)';
+                        urlInput.placeholder = 'https://example.com/stream.m3u8';
+                        break;
+                    case 'radio':
+                    default:
+                        urlHelp.textContent = 'URL прямого потока (MP3/AAC)';
+                        urlInput.placeholder = 'https://example.com/stream.mp3';
+                        break;
+                }
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('═══════════════════════════════════════════════════════');
+            console.log('🎵 Custom Stations Page Loaded');
+            console.log('🔧 HLS.js version:', Hls.version);
+            console.log('🔧 HLS.js supported:', Hls.isSupported());
+            console.log('📁 LocalStorage available:', typeof(Storage) !== 'undefined');
+            console.log('═══════════════════════════════════════════════════════');
+
+            renderStations();
+        });
+    </script>
+</body>
+</html>
