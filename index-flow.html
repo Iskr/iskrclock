@@ -734,17 +734,37 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Рандомный старт - ПОЛНЫЙ спектр (больше вероятность светлых цветов)
-        let currentColor = {
-            r: randomColorInRange(40, 240),
-            g: randomColorInRange(40, 240),
-            b: randomColorInRange(50, 250)
-        };
-        let targetColor = {
-            r: randomColorInRange(40, 240),
-            g: randomColorInRange(40, 240),
-            b: randomColorInRange(50, 250)
-        };
+        // Генерация сбалансированных цветов - 33% ночь, 33% день, 33% сумерки
+        function generateBalancedStartColor() {
+            const timeOfDay = Math.random();
+
+            if (timeOfDay < 0.33) {
+                // Ночь: яркость < 0.3 (средний RGB ~51)
+                return {
+                    r: randomColorInRange(30, 70),
+                    g: randomColorInRange(30, 70),
+                    b: randomColorInRange(40, 80)
+                };
+            } else if (timeOfDay < 0.66) {
+                // День: яркость > 0.6 (средний RGB ~178)
+                return {
+                    r: randomColorInRange(160, 220),
+                    g: randomColorInRange(160, 220),
+                    b: randomColorInRange(170, 230)
+                };
+            } else {
+                // Сумерки: яркость 0.3-0.6 (средний RGB ~115)
+                return {
+                    r: randomColorInRange(90, 140),
+                    g: randomColorInRange(90, 140),
+                    b: randomColorInRange(100, 150)
+                };
+            }
+        }
+
+        // Рандомный старт - сбалансированное распределение времени суток
+        let currentColor = generateBalancedStartColor();
+        let targetColor = generateBalancedStartColor();
         let transitionSpeed = 60000; // 60 секунд
         let colorRange = 30;
         let animationStartTime = Date.now();
@@ -886,14 +906,17 @@
         // ===== ФУНКЦИИ НЕПРЕРЫВНОГО ПЕРЕТЕКАНИЯ ЦВЕТОВ =====
 
         function generateNewTargetColor() {
-            targetColor = {
-                r: Math.max(40, Math.min(240, currentColor.r + (Math.random() * colorRange * 2 - colorRange))),
-                g: Math.max(40, Math.min(240, currentColor.g + (Math.random() * colorRange * 2 - colorRange))),
-                b: Math.max(50, Math.min(250, currentColor.b + (Math.random() * colorRange * 2 - colorRange)))
-            };
+            // Используем сбалансированную генерацию для разнообразия времен суток
+            targetColor = generateBalancedStartColor();
             animationStartTime = Date.now();
             lastTargetChangeTime = Date.now();
-            console.log(`🎨 Новый целевой цвет: RGB(${Math.round(targetColor.r)}, ${Math.round(targetColor.g)}, ${Math.round(targetColor.b)})`);
+
+            const brightness = (targetColor.r * 0.299 + targetColor.g * 0.587 + targetColor.b * 0.114) / 255;
+            let timeOfDayName = 'сумерки';
+            if (brightness < 0.3) timeOfDayName = 'ночь';
+            else if (brightness > 0.6) timeOfDayName = 'день';
+
+            console.log(`🎨 Новый целевой цвет (${timeOfDayName}): RGB(${Math.round(targetColor.r)}, ${Math.round(targetColor.g)}, ${Math.round(targetColor.b)}), яркость: ${brightness.toFixed(2)}`);
         }
 
         function lerp(start, end, progress) {
@@ -1599,6 +1622,7 @@
             console.log('🎨 ВЕРСИЯ 5.0 FLOW - НОВАЯ ЭПОХА ДИЗАЙНА!');
             console.log(' 🌊 Непрерывное перетекание цветов (60 FPS)');
             console.log(' 🎲 Рандомный старт - каждый раз новый цвет!');
+            console.log(' ⚖️ Сбалансированное распределение: 33% ночь / 33% день / 33% сумерки');
             console.log(' ⏱️ Новый целевой цвет каждую минуту');
             console.log('');
             console.log(' 📻 BBC Radio 1 - 320kbps HLS via hls.js (NEW!)');
@@ -1643,7 +1667,11 @@
             // ===== НОВАЯ СИСТЕМА v5.0 FLOW =====
             // Применяем начальный цвет
             applyColors();
-            console.log('✅ Начальный цвет применен: RGB(' + Math.round(currentColor.r) + ', ' + Math.round(currentColor.g) + ', ' + Math.round(currentColor.b) + ')');
+            const initialBrightness = (currentColor.r * 0.299 + currentColor.g * 0.587 + currentColor.b * 0.114) / 255;
+            let initialTimeOfDay = 'сумерки';
+            if (initialBrightness < 0.3) initialTimeOfDay = 'ночь';
+            else if (initialBrightness > 0.6) initialTimeOfDay = 'день';
+            console.log('✅ Начальный цвет применен (' + initialTimeOfDay + '): RGB(' + Math.round(currentColor.r) + ', ' + Math.round(currentColor.g) + ', ' + Math.round(currentColor.b) + '), яркость: ' + initialBrightness.toFixed(2));
 
             // Генерируем первый целевой цвет через 2 секунды
             setTimeout(() => {
