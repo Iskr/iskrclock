@@ -374,7 +374,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.4.1 - Fixed Local M3U + 50MB Limit</p>
+            <p class="version">v1.5.0 - WAV/FLAC + Radio M3U Upload</p>
         </div>
 
         <div class="nav-links">
@@ -408,7 +408,7 @@
                     <label for="stationType">Тип</label>
                     <select id="stationType" required>
                         <option value="radio">📻 Радио-поток (MP3/AAC)</option>
-                        <option value="local">🎵 Локальные файлы (MP3)</option>
+                        <option value="local">🎵 Локальные файлы (MP3/FLAC/WAV)</option>
                         <option value="hls">🎶 HLS поток (.m3u/.m3u8)</option>
                         <option value="youtube">📺 YouTube (ID видео)</option>
                     </select>
@@ -421,10 +421,18 @@
                     <p class="help-text" id="urlHelp">Для YouTube укажите ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)</p>
                 </div>
 
+                <div id="radioOrDivider" class="or-divider" style="display: none;">ИЛИ</div>
+
+                <div class="form-group" id="radioFileGroup" style="display: none;">
+                    <label for="radioFile">Выберите .m3u плейлист</label>
+                    <input type="file" id="radioFile" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl">
+                    <p class="help-text">Загрузите локальный .m3u файл со списком радиостанций.</p>
+                </div>
+
                 <div class="form-group" id="fileGroup" style="display: none;">
-                    <label for="localFiles">Выберите MP3 файлы</label>
-                    <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg" multiple>
-                    <p class="help-text">Выберите один или несколько MP3 файлов. Для плейлиста выберите несколько.</p>
+                    <label for="localFiles">Выберите аудио файлы</label>
+                    <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
+                    <p class="help-text">Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.</p>
                     <div class="file-list" id="fileList"></div>
                 </div>
 
@@ -860,8 +868,44 @@
                     // Handle URL
                     stationData.url = url;
                 }
+            } else if (type === 'radio') {
+                // Handle radio - can be URL or file
+                const url = document.getElementById('stationUrl').value.trim();
+                const radioFileInput = document.getElementById('radioFile');
+                const radioFile = radioFileInput.files[0];
+
+                if (!url && !radioFile) {
+                    alert('Пожалуйста, укажите URL или загрузите .m3u файл');
+                    return;
+                }
+
+                if (radioFile) {
+                    // Handle local M3U file for radio
+                    console.log(`📄 Processing radio M3U file: ${radioFile.name}`);
+
+                    try {
+                        // Read file as text
+                        const fileContent = await readFileAsText(radioFile);
+                        console.log(`✅ Radio M3U file read: ${fileContent.length} bytes`);
+
+                        // Store file content as data URL
+                        const blob = new Blob([fileContent], { type: 'audio/x-mpegurl' });
+                        const dataUrl = await blobToDataURL(blob);
+
+                        stationData.url = dataUrl;
+                        stationData.isLocalFile = true;
+                        console.log(`✅ Radio M3U file converted to data URL`);
+                    } catch (error) {
+                        console.error('❌ Error reading radio M3U file:', error);
+                        alert('Ошибка чтения файла: ' + error.message);
+                        return;
+                    }
+                } else {
+                    // Handle URL
+                    stationData.url = url;
+                }
             } else {
-                // Handle other URL-based stations (radio, youtube)
+                // Handle other URL-based stations (youtube)
                 const url = document.getElementById('stationUrl').value.trim();
 
                 if (!url) {
@@ -892,6 +936,7 @@
             document.getElementById('stationUrl').value = '';
             document.getElementById('localFiles').value = '';
             document.getElementById('hlsFile').value = '';
+            document.getElementById('radioFile').value = '';
             selectedFiles = [];
             renderFileList();
 
@@ -1050,7 +1095,7 @@
                     break;
                 case 'radio':
                 default:
-                    playRadioStation(station.url);
+                    playRadioStation(station.url, station.isLocalFile);
                     break;
             }
         }
@@ -1104,15 +1149,35 @@
             }
         }
 
-        // Play regular radio stream
-        function playRadioStation(url) {
+        // Play regular radio stream (or parse M3U if local file)
+        async function playRadioStation(url, isLocalFile = false) {
             try {
-                const audio = new Audio();
                 const originalUrl = url;
 
                 // Сохраняем для retry
                 currentStationUrl = originalUrl;
                 currentStationType = 'radio';
+
+                // Check if this is a local M3U file (data URL)
+                const isDataURL = url.startsWith('data:');
+
+                if (isLocalFile && isDataURL) {
+                    console.log('📄 Detected local M3U file for radio, parsing...');
+                    const result = await parseM3UPlaylist(url);
+
+                    if (result.success) {
+                        console.log(`🎵 Playing extracted stream: ${result.streamUrl}`);
+                        // Recursively call playRadioStation with extracted URL
+                        playRadioStation(result.streamUrl, false);
+                        return;
+                    } else {
+                        console.log('⚠️ M3U parsing failed');
+                        alert('Не удалось извлечь URL из M3U файла');
+                        return;
+                    }
+                }
+
+                const audio = new Audio();
 
                 // Проверяем нужен ли CORS proxy (для HTTP стримов)
                 if (needsCorsProxy(originalUrl)) {
@@ -1494,20 +1559,24 @@
         }
 
         // Update help text based on selected type
-        document.getElementById('stationType').addEventListener('change', function(e) {
-            const type = e.target.value;
+        function updateFormFields() {
+            const type = document.getElementById('stationType').value;
             const urlHelp = document.getElementById('urlHelp');
             const urlInput = document.getElementById('stationUrl');
             const urlGroup = document.getElementById('urlGroup');
             const fileGroup = document.getElementById('fileGroup');
             const hlsFileGroup = document.getElementById('hlsFileGroup');
             const hlsOrDivider = document.getElementById('hlsOrDivider');
+            const radioFileGroup = document.getElementById('radioFileGroup');
+            const radioOrDivider = document.getElementById('radioOrDivider');
 
             // Hide all first
             urlGroup.style.display = 'none';
             fileGroup.style.display = 'none';
             hlsFileGroup.style.display = 'none';
             hlsOrDivider.style.display = 'none';
+            radioFileGroup.style.display = 'none';
+            radioOrDivider.style.display = 'none';
 
             if (type === 'local') {
                 fileGroup.style.display = 'block';
@@ -1518,22 +1587,24 @@
                 hlsFileGroup.style.display = 'block';
                 urlHelp.textContent = 'URL HLS манифеста (.m3u8) или плейлиста (.m3u с URL потока внутри). HTTP потоки работают через CORS прокси.';
                 urlInput.placeholder = 'http://example.com/stream.m3u или https://example.com/stream.m3u8';
+            } else if (type === 'radio') {
+                // For Radio, show both URL and File options with OR divider
+                urlGroup.style.display = 'block';
+                radioOrDivider.style.display = 'block';
+                radioFileGroup.style.display = 'block';
+                urlHelp.textContent = 'URL прямого потока (MP3/AAC). HTTP потоки работают через CORS прокси.';
+                urlInput.placeholder = 'http://example.com/stream.mp3 или https://example.com/stream.mp3';
             } else {
                 urlGroup.style.display = 'block';
 
-                switch (type) {
-                    case 'youtube':
-                        urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
-                        urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
-                        break;
-                    case 'radio':
-                    default:
-                        urlHelp.textContent = 'URL прямого потока (MP3/AAC). HTTP потоки работают через CORS прокси.';
-                        urlInput.placeholder = 'http://example.com/stream.mp3 или https://example.com/stream.mp3';
-                        break;
+                if (type === 'youtube') {
+                    urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
+                    urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
                 }
             }
-        });
+        }
+
+        document.getElementById('stationType').addEventListener('change', updateFormFields);
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1553,6 +1624,9 @@
                 console.error('❌ Failed to initialize IndexedDB:', error);
                 alert('Ошибка инициализации базы данных. Локальные файлы могут не работать.');
             }
+
+            // Initialize form fields visibility
+            updateFormFields();
 
             renderStations();
         });
