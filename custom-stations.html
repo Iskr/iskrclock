@@ -44,6 +44,13 @@
             opacity: 0.9;
         }
 
+        .version {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
         .nav-links {
             text-align: center;
             margin-bottom: 30px;
@@ -341,6 +348,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
+            <p class="version">v1.1.0 - IndexedDB Storage</p>
         </div>
 
         <div class="nav-links">
@@ -384,7 +392,7 @@
                 <div class="form-group" id="urlGroup">
                     <label for="stationUrl">URL / YouTube ID</label>
                     <input type="text" id="stationUrl" placeholder="https://example.com/stream.mp3">
-                    <p class="help-text" id="urlHelp">Для YouTube укажите только ID (например: dQw4w9WgXcQ)</p>
+                    <p class="help-text" id="urlHelp">Для YouTube укажите ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)</p>
                 </div>
 
                 <div class="form-group" id="fileGroup" style="display: none;">
@@ -667,6 +675,29 @@
             input.files = dt.files;
         }
 
+        // Extract YouTube ID from URL
+        function extractYouTubeId(urlOrId) {
+            // If it's already just an ID (no slashes or special chars), return as is
+            if (!/[\/\.\?=]/.test(urlOrId)) {
+                return urlOrId;
+            }
+
+            // Try to extract from various YouTube URL formats
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\?\/\s]{11})/,
+                /^([^&\?\/\s]{11})$/  // Just the ID itself
+            ];
+
+            for (const pattern of patterns) {
+                const match = urlOrId.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+
+            return null;
+        }
+
         // Add new station
         document.getElementById('addStationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -731,13 +762,18 @@
                     return;
                 }
 
-                // Validate YouTube ID
-                if (type === 'youtube' && url.includes('/')) {
-                    alert('Для YouTube укажите только ID видео (например: dQw4w9WgXcQ)');
-                    return;
+                // Extract YouTube ID from URL if needed
+                if (type === 'youtube') {
+                    const videoId = extractYouTubeId(url);
+                    if (!videoId) {
+                        alert('Не удалось извлечь YouTube ID. Проверьте ссылку или введите ID вручную (например: dQw4w9WgXcQ)');
+                        return;
+                    }
+                    stationData.url = videoId;
+                    console.log(`✅ YouTube ID extracted: ${videoId}`);
+                } else {
+                    stationData.url = url;
                 }
-
-                stationData.url = url;
             }
 
             const stations = loadCustomStations();
@@ -1158,8 +1194,8 @@
 
                 switch (type) {
                     case 'youtube':
-                        urlHelp.textContent = 'Введите YouTube ID (например: dQw4w9WgXcQ)';
-                        urlInput.placeholder = 'dQw4w9WgXcQ';
+                        urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
+                        urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
                         break;
                     case 'hls':
                         urlHelp.textContent = 'URL HLS манифеста (.m3u8)';
