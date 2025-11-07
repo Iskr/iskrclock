@@ -1234,9 +1234,10 @@
                     return;
                 }
 
-                // Check if this is a plain M3U playlist file (not HLS)
-                if (isLocalFile && isDataURL) {
-                    console.log('📄 Detected local M3U file for radio, parsing...');
+                // Check if this is a plain M3U playlist file (.m3u but not .m3u8)
+                const isPlainM3U = url.endsWith('.m3u') && !url.endsWith('.m3u8');
+                if (isPlainM3U || (isLocalFile && isDataURL)) {
+                    console.log('📄 Detected M3U playlist file, parsing...');
                     const result = await parseM3UPlaylist(url);
 
                     if (result.success) {
