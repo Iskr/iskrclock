@@ -407,6 +407,30 @@
             background: #f44336;
         }
 
+        .btn-manage-stations {
+            background: rgba(255, 165, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: bold;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .btn-manage-stations:hover {
+            background: rgba(255, 165, 0, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
         .volume-control {
             display: flex;
             align-items: center;
@@ -631,6 +655,10 @@
                     <option value="hermitage">🏛️ Эрмитаж FM 90.1 (СПб)</option>
                 </select>
                 <button class="play-button" id="playButton">▶</button>
+                <a href="custom-stations.html" class="btn-manage-stations">
+                    <span>🎵 Свои</span>
+                    <span>станции</span>
+                </a>
                 <div class="volume-control">
                     <span class="volume-label">Нарастает?</span>
                     <input type="checkbox" id="volumeGrow" checked>
@@ -673,6 +701,16 @@
         // YouTube Player
         let youtubePlayer = null;
         let youtubePlayerReady = false;
+
+        // ========= CUSTOM STATIONS - IndexedDB =========
+        let db = null;
+        const DB_NAME = 'IskrClockDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'audioFiles';
+
+        // Плейлист для локальных файлов
+        let currentPlaylist = null;
+        let currentTrackIndex = 0;
 
         // CORS Proxy система с fallback (отсортированы по надежности)
         const corsProxies = [
@@ -778,6 +816,155 @@
         function switchToNextProxy() {
             currentProxyIndex = (currentProxyIndex + 1) % corsProxies.length;
             console.log(`⏭️ Switching to next proxy: #${currentProxyIndex}`);
+        }
+
+        // ========= CUSTOM STATIONS FUNCTIONS =========
+
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        objectStore.createIndex('stationId', 'stationId', { unique: false });
+                    }
+                };
+            });
+        }
+
+        // Load files from IndexedDB for a station
+        function loadFilesFromDB(stationId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const index = objectStore.index('stationId');
+                const request = index.getAll(stationId);
+                request.onsuccess = () => {
+                    const files = request.result.sort((a, b) => a.fileIndex - b.fileIndex);
+                    resolve(files);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Load custom stations from localStorage
+        function loadCustomStations() {
+            const saved = localStorage.getItem('customStations');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        // Parse M3U playlist and extract stream URL
+        async function parseM3UPlaylist(url) {
+            try {
+                let text;
+                if (url.startsWith('data:')) {
+                    const base64Content = url.split(',')[1];
+                    text = atob(base64Content);
+                } else {
+                    const fetchUrl = url.startsWith('http:') ? getProxiedURL(url) : url;
+                    const response = await fetch(fetchUrl);
+                    text = await response.text();
+                }
+
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                        return { success: true, streamUrl: trimmed };
+                    }
+                }
+                return { success: false, error: 'No stream URL found' };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Extract YouTube ID from URL or ID
+        function extractYouTubeId(urlOrId) {
+            if (!/[\/\.\?=]/.test(urlOrId)) {
+                return urlOrId;
+            }
+
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\?\/\s]{11})/,
+                /^([^&\?\/\s]{11})$/
+            ];
+
+            for (const pattern of patterns) {
+                const match = urlOrId.match(pattern);
+                if (match && match[1]) return match[1];
+            }
+            return null;
+        }
+
+        // Populate stations list dynamically
+        function populateStationsList() {
+            const select = document.getElementById('radioSelect');
+            select.innerHTML = '';
+
+            // Классический сигнал
+            const classicOption = document.createElement('option');
+            classicOption.value = 'classic';
+            classicOption.textContent = '🔔 Классический сигнал';
+            select.appendChild(classicOption);
+
+            // Встроенные станции
+            const builtInStations = [
+                { value: 'bbc-radio-1', label: '📻 BBC Radio 1' },
+                { value: 'npr', label: '📻 NPR (National Public Radio)' },
+                { value: 'ninja-chill', label: '🥷 NINJA CHILL 24/7' },
+                { value: 'nts-1', label: '🎧 NTS Radio 1 (London)' },
+                { value: 'nts-2', label: '🎧 NTS Radio 2 (London)' },
+                { value: 'rinse-france', label: '🎧 Rinse France (Paris)' },
+                { value: 'rinse-uk', label: '🎧 Rinse UK (London)' },
+                { value: 'fip', label: '🇫🇷 FIP Radio (Paris)' },
+                { value: 'europa-plus', label: '📻 Европа Плюс' },
+                { value: 'radio-energy', label: '📻 Radio Energy' },
+                { value: 'love-radio', label: '📻 Love Radio' },
+                { value: 'hit-fm', label: '📻 Hit FM' },
+                { value: 'monte-carlo', label: '📻 Monte Carlo' },
+                { value: 'studio-21', label: '🎧 STUDIO 21' },
+                { value: 'radio-metro', label: '🚇 Радио МЕТРО' },
+                { value: 'hermitage', label: '🏛️ Эрмитаж FM 90.1 (СПб)' }
+            ];
+
+            builtInStations.forEach(station => {
+                const option = document.createElement('option');
+                option.value = station.value;
+                option.textContent = station.label;
+                select.appendChild(option);
+            });
+
+            // Пользовательские станции
+            const customStations = loadCustomStations();
+            if (customStations.length > 0) {
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '───── Мои станции ─────';
+                select.appendChild(separator);
+
+                customStations.forEach((station, index) => {
+                    const option = document.createElement('option');
+                    option.value = 'custom-' + index;
+
+                    let icon = '🎵';
+                    if (station.type === 'local') icon = '💿';
+                    else if (station.type === 'youtube') icon = '📺';
+                    else if (station.type === 'radio') icon = '📻';
+
+                    option.textContent = `${icon} ${station.name}`;
+                    select.appendChild(option);
+                });
+
+                console.log(`✅ Loaded ${customStations.length} custom stations`);
+            }
         }
 
         // YouTube Player API callback
@@ -1191,6 +1378,33 @@
 
             console.log('🎵 Starting station:', station);
 
+            // Проверяем пользовательские станции
+            if (station.startsWith('custom-')) {
+                const index = parseInt(station.replace('custom-', ''));
+                const customStations = loadCustomStations();
+                const customStation = customStations[index];
+
+                if (!customStation) {
+                    console.error('❌ Custom station not found:', index);
+                    playClassicAlarmSound();
+                    return;
+                }
+
+                console.log(`🎵 Playing custom station: ${customStation.name} (${customStation.type})`);
+
+                if (customStation.type === 'local') {
+                    playCustomLocalStation(customStation);
+                } else if (customStation.type === 'youtube') {
+                    playCustomYouTubeStation(customStation);
+                } else if (customStation.type === 'radio') {
+                    playCustomRadioStation(customStation);
+                } else {
+                    console.error('❌ Unknown custom station type:', customStation.type);
+                    playClassicAlarmSound();
+                }
+                return;
+            }
+
             if (station === 'classic') {
                 // Для классического сигнала используем Web Audio API
                 playClassicAlarmSound();
@@ -1579,6 +1793,276 @@
             }
         }
 
+        // ========= CUSTOM STATIONS PLAYBACK =========
+
+        // Воспроизведение пользовательской локальной станции
+        async function playCustomLocalStation(station) {
+            const playButton = document.getElementById('playButton');
+
+            try {
+                const files = await loadFilesFromDB(station.id);
+
+                if (files.length === 0) {
+                    console.error('❌ No files found for station');
+                    playClassicAlarmSound();
+                    return;
+                }
+
+                currentPlaylist = files;
+                currentTrackIndex = 0;
+                playLocalTrack(0);
+
+                playButton.textContent = '⏸';
+                playButton.classList.add('playing');
+
+                console.log(`✅ Playing custom local station: ${station.name} (${files.length} tracks)`);
+            } catch (error) {
+                console.error('❌ Error loading custom local station:', error);
+                playClassicAlarmSound();
+            }
+        }
+
+        function playLocalTrack(trackIndex) {
+            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
+                return;
+            }
+
+            const track = currentPlaylist[trackIndex];
+            currentTrackIndex = trackIndex;
+
+            console.log(`🎵 Playing track ${trackIndex + 1}/${currentPlaylist.length}: ${track.name}`);
+
+            const audio = new Audio();
+            audio.src = track.data;
+
+            const volumeGrow = document.getElementById('volumeGrow').checked;
+            audio.volume = volumeGrow ? 0 : 0.5;
+
+            audio.addEventListener('ended', () => {
+                console.log('✅ Track ended, playing next...');
+                const nextIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+                playLocalTrack(nextIndex);
+            });
+
+            audio.addEventListener('error', (e) => {
+                console.error('❌ Track error:', e);
+                playClassicAlarmSound();
+            });
+
+            audio.play()
+                .then(() => {
+                    currentAudio = audio;
+
+                    if (volumeGrow) {
+                        let volume = 0;
+                        const interval = setInterval(() => {
+                            if (!audio || audio.paused) {
+                                clearInterval(interval);
+                                return;
+                            }
+                            if (volume < 0.5) {
+                                volume += 0.5 / 100;
+                                audio.volume = Math.min(volume, 0.5);
+                            } else {
+                                clearInterval(interval);
+                            }
+                        }, 300);
+                    }
+                })
+                .catch(err => {
+                    console.error('❌ Error playing local track:', err);
+                    playClassicAlarmSound();
+                });
+        }
+
+        // Воспроизведение пользовательской радио-станции
+        async function playCustomRadioStation(station) {
+            const playButton = document.getElementById('playButton');
+            const url = station.url;
+            const isLocalFile = station.isLocalFile || false;
+
+            console.log('📻 Playing custom radio station:', url);
+
+            // Авто-детекция HLS
+            if (url.includes('.m3u8')) {
+                console.log('🎶 Detected HLS format');
+                playCustomHLSStation(url, isLocalFile);
+                return;
+            }
+
+            // Проверка на plain M3U
+            const isPlainM3U = url.endsWith('.m3u') && !url.endsWith('.m3u8');
+            if (isPlainM3U || (isLocalFile && url.startsWith('data:'))) {
+                console.log('📄 Detected M3U playlist, parsing...');
+                const result = await parseM3UPlaylist(url);
+                if (result.success) {
+                    console.log(`✅ Extracted stream URL: ${result.streamUrl}`);
+                    playCustomRadioStation({ url: result.streamUrl, isLocalFile: false });
+                    return;
+                } else {
+                    console.error('❌ M3U parsing failed');
+                    playClassicAlarmSound();
+                    return;
+                }
+            }
+
+            // Обычный радио-поток
+            try {
+                const audio = new Audio();
+                audio.src = url.startsWith('http:') ? getProxiedURL(url) : url;
+
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                audio.volume = volumeGrow ? 0 : 0.5;
+                audio.crossOrigin = 'anonymous';
+
+                audio.addEventListener('error', (e) => {
+                    console.error('❌ Custom radio error:', e);
+                    playClassicAlarmSound();
+                });
+
+                audio.play()
+                    .then(() => {
+                        currentAudio = audio;
+                        playButton.textContent = '⏸';
+                        playButton.classList.add('playing');
+
+                        if (volumeGrow) {
+                            let volume = 0;
+                            const interval = setInterval(() => {
+                                if (!audio || audio.paused) {
+                                    clearInterval(interval);
+                                    return;
+                                }
+                                if (volume < 0.5) {
+                                    volume += 0.5 / 100;
+                                    audio.volume = Math.min(volume, 0.5);
+                                } else {
+                                    clearInterval(interval);
+                                }
+                            }, 300);
+                        }
+
+                        console.log('✅ Custom radio playback started');
+                    })
+                    .catch(err => {
+                        console.error('❌ Error playing custom radio:', err);
+                        playClassicAlarmSound();
+                    });
+            } catch (error) {
+                console.error('❌ Error:', error);
+                playClassicAlarmSound();
+            }
+        }
+
+        // Воспроизведение пользовательской HLS-станции
+        function playCustomHLSStation(url, isLocalFile) {
+            if (!Hls.isSupported()) {
+                console.error('❌ HLS not supported');
+                playClassicAlarmSound();
+                return;
+            }
+
+            const playButton = document.getElementById('playButton');
+            const audio = new Audio();
+            hlsInstance = new Hls({ debug: false });
+
+            hlsInstance.loadSource(url);
+            hlsInstance.attachMedia(audio);
+
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                audio.volume = volumeGrow ? 0 : 0.5;
+
+                audio.play()
+                    .then(() => {
+                        currentAudio = audio;
+                        playButton.textContent = '⏸';
+                        playButton.classList.add('playing');
+
+                        if (volumeGrow) {
+                            let volume = 0;
+                            const interval = setInterval(() => {
+                                if (!audio || audio.paused) {
+                                    clearInterval(interval);
+                                    return;
+                                }
+                                if (volume < 0.5) {
+                                    volume += 0.5 / 100;
+                                    audio.volume = Math.min(volume, 0.5);
+                                } else {
+                                    clearInterval(interval);
+                                }
+                            }, 300);
+                        }
+
+                        console.log('✅ Custom HLS playback started');
+                    })
+                    .catch(err => {
+                        console.error('❌ Error playing custom HLS:', err);
+                        playClassicAlarmSound();
+                    });
+            });
+
+            hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+                console.error('❌ Custom HLS error:', data.type, data.details);
+                if (data.fatal) {
+                    playClassicAlarmSound();
+                }
+            });
+        }
+
+        // Воспроизведение пользовательской YouTube-станции
+        function playCustomYouTubeStation(station) {
+            const playButton = document.getElementById('playButton');
+            const videoId = extractYouTubeId(station.url);
+
+            console.log('📺 Playing custom YouTube station:', videoId);
+
+            if (!youtubePlayerReady || !videoId) {
+                console.log('⚠️ YouTube Player not ready or invalid ID');
+                playClassicAlarmSound();
+                return;
+            }
+
+            try {
+                playButton.textContent = '⏸';
+                playButton.classList.add('playing');
+
+                youtubePlayer.loadVideoById(videoId);
+
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                if (volumeGrow) {
+                    youtubePlayer.setVolume(0);
+                    let currentVolume = 0;
+                    const targetVolume = 50;
+                    const steps = 100;
+                    const stepTime = 30000 / steps;
+                    const stepVolume = targetVolume / steps;
+
+                    const volumeInterval = setInterval(() => {
+                        if (!playButton.classList.contains('playing')) {
+                            clearInterval(volumeInterval);
+                            return;
+                        }
+                        currentVolume += stepVolume;
+                        if (currentVolume >= targetVolume) {
+                            youtubePlayer.setVolume(targetVolume);
+                            clearInterval(volumeInterval);
+                        } else {
+                            youtubePlayer.setVolume(currentVolume);
+                        }
+                    }, stepTime);
+                } else {
+                    youtubePlayer.setVolume(50);
+                }
+
+                console.log('✅ Custom YouTube station started');
+            } catch (error) {
+                console.error('❌ Error playing custom YouTube:', error);
+                playClassicAlarmSound();
+            }
+        }
+
         // Полноэкранный режим
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
@@ -1628,6 +2112,18 @@
             console.log('💡 Все радиостанции протестированы и работают!');
             console.log('🌍 Переключатель языка: Русский/English');
             console.log('═══════════════════════════════════════════════════════');
+
+            // Инициализация IndexedDB и загрузка пользовательских станций
+            initDB()
+                .then(() => {
+                    console.log('✅ IndexedDB инициализирована');
+                    populateStationsList();
+                    console.log('✅ Список станций обновлен (включая пользовательские)');
+                })
+                .catch(err => {
+                    console.error('❌ Ошибка инициализации IndexedDB:', err);
+                    populateStationsList(); // Загружаем встроенные станции
+                });
 
             // Создаем звезды
             createStars();
