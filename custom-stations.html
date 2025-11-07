@@ -234,6 +234,32 @@
             flex-wrap: wrap;
         }
 
+        .or-divider {
+            text-align: center;
+            margin: 15px 0;
+            position: relative;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .or-divider::before {
+            left: 0;
+        }
+
+        .or-divider::after {
+            right: 0;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -348,7 +374,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.3.0 - M3U Playlist Support</p>
+            <p class="version">v1.4.0 - Local HLS File Upload</p>
         </div>
 
         <div class="nav-links">
@@ -400,6 +426,14 @@
                     <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg" multiple>
                     <p class="help-text">Выберите один или несколько MP3 файлов. Для плейлиста выберите несколько.</p>
                     <div class="file-list" id="fileList"></div>
+                </div>
+
+                <div id="hlsOrDivider" class="or-divider" style="display: none;">ИЛИ</div>
+
+                <div class="form-group" id="hlsFileGroup" style="display: none;">
+                    <label for="hlsFile">Выберите .m3u или .m3u8 файл</label>
+                    <input type="file" id="hlsFile" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl">
+                    <p class="help-text">Загрузите локальный плейлист-файл (.m3u или .m3u8) с вашего компьютера.</p>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Добавить</button>
@@ -790,8 +824,44 @@
                     alert('Ошибка сохранения файлов: ' + error.message);
                     return;
                 }
+            } else if (type === 'hls') {
+                // Handle HLS - can be URL or file
+                const url = document.getElementById('stationUrl').value.trim();
+                const hlsFileInput = document.getElementById('hlsFile');
+                const hlsFile = hlsFileInput.files[0];
+
+                if (!url && !hlsFile) {
+                    alert('Пожалуйста, укажите URL или загрузите .m3u/.m3u8 файл');
+                    return;
+                }
+
+                if (hlsFile) {
+                    // Handle local HLS file
+                    console.log(`📄 Processing HLS file: ${hlsFile.name}`);
+
+                    try {
+                        // Read file as text
+                        const fileContent = await readFileAsText(hlsFile);
+                        console.log(`✅ HLS file read: ${fileContent.length} bytes`);
+
+                        // Store file content as data URL
+                        const blob = new Blob([fileContent], { type: 'application/vnd.apple.mpegurl' });
+                        const dataUrl = await blobToDataURL(blob);
+
+                        stationData.url = dataUrl;
+                        stationData.isLocalFile = true;
+                        console.log(`✅ HLS file converted to data URL`);
+                    } catch (error) {
+                        console.error('❌ Error reading HLS file:', error);
+                        alert('Ошибка чтения файла: ' + error.message);
+                        return;
+                    }
+                } else {
+                    // Handle URL
+                    stationData.url = url;
+                }
             } else {
-                // Handle URL-based stations
+                // Handle other URL-based stations (radio, youtube)
                 const url = document.getElementById('stationUrl').value.trim();
 
                 if (!url) {
@@ -821,6 +891,7 @@
             document.getElementById('stationName').value = '';
             document.getElementById('stationUrl').value = '';
             document.getElementById('localFiles').value = '';
+            document.getElementById('hlsFile').value = '';
             selectedFiles = [];
             renderFileList();
 
@@ -835,6 +906,26 @@
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
+            });
+        }
+
+        // Read file as text
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        // Convert Blob to Data URL
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
             });
         }
 
@@ -1097,18 +1188,29 @@
 
         // Parse plain M3U playlist and extract stream URL
         async function parseM3UPlaylist(url) {
-            console.log(`📄 Parsing .m3u playlist: ${url}`);
+            console.log(`📄 Parsing .m3u playlist: ${url.substring(0, 100)}...`);
 
             try {
-                // Use CORS proxy if needed
-                const fetchUrl = needsCorsProxy(url) ? getProxiedURL(url) : url;
+                let text;
 
-                const response = await fetch(fetchUrl);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                // Check if this is a data URL (local file)
+                if (url.startsWith('data:')) {
+                    console.log('📄 Parsing local M3U file from data URL');
+                    // Extract the base64 content from data URL
+                    const base64Content = url.split(',')[1];
+                    text = atob(base64Content);
+                } else {
+                    // Use CORS proxy if needed
+                    const fetchUrl = needsCorsProxy(url) ? getProxiedURL(url) : url;
+
+                    const response = await fetch(fetchUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    text = await response.text();
                 }
 
-                const text = await response.text();
                 console.log(`📄 .m3u content length: ${text.length} bytes`);
 
                 // Parse M3U: extract first HTTP(S) URL
@@ -1394,22 +1496,31 @@
             const urlInput = document.getElementById('stationUrl');
             const urlGroup = document.getElementById('urlGroup');
             const fileGroup = document.getElementById('fileGroup');
+            const hlsFileGroup = document.getElementById('hlsFileGroup');
+            const hlsOrDivider = document.getElementById('hlsOrDivider');
+
+            // Hide all first
+            urlGroup.style.display = 'none';
+            fileGroup.style.display = 'none';
+            hlsFileGroup.style.display = 'none';
+            hlsOrDivider.style.display = 'none';
 
             if (type === 'local') {
-                urlGroup.style.display = 'none';
                 fileGroup.style.display = 'block';
+            } else if (type === 'hls') {
+                // For HLS, show both URL and File options with OR divider
+                urlGroup.style.display = 'block';
+                hlsOrDivider.style.display = 'block';
+                hlsFileGroup.style.display = 'block';
+                urlHelp.textContent = 'URL HLS манифеста (.m3u8) или плейлиста (.m3u с URL потока внутри). HTTP потоки работают через CORS прокси.';
+                urlInput.placeholder = 'http://example.com/stream.m3u или https://example.com/stream.m3u8';
             } else {
                 urlGroup.style.display = 'block';
-                fileGroup.style.display = 'none';
 
                 switch (type) {
                     case 'youtube':
                         urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
                         urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
-                        break;
-                    case 'hls':
-                        urlHelp.textContent = 'URL HLS манифеста (.m3u8) или плейлиста (.m3u с URL потока внутри). HTTP потоки работают через CORS прокси.';
-                        urlInput.placeholder = 'http://example.com/stream.m3u или https://example.com/stream.m3u8';
                         break;
                     case 'radio':
                     default:
