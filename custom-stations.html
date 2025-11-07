@@ -1350,9 +1350,15 @@
                         currentTrackIndex = 0;
                         playYouTubeTrack(0, station.name);
                     } else {
-                        // Single YouTube video
+                        // Single YouTube video - extract videoId from URL
                         currentPlaylist = null;
-                        playYouTubeStation(station.url);
+                        const videoId = extractYouTubeId(station.url);
+                        if (videoId) {
+                            playYouTubeStation(videoId);
+                        } else {
+                            console.error('❌ Could not extract YouTube ID from:', station.url);
+                            alert('Ошибка: не удалось извлечь ID видео');
+                        }
                     }
                     break;
                 case 'hls':
