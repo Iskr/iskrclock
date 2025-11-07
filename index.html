@@ -6,6 +6,8 @@
     <title>IskrCLOCK v4.0 - Будильник с радио онлайн</title>
     <!-- YouTube IFrame Player API -->
     <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- HLS.js Library for HLS streams (BBC Radio 1) -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
             margin: 0;
@@ -685,6 +687,7 @@
             <div class="radio-controls">
                 <select class="radio-select" id="radioSelect">
                     <option value="classic">🔔 Классический сигнал</option>
+                    <option value="bbc-radio-1">📻 BBC Radio 1 (320kbps)</option>
                     <option value="npr">📻 NPR (National Public Radio)</option>
                     <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
                     <option value="nts-1">🎧 NTS Radio 1 (London)</option>
@@ -739,6 +742,7 @@
         // v3.0 - состояние по классу кнопки, без флагов
         let currentAudio = null;
         let audioContext = null;
+        let hlsInstance = null; // HLS.js instance for BBC Radio 1
 
         // YouTube Player
         let youtubePlayer = null;
@@ -758,6 +762,7 @@
 
         // URL радиостанций (с CORS и без)
         const radioStreams = {
+            'bbc-radio-1': 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_one/bbc_radio_one.isml/bbc_radio_one-audio=320000.norewind.m3u8',
             'npr': 'https://streams.kut.org/4426_128.mp3?aw_0_1st.playerid=kut-free',
             // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
@@ -780,6 +785,9 @@
 
         // Станции требующие CORS proxy (без заголовков CORS)
         const needsCorsProxy = ['rinse-uk'];
+
+        // HLS streams that need hls.js (BBC Radio 1)
+        const hlsStreams = ['bbc-radio-1'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
@@ -1083,6 +1091,17 @@
                 }
             }
 
+            // Останавливаем HLS.js
+            if (hlsInstance) {
+                try {
+                    hlsInstance.destroy();
+                    hlsInstance = null;
+                    console.log('✅ HLS.js instance destroyed');
+                } catch (e) {
+                    console.log('⚠️ Error destroying HLS.js:', e);
+                }
+            }
+
             // Останавливаем HTML5 Audio
             if (currentAudio && currentAudio instanceof HTMLAudioElement) {
                 // Удаляем все обработчики событий ПЕРЕД остановкой
@@ -1135,6 +1154,9 @@
             } else if (youtubeStreams[station]) {
                 // Для YouTube станций используем YouTube IFrame API
                 playYouTubeStation(station);
+            } else if (hlsStreams.includes(station)) {
+                // Для HLS потоков используем hls.js (BBC Radio 1)
+                playHLSStation(station);
             } else if (radioStreams[station]) {
                 // Для настоящих радиостанций используем HTML5 Audio
                 try {
@@ -1406,6 +1428,114 @@
             }
         }
 
+        // Воспроизведение HLS станции (BBC Radio 1)
+        function playHLSStation(station) {
+            const playButton = document.getElementById('playButton');
+            const url = radioStreams[station];
+
+            console.log('📡 [HLS] Starting HLS station:', station);
+            console.log('📡 [HLS] URL:', url);
+
+            if (!Hls.isSupported()) {
+                console.error('❌ [HLS] HLS.js not supported in this browser');
+                alert('HLS не поддерживается в этом браузере. Попробуйте современный браузер.');
+                playClassicAlarmSound();
+                return;
+            }
+
+            try {
+                const audio = new Audio();
+                hlsInstance = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+
+                hlsInstance.loadSource(url);
+                hlsInstance.attachMedia(audio);
+
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                    console.log('✅ [HLS] Manifest parsed successfully');
+
+                    const volumeGrow = document.getElementById('volumeGrow').checked;
+                    if (volumeGrow) {
+                        audio.volume = 0;
+                    } else {
+                        audio.volume = 0.5;
+                    }
+
+                    audio.play()
+                        .then(() => {
+                            console.log('✅ [HLS] Playback started:', station);
+                            currentAudio = audio;
+                            playButton.textContent = '⏸';
+                            playButton.classList.add('playing');
+
+                            if (volumeGrow) {
+                                const targetVolume = 0.5;
+                                const duration = 30000;
+                                const steps = 100;
+                                const stepTime = duration / steps;
+                                const stepVolume = targetVolume / steps;
+                                let currentStep = 0;
+
+                                const volumeInterval = setInterval(() => {
+                                    if (!audio || audio.paused || !playButton.classList.contains('playing')) {
+                                        clearInterval(volumeInterval);
+                                        return;
+                                    }
+
+                                    currentStep++;
+                                    if (currentStep >= steps) {
+                                        audio.volume = targetVolume;
+                                        clearInterval(volumeInterval);
+                                        console.log('🔊 [HLS] Volume reached maximum');
+                                    } else {
+                                        audio.volume = currentStep * stepVolume;
+                                    }
+                                }, stepTime);
+
+                                console.log('📈 [HLS] Volume fade: 0 → 0.5 over 30 seconds');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('❌ [HLS] Play error:', err);
+                            playClassicAlarmSound();
+                        });
+                });
+
+                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('❌ [HLS] Error:', data.type, data.details);
+
+                    if (data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.error('❌ [HLS] Fatal network error, trying to recover');
+                                hlsInstance.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.error('❌ [HLS] Fatal media error, trying to recover');
+                                hlsInstance.recoverMediaError();
+                                break;
+                            default:
+                                console.error('❌ [HLS] Cannot recover, using fallback');
+                                if (hlsInstance) {
+                                    hlsInstance.destroy();
+                                    hlsInstance = null;
+                                }
+                                playClassicAlarmSound();
+                                break;
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('❌ [HLS] Error creating HLS player:', error);
+                playClassicAlarmSound();
+            }
+        }
+
         // Полноэкранный режим
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
@@ -1424,6 +1554,7 @@
             console.log('📅 Версия от 7 ноября 2025 - Стабильная сборка');
             console.log('═══════════════════════════════════════════════════════');
             console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
+            console.log(' 📻 BBC Radio 1 - 320kbps HLS via hls.js (NEW!)');
             console.log(' 📻 NPR - National Public Radio');
             console.log(' ✅ STUDIO 21 напрямую (работает!)');
             console.log(' ✅ Радио МЕТРО напрямую (работает!)');
@@ -1431,7 +1562,8 @@
             console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
             console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
             console.log('');
-            console.log('📻 Доступные станции (15):');
+            console.log('📻 Доступные станции (16):');
+            console.log(' 📻 BBC Radio 1 (London) 🎵 HLS 320kbps ⭐ НОВАЯ!');
             console.log(' 📻 NPR (USA)');
             console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
             console.log(' 🎧 NTS Radio 1 & 2 (London)');
@@ -1443,9 +1575,10 @@
             console.log(' 🚇 Радио МЕТРО ✅ ПРЯМОЙ ПОТОК');
             console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
             console.log('');
+            console.log('🎛️ HLS.js version:', Hls.version);
+            console.log('🎛️ HLS.js supported:', Hls.isSupported());
             console.log('💡 Все радиостанции протестированы и работают!');
             console.log('🌍 Переключатель языка: Русский/English');
-            console.log('🧪 HLS тесты: test-hls.html (BBC Radio 1)');
             console.log('═══════════════════════════════════════════════════════');
             
             // Создаем звезды
