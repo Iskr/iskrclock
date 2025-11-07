@@ -734,16 +734,16 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Рандомный старт - каждый раз новый цвет
+        // Рандомный старт - каждый раз новый цвет (полный спектр от ночи до дня)
         let currentColor = {
-            r: randomColorInRange(20, 150),
-            g: randomColorInRange(20, 150),
-            b: randomColorInRange(40, 160)
+            r: randomColorInRange(20, 220),
+            g: randomColorInRange(20, 220),
+            b: randomColorInRange(30, 230)
         };
         let targetColor = {
-            r: randomColorInRange(20, 150),
-            g: randomColorInRange(20, 150),
-            b: randomColorInRange(40, 160)
+            r: randomColorInRange(20, 220),
+            g: randomColorInRange(20, 220),
+            b: randomColorInRange(30, 230)
         };
         let transitionSpeed = 60000; // 60 секунд
         let colorRange = 30;
