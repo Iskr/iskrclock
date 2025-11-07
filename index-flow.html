@@ -739,18 +739,18 @@
             const timeOfDay = Math.random();
 
             if (timeOfDay < 0.33) {
-                // Ночь: яркость < 0.3 (средний RGB ~51)
+                // Ночь: яркость < 0.3 (средний RGB ~51) - ТЕМНЫЕ цвета
                 return {
-                    r: randomColorInRange(30, 70),
-                    g: randomColorInRange(30, 70),
-                    b: randomColorInRange(40, 80)
+                    r: randomColorInRange(20, 60),
+                    g: randomColorInRange(20, 60),
+                    b: randomColorInRange(30, 70)
                 };
             } else if (timeOfDay < 0.66) {
-                // День: яркость > 0.6 (средний RGB ~178)
+                // День: яркость > 0.6 (средний RGB ~204) - ЯРКИЕ цвета
                 return {
-                    r: randomColorInRange(160, 220),
-                    g: randomColorInRange(160, 220),
-                    b: randomColorInRange(170, 230)
+                    r: randomColorInRange(180, 230),
+                    g: randomColorInRange(180, 230),
+                    b: randomColorInRange(190, 240)
                 };
             } else {
                 // Сумерки: яркость 0.3-0.6 (средний RGB ~115)
