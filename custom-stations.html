@@ -526,13 +526,15 @@
         <div class="header">
             <h1 class="page-title">🎵 Пользовательские станции</h1>
             <p class="page-subtitle">Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v2.0 - Complete i18n + YouTube Playlists</p>
+            <p class="version">v5.2 - Custom Stations & Playlists</p>
         </div>
 
         <div class="nav-links">
-            <a href="index.html" class="nav-home">⏰ Главная</a>
+            <a href="index.html" class="nav-home">⏰ Будильники</a>
             <a href="timer.html" class="nav-timer">⏲️ Таймер</a>
             <a href="stopwatch.html" class="nav-stopwatch">⏱️ Секундомер</a>
+            <a href="custom-stations.html" class="nav-stations">🎵 Станции</a>
+            <a href="sleep-calculator.html" class="nav-calculator">🧮 Калькулятор сна</a>
         </div>
 
         <!-- Player Controls -->
@@ -618,9 +620,11 @@
             ru: {
                 pageTitle: '🎵 Пользовательские станции',
                 pageSubtitle: 'Добавьте свои радиостанции, треки и плейлисты',
-                navHome: '⏰ Главная',
+                navHome: '⏰ Будильники',
                 navTimer: '⏲️ Таймер',
                 navStopwatch: '⏱️ Секундомер',
+                navStations: '🎵 Станции',
+                navCalculator: '🧮 Калькулятор сна',
                 previousBtn: '⏮️ Предыдущий',
                 stopBtn: '⏹️ Стоп',
                 nextBtn: '⏭️ Следующий',
@@ -673,9 +677,11 @@
             en: {
                 pageTitle: '🎵 Custom Stations',
                 pageSubtitle: 'Add your radio stations, tracks and playlists',
-                navHome: '⏰ Home',
+                navHome: '⏰ Alarms',
                 navTimer: '⏲️ Timer',
                 navStopwatch: '⏱️ Stopwatch',
+                navStations: '🎵 Stations',
+                navCalculator: '🧮 Sleep Calculator',
                 previousBtn: '⏮️ Previous',
                 stopBtn: '⏹️ Stop',
                 nextBtn: '⏭️ Next',
@@ -2332,6 +2338,12 @@
 
                 const navStopwatch = document.querySelector('.nav-stopwatch');
                 if (navStopwatch) navStopwatch.textContent = t.navStopwatch;
+
+                const navStations = document.querySelector('.nav-stations');
+                if (navStations) navStations.textContent = t.navStations;
+
+                const navCalculator = document.querySelector('.nav-calculator');
+                if (navCalculator) navCalculator.textContent = t.navCalculator;
 
                 // Update player controls
                 const controlButtons = document.querySelectorAll('.control-buttons .btn');
