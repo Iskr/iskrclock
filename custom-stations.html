@@ -631,17 +631,17 @@
                 typeHelp: 'URL прямого потока радиостанции. HTTP потоки работают через CORS прокси.',
                 typeRadio: '📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)',
                 typeLocal: '🎵 Локальные файлы (MP3/FLAC/WAV)',
-                typeYoutube: '📺 YouTube плейлист',
+                typeYoutube: '📺 YouTube видео',
                 urlLabel: 'URL потока',
                 orDivider: 'ИЛИ',
                 radioFileLabel: 'Выберите .m3u или .m3u8 плейлист',
                 radioFileHelp: 'Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.',
                 localFilesLabel: 'Выберите аудио файлы',
                 localFilesHelp: 'Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.',
-                youtubePlaylistTitle: '🎵 Создать плейлист YouTube',
-                youtubePlaylistHelp: 'Добавьте несколько видео в плейлист. Можно вставить одну ссылку или несколько через запятую',
+                youtubePlaylistTitle: '🎵 YouTube видео/плейлист',
+                youtubePlaylistHelp: 'Добавьте одно видео или несколько для плейлиста. Можно вставить одну ссылку или несколько через запятую',
                 youtubeTrackPlaceholder: 'Вставьте YouTube URL или ID',
-                addToPlaylistBtn: '➕ Добавить в плейлист',
+                addToPlaylistBtn: '➕ Добавить видео',
                 submitBtn: 'Добавить',
                 myStationsTitle: '📻 Мои станции',
                 emptyStateText: 'Станции ещё не добавлены',
@@ -668,7 +668,7 @@
                 addFirstStation: 'Добавьте свою первую станцию выше ⬆️',
                 editButton: '✏️ Редактировать',
                 provideUrl: 'Пожалуйста, укажите URL',
-                addOneVideo: 'Добавьте хотя бы одно видео в плейлист с помощью кнопки "Добавить в плейлист"'
+                addOneVideo: 'Добавьте хотя бы одно видео с помощью кнопки "Добавить видео"'
             },
             en: {
                 pageTitle: '🎵 Custom Stations',
@@ -686,17 +686,17 @@
                 typeHelp: 'Direct radio stream URL. HTTP streams work via CORS proxy.',
                 typeRadio: '📻 Radio Stream (MP3/AAC/HLS/.m3u/.m3u8)',
                 typeLocal: '🎵 Local Files (MP3/FLAC/WAV)',
-                typeYoutube: '📺 YouTube Playlist',
+                typeYoutube: '📺 YouTube Video',
                 urlLabel: 'Stream URL',
                 orDivider: 'OR',
                 radioFileLabel: 'Select .m3u or .m3u8 playlist',
                 radioFileHelp: 'Upload a local playlist file (.m3u or .m3u8) with radio station or HLS stream.',
                 localFilesLabel: 'Select audio files',
                 localFilesHelp: 'Select one or more files (MP3, FLAC, WAV). Select multiple for a playlist.',
-                youtubePlaylistTitle: '🎵 Create YouTube Playlist',
-                youtubePlaylistHelp: 'Add multiple videos to the playlist. Paste one link or multiple separated by commas',
+                youtubePlaylistTitle: '🎵 YouTube Video/Playlist',
+                youtubePlaylistHelp: 'Add one video or multiple for a playlist. Paste one link or multiple separated by commas',
                 youtubeTrackPlaceholder: 'Paste YouTube URL or ID',
-                addToPlaylistBtn: '➕ Add to Playlist',
+                addToPlaylistBtn: '➕ Add Video',
                 submitBtn: 'Add',
                 myStationsTitle: '📻 My Stations',
                 emptyStateText: 'No stations added yet',
@@ -723,7 +723,7 @@
                 addFirstStation: 'Add your first station above ⬆️',
                 editButton: '✏️ Edit',
                 provideUrl: 'Please provide a URL',
-                addOneVideo: 'Please add at least one video to the playlist using the "Add to Playlist" button'
+                addOneVideo: 'Please add at least one video using the "Add Video" button'
             }
         };
 
@@ -1155,11 +1155,15 @@
 
                 if (type === 'youtube') {
                     // Check if we have playlist tracks
-                    if (selectedYouTubeTracks.length > 0) {
-                        // Playlist mode - save all tracks
+                    if (selectedYouTubeTracks.length > 1) {
+                        // Playlist mode (2+ videos) - save all tracks
                         stationData.videoIds = selectedYouTubeTracks.map(t => t.id);
                         stationData.isPlaylist = true;
                         console.log(`✅ YouTube playlist created with ${selectedYouTubeTracks.length} tracks`);
+                    } else if (selectedYouTubeTracks.length === 1) {
+                        // Single video - save as regular YouTube station
+                        stationData.url = `https://www.youtube.com/watch?v=${selectedYouTubeTracks[0].id}`;
+                        console.log(`✅ Single YouTube video added: ${selectedYouTubeTracks[0].id}`);
                     } else {
                         alert(t.addOneVideo);
                         return;
