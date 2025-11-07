@@ -157,11 +157,45 @@
                 font-size: 16px;
             }
         }
+
+        .lang-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-selector:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .lang-selector option {
+            background: #f093fb;
+            color: white;
+        }
     </style>
 </head>
 <body>
+    <select class="lang-selector">
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="en">🇬🇧 English</option>
+    </select>
+
     <div class="container">
-        <h1>⏱️ Секундомер</h1>
+        <h1 class="page-title">⏱️ Секундомер</h1>
 
         <div class="stopwatch-display" id="stopwatchDisplay">
             <span id="timeDisplay">00:00:00</span><span class="milliseconds" id="msDisplay">.00</span>
@@ -170,15 +204,15 @@
         <div class="status" id="status"></div>
 
         <div class="controls">
-            <button class="btn-start" id="startBtn" onclick="startStopwatch()">▶ Старт</button>
-            <button class="btn-pause" id="pauseBtn" onclick="pauseStopwatch()" style="display: none;">⏸ Пауза</button>
-            <button class="btn-lap" id="lapBtn" onclick="recordLap()" style="display: none;">⏲️ Круг</button>
-            <button class="btn-reset" onclick="resetStopwatch()">↻ Сброс</button>
+            <button class="btn-start" id="startBtn" onclick="startStopwatch()"><span class="btn-start-text">▶ Старт</span></button>
+            <button class="btn-pause" id="pauseBtn" onclick="pauseStopwatch()" style="display: none;"><span class="btn-pause-text">⏸ Пауза</span></button>
+            <button class="btn-lap" id="lapBtn" onclick="recordLap()" style="display: none;"><span class="btn-lap-text">⏲️ Круг</span></button>
+            <button class="btn-reset" onclick="resetStopwatch()"><span class="btn-reset-text">↻ Сброс</span></button>
         </div>
 
         <div class="laps" id="laps"></div>
 
-        <button class="btn-back" onclick="window.location.href='index.html'">← Назад к будильнику</button>
+        <button class="btn-back" onclick="window.location.href='index.html'"><span class="btn-back-text">← Назад к будильнику</span></button>
     </div>
 
     <script>
@@ -268,10 +302,11 @@
             const formatted = formatTime(currentTime);
             const lapFormatted = formatTime(lapTime);
 
+            const t = translations[currentLang];
             const lapItem = document.createElement('div');
             lapItem.className = 'lap-item';
             lapItem.innerHTML = `
-                <span class="lap-number">Круг ${lapNumber}</span>
+                <span class="lap-number">${t.lapLabel} ${lapNumber}</span>
                 <span class="lap-time">${formatted.time}${formatted.ms} <small>(+${lapFormatted.time}${lapFormatted.ms})</small></span>
             `;
 
@@ -279,6 +314,129 @@
         }
 
         updateDisplay();
+
+        // ========== Translation System ==========
+        const translations = {
+            ru: {
+                pageTitle: '⏱️ Секундомер',
+                documentTitle: 'Секундомер онлайн - IskrCLOCK',
+                btnStart: '▶ Старт',
+                btnPause: '⏸ Пауза',
+                btnLap: '⏲️ Круг',
+                btnReset: '↻ Сброс',
+                btnBack: '← Назад к будильнику',
+                statusRunning: '⏱️ Секундомер запущен',
+                statusPaused: '⏸️ Пауза',
+                lapLabel: 'Круг'
+            },
+            en: {
+                pageTitle: '⏱️ Stopwatch',
+                documentTitle: 'Online Stopwatch - IskrCLOCK',
+                btnStart: '▶ Start',
+                btnPause: '⏸ Pause',
+                btnLap: '⏲️ Lap',
+                btnReset: '↻ Reset',
+                btnBack: '← Back to Alarm',
+                statusRunning: '⏱️ Stopwatch running',
+                statusPaused: '⏸️ Paused',
+                lapLabel: 'Lap'
+            }
+        };
+
+        let currentLang = localStorage.getItem('language') || 'ru';
+
+        function switchLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            const t = translations[lang];
+
+            // Update document title
+            document.title = t.documentTitle;
+
+            // Update page elements
+            const pageTitle = document.querySelector('.page-title');
+            if (pageTitle) pageTitle.textContent = t.pageTitle;
+
+            // Update control buttons
+            const btnStartText = document.querySelector('.btn-start-text');
+            if (btnStartText) btnStartText.textContent = t.btnStart;
+
+            const btnPauseText = document.querySelector('.btn-pause-text');
+            if (btnPauseText) btnPauseText.textContent = t.btnPause;
+
+            const btnLapText = document.querySelector('.btn-lap-text');
+            if (btnLapText) btnLapText.textContent = t.btnLap;
+
+            const btnResetText = document.querySelector('.btn-reset-text');
+            if (btnResetText) btnResetText.textContent = t.btnReset;
+
+            const btnBackText = document.querySelector('.btn-back-text');
+            if (btnBackText) btnBackText.textContent = t.btnBack;
+
+            // Update status if showing specific messages
+            if (status.textContent) {
+                if (status.textContent.includes('запущен') || status.textContent.includes('running')) {
+                    status.textContent = t.statusRunning;
+                } else if (status.textContent.includes('Пауза') || status.textContent.includes('Paused')) {
+                    status.textContent = t.statusPaused;
+                }
+            }
+
+            // Update existing lap labels
+            const lapNumbers = document.querySelectorAll('.lap-number');
+            lapNumbers.forEach((lapNumberEl) => {
+                const lapNum = lapNumberEl.textContent.match(/\d+/);
+                if (lapNum) {
+                    lapNumberEl.textContent = `${t.lapLabel} ${lapNum[0]}`;
+                }
+            });
+
+            document.querySelector('.lang-selector').value = lang;
+        }
+
+        // Override startStopwatch to use translations
+        const originalStartStopwatch = startStopwatch;
+        startStopwatch = function() {
+            if (isRunning) return;
+
+            isRunning = true;
+            startTime = Date.now();
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'inline-block';
+            lapBtn.style.display = 'inline-block';
+            const t = translations[currentLang];
+            status.textContent = t.statusRunning;
+
+            timerInterval = setInterval(updateDisplay, 10);
+        };
+
+        // Override pauseStopwatch to use translations
+        const originalPauseStopwatch = pauseStopwatch;
+        pauseStopwatch = function() {
+            if (!isRunning) return;
+
+            isRunning = false;
+            elapsedTime += Date.now() - startTime;
+            clearInterval(timerInterval);
+            startBtn.style.display = 'inline-block';
+            pauseBtn.style.display = 'none';
+            lapBtn.style.display = 'none';
+            const t = translations[currentLang];
+            status.textContent = t.statusPaused;
+        };
+
+        document.querySelector('.lang-selector').addEventListener('change', (e) => {
+            switchLanguage(e.target.value);
+        });
+
+        // Set initial language
+        const langSelector = document.querySelector('.lang-selector');
+        langSelector.value = currentLang;
+        if (currentLang === 'en') {
+            switchLanguage('en');
+        } else {
+            switchLanguage('ru');
+        }
     </script>
 </body>
 </html>

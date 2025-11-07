@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IskrCLOCK v5.0 FLOW - Будильник с радио онлайн</title>
+    <title>IskrCLOCK v5.1 - Будильник с радио онлайн</title>
     <!-- YouTube IFrame Player API -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <!-- HLS.js Library for HLS streams (BBC Radio 1) -->
@@ -2172,32 +2172,18 @@
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v5.0 FLOW');
+            console.log('🌟 IskrCLOCK v5.1');
             console.log('📅 Версия от 7 ноября 2025');
             console.log('═══════════════════════════════════════════════════════');
             console.log('');
-            console.log('🎨 НОВЫЕ ВОЗМОЖНОСТИ:');
+            console.log('✨ v5.1 - Улучшения:');
+            console.log('   • Сохранение выбранной станции');
+            console.log('   • YouTube плейлисты');
+            console.log('   • Полная локализация (EN/RU)');
+            console.log('   • Улучшенная отказоустойчивость');
             console.log('');
-            console.log('✨ FLOW - Непрерывное перетекание цветов (60 FPS)');
-            console.log('   • Рандомный старт с 4 временами суток');
-            console.log('   • Плавные переходы каждую минуту');
-            console.log('');
-            console.log('🎵 Пользовательские станции');
-            console.log('   • 💿 Локальные MP3/OGG файлы (IndexedDB)');
-            console.log('   • 📻 Радиопотоки (HTTP/HLS/M3U)');
-            console.log('   • 📺 YouTube видео/стримы');
-            console.log('   • Динамический dropdown с иконками');
-            console.log('');
-            console.log('📻 16 встроенных станций:');
-            console.log('   BBC Radio 1 • NPR • NINJA CHILL • NTS 1 & 2');
-            console.log('   Rinse UK/France • FIP • Европа Плюс • Energy');
-            console.log('   Love Radio • Hit FM • Monte Carlo • STUDIO 21');
-            console.log('   Радио МЕТРО • Эрмитаж FM');
-            console.log('');
-            console.log('🔧 Технологии:');
-            console.log('   HLS.js ' + Hls.version + ' • IndexedDB • YouTube API');
-            console.log('   CORS Proxy для проблемных станций');
-            console.log('');
+            console.log('📻 16 встроенных станций + пользовательские');
+            console.log('🔧 HLS.js ' + Hls.version + ' • IndexedDB • YouTube API');
             console.log('═══════════════════════════════════════════════════════');
 
             // Инициализация IndexedDB и загрузка пользовательских станций
