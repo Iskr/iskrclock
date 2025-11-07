@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IskrCLOCK v4.0 - Будильник с радио онлайн</title>
+    <title>IskrCLOCK v4.1 - Будильник с радио онлайн</title>
     <!-- YouTube IFrame Player API -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <!-- HLS.js Library for HLS streams (BBC Radio 1) -->
@@ -460,6 +460,17 @@
             min-width: 200px;
         }
 
+        .radio-select option {
+            background: #0d6e99;
+            color: white;
+        }
+
+        .radio-select option:disabled {
+            background: #064a68;
+            color: #ccc;
+            font-style: italic;
+        }
+
         .play-button {
             background: #4CAF50;
             border: none;
@@ -479,6 +490,32 @@
 
         .play-button.playing {
             background: #f44336;
+        }
+
+        .btn-manage-stations {
+            background: rgba(255, 165, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            line-height: 1.2;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .btn-manage-stations:hover {
+            background: rgba(255, 165, 0, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .volume-control {
@@ -643,7 +680,7 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">v4.0</span>
+            <span class="logo-version">v4.1</span>
         </div>
         <nav class="nav">
             <a href="index.html" class="nav-item">⏰ Будильники</a>
@@ -659,7 +696,7 @@
 
     <div class="main-container">
         <h1 class="title">Будильник с радио онлайн</h1>
-        
+
         <div class="clock-display">
             <div class="current-time" id="currentTime">00:00</div>
             <div class="current-date" id="currentDate">Загрузка...</div>
@@ -686,25 +723,13 @@
             <label>Выбрать сигнал будильника?</label>
             <div class="radio-controls">
                 <select class="radio-select" id="radioSelect">
-                    <option value="classic">🔔 Классический сигнал</option>
-                    <option value="bbc-radio-1">📻 BBC Radio 1</option>
-                    <option value="npr">📻 NPR (National Public Radio)</option>
-                    <option value="ninja-chill">🥷 NINJA CHILL 24/7</option>
-                    <option value="nts-1">🎧 NTS Radio 1 (London)</option>
-                    <option value="nts-2">🎧 NTS Radio 2 (London)</option>
-                    <option value="rinse-france">🎧 Rinse France (Paris)</option>
-                    <option value="rinse-uk">🎧 Rinse UK (London)</option>
-                    <option value="fip">🇫🇷 FIP Radio (Paris)</option>
-                    <option value="europa-plus">📻 Европа Плюс</option>
-                    <option value="radio-energy">📻 Radio Energy</option>
-                    <option value="love-radio">📻 Love Radio</option>
-                    <option value="hit-fm">📻 Hit FM</option>
-                    <option value="monte-carlo">📻 Monte Carlo</option>
-                    <option value="studio-21">🎧 STUDIO 21</option>
-                    <option value="radio-metro">🚇 Радио МЕТРО</option>
-                    <option value="hermitage">🏛️ Эрмитаж FM 90.1 (СПб)</option>
+                    <!-- Will be populated dynamically -->
                 </select>
                 <button class="play-button" id="playButton">▶</button>
+                <a href="custom-stations.html" class="btn-manage-stations">
+                    <span>🎵 Свои</span>
+                    <span>станции</span>
+                </a>
                 <div class="volume-control">
                     <span class="volume-label">Нарастает?</span>
                     <input type="checkbox" id="volumeGrow" checked>
@@ -736,24 +761,118 @@
         let alarmActive = false;
         let snoozeCount = 0;
         let alarmInterval = null;
-        let alarmTriggered = false; // Флаг для предотвращения множественных срабатываний
-        let lastCheckedMinute = -1; // Последняя проверенная минута
+        let alarmTriggered = false;
+        let lastCheckedMinute = -1;
 
         // v3.0 - состояние по классу кнопки, без флагов
         let currentAudio = null;
         let audioContext = null;
-        let hlsInstance = null; // HLS.js instance for BBC Radio 1
+        let hlsInstance = null;
 
         // YouTube Player
         let youtubePlayer = null;
         let youtubePlayerReady = false;
 
+        // ========= CUSTOM STATIONS - IndexedDB =========
+        let db = null;
+        const DB_NAME = 'IskrClockDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'audioFiles';
+
+        // Плейлист для локальных файлов
+        let currentPlaylist = null;
+        let currentTrackIndex = 0;
+
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        objectStore.createIndex('stationId', 'stationId', { unique: false });
+                    }
+                };
+            });
+        }
+
+        // Load files from IndexedDB for a station
+        function loadFilesFromDB(stationId) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const index = objectStore.index('stationId');
+                const request = index.getAll(stationId);
+                request.onsuccess = () => {
+                    const files = request.result.sort((a, b) => a.fileIndex - b.fileIndex);
+                    resolve(files);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Load custom stations from localStorage
+        function loadCustomStations() {
+            const saved = localStorage.getItem('customStations');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        // Parse M3U playlist and extract stream URL
+        async function parseM3UPlaylist(url) {
+            try {
+                let text;
+                if (url.startsWith('data:')) {
+                    const base64Content = url.split(',')[1];
+                    text = atob(base64Content);
+                } else {
+                    const fetchUrl = url.startsWith('http:') ? getProxiedURL(url) : url;
+                    const response = await fetch(fetchUrl);
+                    text = await response.text();
+                }
+
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                        return { success: true, streamUrl: trimmed };
+                    }
+                }
+                return { success: false, error: 'No stream URL found' };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Extract YouTube ID from URL or ID
+        function extractYouTubeId(urlOrId) {
+            if (!/[\/\.\?=]/.test(urlOrId)) {
+                return urlOrId;
+            }
+
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\?\/\s]{11})/,
+                /^([^&\?\/\s]{11})$/
+            ];
+
+            for (const pattern of patterns) {
+                const match = urlOrId.match(pattern);
+                if (match && match[1]) return match[1];
+            }
+            return null;
+        }
+
         // CORS Proxy система с fallback (отсортированы по надежности)
         const corsProxies = [
-            'https://corsproxy.io/?',                       // #0 - САМЫЙ СТАБИЛЬНЫЙ для Rinse UK
-            'https://proxy.cors.sh/',                       // #1 - быстрый, без лимитов
-            'https://thingproxy.freeboard.io/fetch/',       // #2 - резервный
-            'https://api.allorigins.win/raw?url='           // #3 - иногда падает
+            'https://corsproxy.io/?',
+            'https://proxy.cors.sh/',
+            'https://thingproxy.freeboard.io/fetch/',
+            'https://api.allorigins.win/raw?url='
         ];
         let currentProxyIndex = 0;
 
@@ -764,14 +883,11 @@
         const radioStreams = {
             'bbc-radio-1': 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_one/bbc_radio_one.isml/bbc_radio_one-audio=320000.norewind.m3u8',
             'npr': 'https://streams.kut.org/4426_128.mp3?aw_0_1st.playerid=kut-free',
-            // Лондонские станции
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
             'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
-            // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
-            // Русские станции
             'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
             'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
             'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
@@ -779,14 +895,13 @@
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
             'studio-21': 'https://stream.studio21.ru/studio2196.aacp',
             'radio-metro': 'https://stream.radiometro.ru:8443/metro.mp3',
-            // Питерские станции
             'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3'
         };
 
-        // Станции требующие CORS proxy (без заголовков CORS)
+        // Станции требующие CORS proxy
         const needsCorsProxy = ['rinse-uk'];
 
-        // HLS streams that need hls.js (BBC Radio 1)
+        // HLS streams that need hls.js
         const hlsStreams = ['bbc-radio-1'];
 
         // YouTube станции (ID видео)
@@ -806,6 +921,69 @@
         function switchToNextProxy() {
             currentProxyIndex = (currentProxyIndex + 1) % corsProxies.length;
             console.log(`⏭️ Switching to next proxy: #${currentProxyIndex}`);
+        }
+
+        // ========= POPULATE STATIONS LIST =========
+        function populateStationsList() {
+            const select = document.getElementById('radioSelect');
+            select.innerHTML = '';
+
+            // Классический сигнал
+            const classicOption = document.createElement('option');
+            classicOption.value = 'classic';
+            classicOption.textContent = '🔔 Классический сигнал';
+            select.appendChild(classicOption);
+
+            // Встроенные станции
+            const builtInStations = [
+                { value: 'bbc-radio-1', label: '📻 BBC Radio 1' },
+                { value: 'npr', label: '📻 NPR (National Public Radio)' },
+                { value: 'ninja-chill', label: '🥷 NINJA CHILL 24/7' },
+                { value: 'nts-1', label: '🎧 NTS Radio 1 (London)' },
+                { value: 'nts-2', label: '🎧 NTS Radio 2 (London)' },
+                { value: 'rinse-france', label: '🎧 Rinse France (Paris)' },
+                { value: 'rinse-uk', label: '🎧 Rinse UK (London)' },
+                { value: 'fip', label: '🇫🇷 FIP Radio (Paris)' },
+                { value: 'europa-plus', label: '📻 Европа Плюс' },
+                { value: 'radio-energy', label: '📻 Radio Energy' },
+                { value: 'love-radio', label: '📻 Love Radio' },
+                { value: 'hit-fm', label: '📻 Hit FM' },
+                { value: 'monte-carlo', label: '📻 Monte Carlo' },
+                { value: 'studio-21', label: '🎧 STUDIO 21' },
+                { value: 'radio-metro', label: '🚇 Радио МЕТРО' },
+                { value: 'hermitage', label: '🏛️ Эрмитаж FM 90.1 (СПб)' }
+            ];
+
+            builtInStations.forEach(station => {
+                const option = document.createElement('option');
+                option.value = station.value;
+                option.textContent = station.label;
+                select.appendChild(option);
+            });
+
+            // Пользовательские станции
+            const customStations = loadCustomStations();
+            if (customStations.length > 0) {
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '───── Мои станции ─────';
+                select.appendChild(separator);
+
+                customStations.forEach((station, index) => {
+                    const option = document.createElement('option');
+                    option.value = 'custom-' + index;
+
+                    let icon = '🎵';
+                    if (station.type === 'radio') icon = '📻';
+                    else if (station.type === 'youtube') icon = '📺';
+                    else if (station.type === 'local' && station.fileCount > 1) icon = '📀';
+
+                    option.textContent = `${icon} ${station.name}`;
+                    select.appendChild(option);
+                });
+
+                console.log(`✅ Loaded ${customStations.length} custom station(s)`);
+            }
         }
 
         // YouTube Player API callback
@@ -859,31 +1037,29 @@
         // Обновление времени
         function updateTime() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('ru-RU', { 
-                hour: '2-digit', 
+            const timeString = now.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
                 minute: '2-digit',
-                hour12: false 
+                hour12: false
             });
-            const dateString = now.toLocaleDateString('ru-RU', { 
-                weekday: 'long', 
-                day: 'numeric', 
+            const dateString = now.toLocaleDateString('ru-RU', {
+                weekday: 'long',
+                day: 'numeric',
                 month: 'long'
             });
-            
+
             document.getElementById('currentTime').textContent = timeString;
             document.getElementById('currentDate').textContent = 'Сегодня: ' + dateString.charAt(0).toUpperCase() + dateString.slice(1);
-            
+
             if (alarmActive && alarmTime) {
                 const currentMinutes = now.getHours() * 60 + now.getMinutes();
                 const alarmMinutes = alarmTime.hours * 60 + alarmTime.minutes;
 
-                // Сбрасываем флаг когда минута изменилась
                 if (currentMinutes !== lastCheckedMinute) {
                     alarmTriggered = false;
                     lastCheckedMinute = currentMinutes;
                 }
 
-                // Срабатываем ТОЛЬКО ОДИН РАЗ за минуту
                 if (currentMinutes === alarmMinutes && !alarmTriggered) {
                     alarmTriggered = true;
                     triggerAlarm();
@@ -911,7 +1087,6 @@
                 houseWindow.classList.remove(timeClass);
             });
 
-            // Случайный выбор времени суток
             const randomIndex = Math.floor(Math.random() * timesOfDay.length);
             const currentTime = timesOfDay[randomIndex];
 
@@ -976,18 +1151,18 @@
         function setAlarm() {
             const hours = parseInt(document.getElementById('alarmHour').value);
             const minutes = parseInt(document.getElementById('alarmMinute').value);
-            
+
             if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
                 alert('Пожалуйста, введите корректное время');
                 return;
             }
-            
+
             alarmTime = { hours, minutes };
             alarmActive = true;
             document.getElementById('toggleAlarm').textContent = 'Выключить';
             document.getElementById('toggleAlarm').classList.remove('btn-secondary');
             document.getElementById('toggleAlarm').classList.add('btn-primary');
-            
+
             console.log('✅ Будильник установлен на', `${hours}:${minutes.toString().padStart(2, '0')}`);
             updateRemainingTime();
         }
@@ -996,7 +1171,7 @@
         function disableAlarm() {
             alarmActive = false;
             alarmTime = null;
-            alarmTriggered = false; // Сбрасываем флаг срабатывания
+            alarmTriggered = false;
             document.getElementById('toggleAlarm').textContent = 'Включить';
             document.getElementById('toggleAlarm').classList.remove('btn-primary');
             document.getElementById('toggleAlarm').classList.add('btn-secondary');
@@ -1011,16 +1186,15 @@
             const modal = document.getElementById('alarmModal');
             const modalTime = document.getElementById('alarmModalTime');
             const now = new Date();
-            
-            modalTime.textContent = now.toLocaleTimeString('ru-RU', { 
-                hour: '2-digit', 
+
+            modalTime.textContent = now.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
                 minute: '2-digit',
-                hour12: false 
+                hour12: false
             });
-            
+
             modal.style.display = 'flex';
-            
-            // Воспроизводим выбранный звук
+
             const selectedStation = document.getElementById('radioSelect').value;
             playRadioSound(selectedStation);
         }
@@ -1031,14 +1205,14 @@
             stopRadio();
             disableAlarm();
             snoozeCount = 0;
-            alarmTriggered = false; // Сбрасываем флаг срабатывания
+            alarmTriggered = false;
         }
 
         // Отложить будильник
         function snoozeAlarm() {
             document.getElementById('alarmModal').style.display = 'none';
             stopRadio();
-            alarmTriggered = false; // Сбрасываем флаг срабатывания
+            alarmTriggered = false;
 
             const snoozeMinutes = parseInt(document.getElementById('snoozeTime').value) || 5;
             const now = new Date();
@@ -1060,9 +1234,8 @@
             const radioSelect = document.getElementById('radioSelect');
             const selectedStation = radioSelect.value;
 
-            // v3.0 - проверяем состояние по классу кнопки
             const isPlaying = playButton.classList.contains('playing');
-            console.log('🎵 [v3.0] Toggle radio. Current state:', isPlaying ? 'playing' : 'stopped');
+            console.log('🎵 Toggle radio. Current state:', isPlaying ? 'playing' : 'stopped');
 
             if (isPlaying) {
                 stopRadio();
@@ -1077,7 +1250,6 @@
 
             console.log('🛑 Stopping all audio...');
 
-            // СНАЧАЛА обновляем UI - это критично для предотвращения race conditions
             playButton.textContent = '▶';
             playButton.classList.remove('playing');
 
@@ -1104,16 +1276,15 @@
 
             // Останавливаем HTML5 Audio
             if (currentAudio && currentAudio instanceof HTMLAudioElement) {
-                // Удаляем все обработчики событий ПЕРЕД остановкой
                 currentAudio.onloadstart = null;
                 currentAudio.oncanplay = null;
                 currentAudio.onerror = null;
                 currentAudio.onplay = null;
                 currentAudio.onpause = null;
+                currentAudio.onended = null;
 
                 try {
                     currentAudio.pause();
-                    // НЕ очищаем src чтобы не вызвать ошибку загрузки
                 } catch (e) {
                     console.log('⚠️ Error stopping audio:', e);
                 }
@@ -1121,6 +1292,10 @@
                 currentAudio = null;
                 console.log('✅ HTML5 Audio stopped');
             }
+
+            // Сбрасываем плейлист
+            currentPlaylist = null;
+            currentTrackIndex = 0;
 
             // Останавливаем интервал для синтетических звуков
             if (alarmInterval) {
@@ -1136,34 +1311,57 @@
                 console.log('✅ AudioContext closed');
             }
 
-            console.log('✅ [v3.0] All audio stopped');
+            console.log('✅ All audio stopped');
         }
 
-        // Воспроизведение звука радио
-        function playRadioSound(station) {
+        // ========= ВОСПРОИЗВЕДЕНИЕ ЗВУКА РАДИО =========
+        async function playRadioSound(station) {
             const playButton = document.getElementById('playButton');
 
-            // Сначала останавливаем все что играет
             stopRadio();
 
             console.log('🎵 Starting station:', station);
 
+            // Проверяем, это пользовательская станция?
+            if (station.startsWith('custom-')) {
+                const index = parseInt(station.replace('custom-', ''));
+                const customStations = loadCustomStations();
+                const customStation = customStations[index];
+
+                if (!customStation) {
+                    console.error('❌ Custom station not found');
+                    playClassicAlarmSound();
+                    return;
+                }
+
+                console.log('🎵 Playing custom station:', customStation.name, customStation.type);
+
+                switch (customStation.type) {
+                    case 'local':
+                        await playCustomLocalStation(customStation);
+                        break;
+                    case 'youtube':
+                        playCustomYouTubeStation(customStation.url);
+                        break;
+                    case 'radio':
+                        await playCustomRadioStation(customStation);
+                        break;
+                }
+                return;
+            }
+
+            // Встроенные станции
             if (station === 'classic') {
-                // Для классического сигнала используем Web Audio API
                 playClassicAlarmSound();
             } else if (youtubeStreams[station]) {
-                // Для YouTube станций используем YouTube IFrame API
                 playYouTubeStation(station);
             } else if (hlsStreams.includes(station)) {
-                // Для HLS потоков используем hls.js (BBC Radio 1)
                 playHLSStation(station);
             } else if (radioStreams[station]) {
-                // Для настоящих радиостанций используем HTML5 Audio
                 try {
                     const audio = new Audio();
                     const originalUrl = radioStreams[station];
 
-                    // Проверяем нужен ли CORS proxy для этой станции
                     if (needsCorsProxy.includes(station)) {
                         audio.src = getProxiedURL(originalUrl);
                         console.log(`🔐 Using CORS proxy for ${station}`);
@@ -1171,20 +1369,18 @@
                         audio.src = originalUrl;
                     }
 
-                    // Проверяем нарастание громкости
                     const volumeGrow = document.getElementById('volumeGrow').checked;
                     if (volumeGrow) {
-                        audio.volume = 0; // Начинаем с 0
+                        audio.volume = 0;
                     } else {
-                        audio.volume = 0.5; // Сразу нормальная громкость
+                        audio.volume = 0.5;
                     }
 
                     audio.crossOrigin = 'anonymous';
 
-                    let errorHandled = false; // Флаг для предотвращения множественных вызовов
-                    let volumeInterval = null; // Для нарастания громкости
+                    let errorHandled = false;
+                    let volumeInterval = null;
 
-                    // Устанавливаем состояние "playing" СРАЗУ - мы хотим играть
                     playButton.textContent = '⏸';
                     playButton.classList.add('playing');
 
@@ -1199,7 +1395,6 @@
                     audio.addEventListener('error', function(e) {
                         if (errorHandled) return;
 
-                        // Проверяем что кнопка все еще в состоянии "playing"
                         if (!playButton.classList.contains('playing')) {
                             console.log('⚠️ User stopped playback, not starting backup alarm');
                             return;
@@ -1208,7 +1403,6 @@
                         errorHandled = true;
                         console.error('❌ Ошибка загрузки радио:', e);
 
-                        // Очищаем проблемный audio
                         try {
                             audio.pause();
                             audio.onloadstart = null;
@@ -1218,29 +1412,25 @@
                             console.log('⚠️ Error cleaning up audio:', err);
                         }
 
-                        // Если это станция с CORS proxy, пробуем следующий proxy
                         if (needsCorsProxy.includes(station) && currentProxyIndex < corsProxies.length - 1) {
                             console.log('🔄 Пробуем следующий CORS proxy...');
                             switchToNextProxy();
-                            // Рекурсивно пробуем снова с новым прокси
                             setTimeout(() => playRadioSound(station), 500);
                         } else {
-                            // Все прокси перепробованы или это не CORS станция
                             console.log('🔄 Переключаемся на классический сигнал...');
-                            currentProxyIndex = 0; // Сбрасываем индекс для следующей попытки
+                            currentProxyIndex = 0;
                             playClassicAlarmSound();
                         }
                     });
 
                     audio.play()
                         .then(() => {
-                            console.log('✅ [v3.0] Воспроизведение начато:', station);
+                            console.log('✅ Воспроизведение начато:', station);
                             currentAudio = audio;
 
-                            // Если включено нарастание громкости - плавно увеличиваем
                             if (volumeGrow) {
                                 const targetVolume = 0.5;
-                                const duration = 30000; // 30 секунд
+                                const duration = 30000;
                                 const steps = 100;
                                 const stepTime = duration / steps;
                                 const stepVolume = targetVolume / steps;
@@ -1268,7 +1458,6 @@
                         .catch(err => {
                             if (errorHandled) return;
 
-                            // Проверяем что кнопка все еще в состоянии "playing"
                             if (!playButton.classList.contains('playing')) {
                                 console.log('⚠️ User stopped playback, not starting backup alarm');
                                 return;
@@ -1277,7 +1466,6 @@
                             errorHandled = true;
                             console.error('❌ Ошибка воспроизведения:', err);
 
-                            // Очищаем проблемный audio
                             try {
                                 audio.pause();
                                 audio.onloadstart = null;
@@ -1287,16 +1475,13 @@
                                 console.log('⚠️ Error cleaning up audio:', e);
                             }
 
-                            // Если это станция с CORS proxy, пробуем следующий proxy
                             if (needsCorsProxy.includes(station) && currentProxyIndex < corsProxies.length - 1) {
                                 console.log('🔄 Пробуем следующий CORS proxy...');
                                 switchToNextProxy();
-                                // Рекурсивно пробуем снова с новым прокси
                                 setTimeout(() => playRadioSound(station), 500);
                             } else {
-                                // Все прокси перепробованы или это не CORS станция
                                 console.log('🔄 Используем резервный звук...');
-                                currentProxyIndex = 0; // Сбрасываем индекс для следующей попытки
+                                currentProxyIndex = 0;
                                 playClassicAlarmSound();
                             }
                         });
@@ -1311,28 +1496,288 @@
             }
         }
 
+        // ========= CUSTOM STATIONS PLAYBACK =========
+
+        // Воспроизведение пользовательской локальной станции
+        async function playCustomLocalStation(station) {
+            const playButton = document.getElementById('playButton');
+
+            try {
+                const files = await loadFilesFromDB(station.id);
+
+                if (files.length === 0) {
+                    console.error('❌ No files found for station');
+                    playClassicAlarmSound();
+                    return;
+                }
+
+                currentPlaylist = files;
+                currentTrackIndex = 0;
+                playLocalTrack(0);
+
+                playButton.textContent = '⏸';
+                playButton.classList.add('playing');
+
+                console.log(`✅ Playing custom local station: ${station.name} (${files.length} tracks)`);
+            } catch (error) {
+                console.error('❌ Error loading custom local station:', error);
+                playClassicAlarmSound();
+            }
+        }
+
+        function playLocalTrack(trackIndex) {
+            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
+                return;
+            }
+
+            const track = currentPlaylist[trackIndex];
+            currentTrackIndex = trackIndex;
+
+            console.log(`🎵 Playing track ${trackIndex + 1}/${currentPlaylist.length}: ${track.name}`);
+
+            const audio = new Audio();
+            audio.src = track.data;
+
+            const volumeGrow = document.getElementById('volumeGrow').checked;
+            audio.volume = volumeGrow ? 0 : 0.5;
+
+            audio.addEventListener('ended', () => {
+                console.log('✅ Track ended, playing next...');
+                const nextIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+                playLocalTrack(nextIndex);
+            });
+
+            audio.addEventListener('error', (e) => {
+                console.error('❌ Track error:', e);
+                playClassicAlarmSound();
+            });
+
+            audio.play()
+                .then(() => {
+                    currentAudio = audio;
+
+                    if (volumeGrow) {
+                        let volume = 0;
+                        const interval = setInterval(() => {
+                            if (!audio || audio.paused) {
+                                clearInterval(interval);
+                                return;
+                            }
+                            if (volume < 0.5) {
+                                volume += 0.5 / 100;
+                                audio.volume = Math.min(volume, 0.5);
+                            } else {
+                                clearInterval(interval);
+                            }
+                        }, 300);
+                    }
+                })
+                .catch(err => {
+                    console.error('❌ Error playing local track:', err);
+                    playClassicAlarmSound();
+                });
+        }
+
+        // Воспроизведение пользовательской радио-станции
+        async function playCustomRadioStation(station) {
+            const playButton = document.getElementById('playButton');
+            const url = station.url;
+            const isLocalFile = station.isLocalFile || false;
+
+            console.log('📻 Playing custom radio station:', url);
+
+            // Авто-детекция HLS
+            if (url.includes('.m3u8')) {
+                console.log('🎶 Detected HLS format');
+                playCustomHLSStation(url, isLocalFile);
+                return;
+            }
+
+            // Проверка на plain M3U
+            const isPlainM3U = url.endsWith('.m3u') && !url.endsWith('.m3u8');
+            if (isPlainM3U || (isLocalFile && url.startsWith('data:'))) {
+                console.log('📄 Detected M3U playlist, parsing...');
+                const result = await parseM3UPlaylist(url);
+                if (result.success) {
+                    console.log(`✅ Extracted stream URL: ${result.streamUrl}`);
+                    playCustomRadioStation({ url: result.streamUrl, isLocalFile: false });
+                    return;
+                } else {
+                    console.error('❌ M3U parsing failed');
+                    playClassicAlarmSound();
+                    return;
+                }
+            }
+
+            // Обычный радио-поток
+            try {
+                const audio = new Audio();
+                audio.src = url.startsWith('http:') ? getProxiedURL(url) : url;
+
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                audio.volume = volumeGrow ? 0 : 0.5;
+                audio.crossOrigin = 'anonymous';
+
+                audio.addEventListener('error', (e) => {
+                    console.error('❌ Custom radio error:', e);
+                    playClassicAlarmSound();
+                });
+
+                audio.play()
+                    .then(() => {
+                        currentAudio = audio;
+                        playButton.textContent = '⏸';
+                        playButton.classList.add('playing');
+
+                        if (volumeGrow) {
+                            let volume = 0;
+                            const interval = setInterval(() => {
+                                if (!audio || audio.paused) {
+                                    clearInterval(interval);
+                                    return;
+                                }
+                                if (volume < 0.5) {
+                                    volume += 0.5 / 100;
+                                    audio.volume = Math.min(volume, 0.5);
+                                } else {
+                                    clearInterval(interval);
+                                }
+                            }, 300);
+                        }
+
+                        console.log('✅ Custom radio playback started');
+                    })
+                    .catch(err => {
+                        console.error('❌ Error playing custom radio:', err);
+                        playClassicAlarmSound();
+                    });
+            } catch (error) {
+                console.error('❌ Error:', error);
+                playClassicAlarmSound();
+            }
+        }
+
+        // Воспроизведение пользовательской HLS-станции
+        function playCustomHLSStation(url, isLocalFile) {
+            if (!Hls.isSupported()) {
+                console.error('❌ HLS not supported');
+                playClassicAlarmSound();
+                return;
+            }
+
+            const playButton = document.getElementById('playButton');
+            const audio = new Audio();
+            hlsInstance = new Hls({ debug: false });
+
+            hlsInstance.loadSource(url);
+            hlsInstance.attachMedia(audio);
+
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                audio.volume = volumeGrow ? 0 : 0.5;
+
+                audio.play()
+                    .then(() => {
+                        currentAudio = audio;
+                        playButton.textContent = '⏸';
+                        playButton.classList.add('playing');
+
+                        if (volumeGrow) {
+                            let volume = 0;
+                            const interval = setInterval(() => {
+                                if (!audio || audio.paused) {
+                                    clearInterval(interval);
+                                    return;
+                                }
+                                if (volume < 0.5) {
+                                    volume += 0.5 / 100;
+                                    audio.volume = Math.min(volume, 0.5);
+                                } else {
+                                    clearInterval(interval);
+                                }
+                            }, 300);
+                        }
+
+                        console.log('✅ Custom HLS playback started');
+                    })
+                    .catch(err => {
+                        console.error('❌ HLS play error:', err);
+                        playClassicAlarmSound();
+                    });
+            });
+
+            hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    console.error('❌ Fatal HLS error:', data);
+                    playClassicAlarmSound();
+                }
+            });
+        }
+
+        // Воспроизведение пользовательской YouTube-станции
+        function playCustomYouTubeStation(videoId) {
+            if (!youtubePlayerReady) {
+                console.error('❌ YouTube player not ready');
+                playClassicAlarmSound();
+                return;
+            }
+
+            const playButton = document.getElementById('playButton');
+
+            try {
+                playButton.textContent = '⏸';
+                playButton.classList.add('playing');
+
+                // Извлекаем ID если это URL
+                const actualId = extractYouTubeId(videoId) || videoId;
+                youtubePlayer.loadVideoById(actualId);
+
+                const volumeGrow = document.getElementById('volumeGrow').checked;
+                youtubePlayer.setVolume(volumeGrow ? 0 : 50);
+
+                if (volumeGrow) {
+                    let volume = 0;
+                    const interval = setInterval(() => {
+                        if (!playButton.classList.contains('playing')) {
+                            clearInterval(interval);
+                            return;
+                        }
+                        if (volume < 50) {
+                            volume += 0.5;
+                            youtubePlayer.setVolume(volume);
+                        } else {
+                            clearInterval(interval);
+                        }
+                    }, 300);
+                }
+
+                console.log('✅ Custom YouTube playback started');
+            } catch (error) {
+                console.error('❌ YouTube error:', error);
+                playClassicAlarmSound();
+            }
+        }
+
         // Воспроизведение классического звука будильника
         function playClassicAlarmSound() {
             const playButton = document.getElementById('playButton');
 
             console.log('🔔 Starting classic alarm sound');
 
-            // Создаем новый контекст если его нет
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
 
-            const frequencies = [523, 659, 784]; // C, E, G ноты
+            const frequencies = [523, 659, 784];
 
             const playChord = () => {
-                // v3.0 - проверяем состояние по классу кнопки
                 if (!playButton.classList.contains('playing')) {
-                    console.log('⚠️ [v3.0] Radio stopped, not playing chord');
+                    console.log('⚠️ Radio stopped, not playing chord');
                     return;
                 }
 
                 if (!audioContext) {
-                    console.log('⚠️ [v3.0] AudioContext closed, stopping');
+                    console.log('⚠️ AudioContext closed, stopping');
                     return;
                 }
 
@@ -1363,12 +1808,10 @@
             playChord();
             alarmInterval = setInterval(playChord, 3000);
 
-            // v3.0 - состояние в классе кнопки
-            // Обновляем UI
             playButton.textContent = '⏸';
             playButton.classList.add('playing');
 
-            console.log('✅ [v3.0] Classic alarm sound started');
+            console.log('✅ Classic alarm sound started');
         }
 
         // Воспроизведение YouTube станции
@@ -1385,22 +1828,18 @@
             }
 
             try {
-                // Обновляем UI
                 playButton.textContent = '⏸';
                 playButton.classList.add('playing');
 
-                // Загружаем и воспроизводим видео
                 youtubePlayer.loadVideoById(videoId);
 
-                // Проверяем нарастание громкости
                 const volumeGrow = document.getElementById('volumeGrow').checked;
                 if (volumeGrow) {
                     youtubePlayer.setVolume(0);
-                    // Плавно увеличиваем громкость за 30 секунд
                     let currentVolume = 0;
-                    const targetVolume = 50; // YouTube использует 0-100
+                    const targetVolume = 50;
                     const steps = 100;
-                    const stepTime = 30000 / steps; // 30 секунд
+                    const stepTime = 30000 / steps;
                     const stepVolume = targetVolume / steps;
 
                     const volumeInterval = setInterval(() => {
@@ -1434,7 +1873,6 @@
             const url = radioStreams[station];
 
             console.log('📡 [HLS] Starting HLS station:', station);
-            console.log('📡 [HLS] URL:', url);
 
             if (!Hls.isSupported()) {
                 console.error('❌ [HLS] HLS.js not supported in this browser');
@@ -1548,61 +1986,50 @@
         }
 
         // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🌟 IskrCLOCK v4.0 ЗАГРУЖЕН');
+            console.log('🌟 IskrCLOCK v4.1 - С ПОДДЕРЖКОЙ ПОЛЬЗОВАТЕЛЬСКИХ СТАНЦИЙ');
             console.log('📅 Версия от 7 ноября 2025 - Стабильная сборка');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🔊 ВЕРСИЯ 4.0 - ВСЕ РАБОТАЕТ!');
-            console.log(' 📻 BBC Radio 1 - 320kbps HLS via hls.js (NEW!)');
-            console.log(' 📻 NPR - National Public Radio');
-            console.log(' ✅ STUDIO 21 напрямую (работает!)');
-            console.log(' ✅ Радио МЕТРО напрямую (работает!)');
-            console.log(' ✅ Rinse UK через CORS proxy (работает!)');
-            console.log(' 🎥 YouTube для NINJA CHILL (работает!)');
-            console.log(' 🔄 corsproxy.io - основной прокси для Rinse UK');
-            console.log('');
-            console.log('📻 Доступные станции (16):');
-            console.log(' 📻 BBC Radio 1 (London) 🎵 HLS 320kbps ⭐ НОВАЯ!');
-            console.log(' 📻 NPR (USA)');
-            console.log(' 🥷 NINJA CHILL 24/7 (YouTube)');
-            console.log(' 🎧 NTS Radio 1 & 2 (London)');
-            console.log(' 🎧 Rinse UK (London) 🔐 CORS proxy');
-            console.log(' 🎧 Rinse France (Paris)');
-            console.log(' 🇫🇷 FIP Radio (Paris)');
-            console.log(' 📻 Европа Плюс, Radio Energy, Love Radio, Hit FM, Monte Carlo');
-            console.log(' 🎧 STUDIO 21 ✅ ПРЯМОЙ ПОТОК');
-            console.log(' 🚇 Радио МЕТРО ✅ ПРЯМОЙ ПОТОК');
-            console.log(' 🏛️ Эрмитаж FM (Санкт-Петербург)');
-            console.log('');
             console.log('🎛️ HLS.js version:', Hls.version);
             console.log('🎛️ HLS.js supported:', Hls.isSupported());
-            console.log('💡 Все радиостанции протестированы и работают!');
-            console.log('🌍 Переключатель языка: Русский/English');
+            console.log('💾 IndexedDB available:', typeof(indexedDB) !== 'undefined');
             console.log('═══════════════════════════════════════════════════════');
-            
+
+            // Инициализация IndexedDB для пользовательских станций
+            try {
+                await initDB();
+                console.log('✅ IndexedDB initialized for custom stations');
+            } catch (error) {
+                console.error('❌ IndexedDB initialization failed:', error);
+            }
+
+            // Заполняем список станций (встроенные + пользовательские)
+            populateStationsList();
+            console.log('✅ Stations list populated');
+
             // Создаем звезды
             createStars();
             console.log('✅ Звезды созданы');
-            
+
             // Первое обновление времени
             updateTime();
             console.log('✅ Время обновлено');
-            
+
             // Запускаем обновление времени каждую секунду
             setInterval(updateTime, 1000);
             console.log('✅ Таймер времени запущен');
-            
+
             // Смена времени суток каждую минуту
             setInterval(changeTimeOfDay, 60000);
-            console.log('✅ Таймер смены времени суток запущен (плавные переходы 20 сек)');
-            
+            console.log('✅ Таймер смены времени суток запущен');
+
             // Инициализируем первое время суток
             setTimeout(() => {
                 changeTimeOfDay();
                 console.log('✅ Начальное время суток установлено');
             }, 500);
-            
+
             // Обработчики событий
             document.getElementById('toggleAlarm').addEventListener('click', function() {
                 if (alarmActive) {
@@ -1611,111 +2038,29 @@
                     setAlarm();
                 }
             });
-            
+
             document.getElementById('playButton').addEventListener('click', toggleRadio);
             document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
-            
+
             document.getElementById('snoozeButton').addEventListener('click', function() {
                 if (alarmActive) {
                     snoozeAlarm();
                 }
             });
-            
+
             document.getElementById('alarmHour').addEventListener('change', function() {
                 if (alarmActive) setAlarm();
             });
-            
+
             document.getElementById('alarmMinute').addEventListener('change', function() {
                 if (alarmActive) setAlarm();
             });
-            
+
             console.log('✅ Все обработчики событий подключены');
-            console.log('🎉 IskrCLOCK v3.0 полностью готов к работе!');
+            console.log('🎉 IskrCLOCK v4.1 TEST полностью готов к работе!');
             console.log('');
-            console.log('💡 Нажмите Play чтобы протестировать звук');
-            console.log(' Ожидаемые логи:');
-            console.log(' 🎵 Toggle radio [v3.0]');
-            console.log(' 🔔 Playing beep #1 [v3.0]');
-            console.log(' 🔔 Playing beep #2 [v3.0] ...');
+            console.log('💡 Тестируйте пользовательские станции!');
             console.log('═══════════════════════════════════════════════════════');
-
-            // Language switching
-            const translations = {
-                ru: {
-                    title: 'Будильник с радио онлайн',
-                    loading: 'Загрузка...',
-                    hours: 'Часы',
-                    minutes: 'Минуты',
-                    snooze: 'Подремать (мин)',
-                    selectAlarmSound: 'Выбрать сигнал будильника?',
-                    classicBeep: '🔔 Классический сигнал',
-                    europaPlus: '📻 Европа Плюс',
-                    radioMetro: '🚇 Радио МЕТРО'
-                },
-                en: {
-                    title: 'Online Alarm Clock with Radio',
-                    loading: 'Loading...',
-                    hours: 'Hours',
-                    minutes: 'Minutes',
-                    snooze: 'Snooze (min)',
-                    selectAlarmSound: 'Select alarm sound:',
-                    classicBeep: '🔔 Classic Beep',
-                    europaPlus: '📻 Europa Plus',
-                    radioMetro: '🚇 Radio METRO'
-                }
-            };
-
-            let currentLang = localStorage.getItem('language') || 'ru';
-
-            function switchLanguage(lang) {
-                currentLang = lang;
-                localStorage.setItem('language', lang);
-
-                const t = translations[lang];
-
-                // Update navigation
-                const nav = document.querySelectorAll('.nav-item');
-                if (nav[0]) nav[0].textContent = lang === 'ru' ? '⏰ Будильники' : '⏰ Alarms';
-                if (nav[1]) nav[1].textContent = lang === 'ru' ? '⏲️ Таймеры' : '⏲️ Timer';
-                if (nav[2]) nav[2].textContent = lang === 'ru' ? '⏱️ Секундомер' : '⏱️ Stopwatch';
-                if (nav[3]) nav[3].textContent = lang === 'ru' ? '🧮 Калькулятор сна' : '🧮 Sleep Calculator';
-
-                // Update main title
-                const title = document.querySelector('.title');
-                if (title) title.textContent = t.title;
-
-                // Update labels
-                const labels = document.querySelectorAll('.time-input-group label');
-                if (labels[0]) labels[0].textContent = t.hours;
-                if (labels[1]) labels[1].textContent = t.minutes;
-                if (labels[2]) labels[2].textContent = t.snooze;
-
-                // Update radio section label
-                const radioLabel = document.querySelector('.radio-section label');
-                if (radioLabel) radioLabel.textContent = t.selectAlarmSound;
-
-                // Update select options
-                const selectOptions = document.querySelectorAll('#radioSelect option');
-                selectOptions.forEach(option => {
-                    const value = option.value;
-                    if (value === 'classic') option.textContent = t.classicBeep;
-                    else if (value === 'europa-plus') option.textContent = t.europaPlus;
-                    else if (value === 'radio-metro') option.textContent = t.radioMetro;
-                });
-
-                document.querySelector('.lang-selector').value = lang;
-            }
-
-            document.querySelector('.lang-selector').addEventListener('change', (e) => {
-                switchLanguage(e.target.value);
-            });
-
-            // Set initial language
-            const langSelector = document.querySelector('.lang-selector');
-            langSelector.value = currentLang;
-            if (currentLang === 'en') {
-                switchLanguage('en');
-            }
         });
     </script>
 </body>

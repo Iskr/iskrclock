@@ -496,15 +496,20 @@
             background: rgba(255, 165, 0, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
-            padding: 12px 20px;
+            padding: 8px 15px;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.3s;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            white-space: nowrap;
+            line-height: 1.2;
+            text-align: center;
+            min-width: 80px;
         }
 
         .btn-manage-stations:hover {
@@ -721,7 +726,10 @@
                     <!-- Will be populated dynamically -->
                 </select>
                 <button class="play-button" id="playButton">▶</button>
-                <a href="custom-stations.html" class="btn-manage-stations">🎵 Управление станциями</a>
+                <a href="custom-stations.html" class="btn-manage-stations">
+                    <span>🎵 Свои</span>
+                    <span>станции</span>
+                </a>
                 <div class="volume-control">
                     <span class="volume-label">Нарастает?</span>
                     <input type="checkbox" id="volumeGrow" checked>
