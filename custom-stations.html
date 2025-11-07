@@ -348,7 +348,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.2.1 - HLS + CORS Proxy</p>
+            <p class="version">v1.2.2 - HLS Segments + CORS Proxy</p>
         </div>
 
         <div class="nav-links">
@@ -1095,6 +1095,23 @@
             }
         }
 
+        // Custom HLS loader that uses CORS proxy for all HTTP requests
+        class CorsProxyLoader extends Hls.DefaultConfig.loader {
+            constructor(config) {
+                super(config);
+                this.proxyIndex = currentProxyIndex;
+            }
+
+            load(context, config, callbacks) {
+                // Check if URL needs CORS proxy (HTTP)
+                if (needsCorsProxy(context.url)) {
+                    console.log(`🔐 [HLS Loader] Proxying segment/manifest: ${context.url}`);
+                    context.url = getProxiedURL(context.url, this.proxyIndex);
+                }
+                super.load(context, config, callbacks);
+            }
+        }
+
         // Play HLS stream
         function playHLSStation(url) {
             if (!Hls.isSupported()) {
@@ -1110,22 +1127,27 @@
                 currentStationUrl = originalUrl;
                 currentStationType = 'hls';
 
-                // Проверяем нужен ли CORS proxy (для HTTP стримов)
-                let sourceUrl;
-                if (needsCorsProxy(originalUrl)) {
-                    sourceUrl = getProxiedURL(originalUrl);
+                // Check if needs CORS proxy
+                const needsProxy = needsCorsProxy(originalUrl);
+                if (needsProxy) {
                     console.log(`🔐 HTTP HLS stream detected, using CORS proxy for: ${originalUrl}`);
-                } else {
-                    sourceUrl = originalUrl;
                 }
 
-                hlsInstance = new Hls({
+                // Create HLS instance with custom loader for HTTP streams
+                const hlsConfig = {
                     debug: false,
                     enableWorker: true,
                     lowLatencyMode: true
-                });
+                };
 
-                hlsInstance.loadSource(sourceUrl);
+                // Use custom loader if HTTP stream
+                if (needsProxy) {
+                    hlsConfig.loader = CorsProxyLoader;
+                }
+
+                hlsInstance = new Hls(hlsConfig);
+
+                hlsInstance.loadSource(originalUrl);
                 hlsInstance.attachMedia(audio);
 
                 let errorHandled = false;
