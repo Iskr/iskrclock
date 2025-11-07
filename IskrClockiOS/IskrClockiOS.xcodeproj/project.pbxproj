@@ -1,0 +1,123 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXFileReference section */
+		APP001 /* IskrClockiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IskrClockiOSApp.swift; sourceTree = "<group>"; };
+		APP002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+
+		MODEL001 /* AlarmModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmModel.swift; sourceTree = "<group>"; };
+		MODEL002 /* RadioStationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadioStationModel.swift; sourceTree = "<group>"; };
+		MODEL003 /* TimerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerModel.swift; sourceTree = "<group>"; };
+
+		SERVICE001 /* AlarmManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmManager.swift; sourceTree = "<group>"; };
+		SERVICE002 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
+		SERVICE003 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		SERVICE004 /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
+		SERVICE005 /* LocalizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationManager.swift; sourceTree = "<group>"; };
+		SERVICE006 /* CustomStationsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomStationsManager.swift; sourceTree = "<group>"; };
+		SERVICE007 /* TimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerManager.swift; sourceTree = "<group>"; };
+
+		VIEW001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		VIEW002 /* AnimatedBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedBackgroundView.swift; sourceTree = "<group>"; };
+		VIEW003 /* AlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmView.swift; sourceTree = "<group>"; };
+		VIEW004 /* TimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerView.swift; sourceTree = "<group>"; };
+		VIEW005 /* StopwatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopwatchView.swift; sourceTree = "<group>"; };
+		VIEW006 /* SleepCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepCalculatorView.swift; sourceTree = "<group>"; };
+		VIEW007 /* CustomStationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomStationsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		ROOT = {
+			isa = PBXGroup;
+			children = (
+				APPGROUP,
+			);
+			sourceTree = "<group>";
+		};
+
+		APPGROUP = {
+			isa = PBXGroup;
+			children = (
+				APP001,
+				APP002,
+				MODELS,
+				SERVICES,
+				VIEWS,
+			);
+			path = IskrClockiOS;
+			sourceTree = "<group>";
+		};
+
+		MODELS = {
+			isa = PBXGroup;
+			children = (
+				MODEL001,
+				MODEL002,
+				MODEL003,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+
+		SERVICES = {
+			isa = PBXGroup;
+			children = (
+				SERVICE001,
+				SERVICE002,
+				SERVICE003,
+				SERVICE004,
+				SERVICE005,
+				SERVICE006,
+				SERVICE007,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+
+		VIEWS = {
+			isa = PBXGroup;
+			children = (
+				VIEW001,
+				VIEW002,
+				VIEW003,
+				VIEW004,
+				VIEW005,
+				VIEW006,
+				VIEW007,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXProject section */
+		PROJECT = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = BUILDCONFIGLIST;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				ru,
+			);
+			mainGroup = ROOT;
+			productRefGroup = ROOT;
+			projectDirPath = "";
+			projectRoot = "";
+		};
+/* End PBXProject section */
+
+	};
+	rootObject = PROJECT;
+}
