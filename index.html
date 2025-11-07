@@ -714,6 +714,8 @@
         let currentAudio = null;
         let audioContext = null;
         let hlsInstance = null; // HLS.js instance for BBC Radio 1
+        let audioMonitorInterval = null; // Мониторинг воспроизведения для отказоустойчивости
+        let lastAudioTime = 0; // Последняя позиция воспроизведения
 
         // YouTube Player
         let youtubePlayer = null;
@@ -982,6 +984,19 @@
 
                 console.log(`✅ Loaded ${customStations.length} custom stations`);
             }
+
+            // Восстанавливаем последнюю выбранную станцию
+            const savedStation = localStorage.getItem('selectedStation');
+            if (savedStation) {
+                select.value = savedStation;
+                console.log(`✅ Restored saved station: ${savedStation}`);
+            }
+
+            // Добавляем обработчик для сохранения выбранной станции
+            select.addEventListener('change', function() {
+                localStorage.setItem('selectedStation', this.value);
+                console.log(`💾 Saved station: ${this.value}`);
+            });
         }
 
         // YouTube Player API callback
@@ -1197,8 +1212,10 @@
 
         // Обновление оставшегося времени
         function updateRemainingTime() {
+            const t = window.currentTranslations || translations[currentLang] || translations.ru;
+
             if (!alarmActive || !alarmTime) {
-                document.getElementById('remainingTime').textContent = 'Будильник выключен';
+                document.getElementById('remainingTime').textContent = t.alarmOff;
                 return;
             }
 
@@ -1216,7 +1233,7 @@
             const seconds = Math.floor((diffMinutes % 1) * 60);
 
             document.getElementById('remainingTime').textContent =
-                `Осталось времени: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                `${t.timeRemaining} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
         // Установка будильника
@@ -1383,7 +1400,65 @@
                 console.log('✅ AudioContext closed');
             }
 
+            // Останавливаем мониторинг воспроизведения
+            if (audioMonitorInterval) {
+                clearInterval(audioMonitorInterval);
+                audioMonitorInterval = null;
+                console.log('✅ Audio monitoring stopped');
+            }
+
             console.log('✅ [v3.0] All audio stopped');
+        }
+
+        // Функция мониторинга воспроизведения для отказоустойчивости
+        function startAudioMonitoring(audio) {
+            // Останавливаем предыдущий мониторинг
+            if (audioMonitorInterval) {
+                clearInterval(audioMonitorInterval);
+            }
+
+            lastAudioTime = 0;
+            let stuckCount = 0;
+
+            audioMonitorInterval = setInterval(() => {
+                const playButton = document.getElementById('playButton');
+
+                // Проверяем что кнопка все еще в состоянии "playing"
+                if (!playButton.classList.contains('playing')) {
+                    clearInterval(audioMonitorInterval);
+                    audioMonitorInterval = null;
+                    return;
+                }
+
+                // Проверяем состояние аудио
+                if (audio && !audio.paused && !audio.ended) {
+                    const currentTime = audio.currentTime;
+
+                    // Если позиция не изменилась за 3 секунды - возможно зависание
+                    if (currentTime === lastAudioTime) {
+                        stuckCount++;
+                        console.log(`⚠️ Audio monitor: playback stuck (${stuckCount}/3)`);
+
+                        if (stuckCount >= 3) {
+                            console.error('❌ Audio monitor: playback stuck for 9 seconds, switching to backup alarm');
+                            clearInterval(audioMonitorInterval);
+                            audioMonitorInterval = null;
+                            playClassicAlarmSound();
+                        }
+                    } else {
+                        stuckCount = 0; // Сбрасываем счетчик если воспроизведение продолжается
+                        lastAudioTime = currentTime;
+                    }
+                } else if (audio && (audio.paused || audio.ended)) {
+                    // Аудио остановилось без команды пользователя
+                    console.error('❌ Audio monitor: playback stopped unexpectedly');
+                    clearInterval(audioMonitorInterval);
+                    audioMonitorInterval = null;
+                    playClassicAlarmSound();
+                }
+            }, 3000); // Проверяем каждые 3 секунды
+
+            console.log('✅ Audio monitoring started');
         }
 
         // Воспроизведение звука радио
@@ -1510,6 +1585,9 @@
                         .then(() => {
                             console.log('✅ [v3.0] Воспроизведение начато:', station);
                             currentAudio = audio;
+
+                            // Запускаем мониторинг воспроизведения для отказоустойчивости
+                            startAudioMonitoring(audio);
 
                             // Если включено нарастание громкости - плавно увеличиваем
                             if (volumeGrow) {
@@ -2223,7 +2301,15 @@
                     selectAlarmSound: 'Выбрать сигнал будильника?',
                     classicBeep: '🔔 Классический сигнал',
                     europaPlus: '📻 Европа Плюс',
-                    radioMetro: '🚇 Радио МЕТРО'
+                    radioMetro: '🚇 Радио МЕТРО',
+                    volumeGrow: 'Нарастает?',
+                    customStations: 'станции',
+                    alarmOff: 'Будильник выключен',
+                    alarmOn: 'Будильник включен',
+                    timeRemaining: 'Осталось времени:',
+                    toggleAlarmOn: 'Выключить',
+                    toggleAlarmOff: 'Включить',
+                    setTime: 'Установить время'
                 },
                 en: {
                     title: 'Online Alarm Clock with Radio',
@@ -2234,7 +2320,15 @@
                     selectAlarmSound: 'Select alarm sound:',
                     classicBeep: '🔔 Classic Beep',
                     europaPlus: '📻 Europa Plus',
-                    radioMetro: '🚇 Radio METRO'
+                    radioMetro: '🚇 Radio METRO',
+                    volumeGrow: 'Fade in?',
+                    customStations: 'stations',
+                    alarmOff: 'Alarm is off',
+                    alarmOn: 'Alarm is on',
+                    timeRemaining: 'Time remaining:',
+                    toggleAlarmOn: 'Turn Off',
+                    toggleAlarmOff: 'Turn On',
+                    setTime: 'Set Time'
                 }
             };
 
@@ -2245,6 +2339,7 @@
                 localStorage.setItem('language', lang);
 
                 const t = translations[lang];
+                window.currentTranslations = t; // Store globally for updateRemainingTime
 
                 // Update navigation
                 const nav = document.querySelectorAll('.nav-item');
@@ -2267,6 +2362,14 @@
                 const radioLabel = document.querySelector('.radio-section label');
                 if (radioLabel) radioLabel.textContent = t.selectAlarmSound;
 
+                // Update volume grow label
+                const volumeLabel = document.querySelector('.volume-label');
+                if (volumeLabel) volumeLabel.textContent = t.volumeGrow;
+
+                // Update custom stations text
+                const customStationsSpan = document.querySelector('.btn-manage-stations span:nth-child(2)');
+                if (customStationsSpan) customStationsSpan.textContent = t.customStations;
+
                 // Update select options
                 const selectOptions = document.querySelectorAll('#radioSelect option');
                 selectOptions.forEach(option => {
@@ -2275,6 +2378,9 @@
                     else if (value === 'europa-plus') option.textContent = t.europaPlus;
                     else if (value === 'radio-metro') option.textContent = t.radioMetro;
                 });
+
+                // Update remaining time display
+                updateRemainingTime();
 
                 document.querySelector('.lang-selector').value = lang;
             }

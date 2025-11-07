@@ -71,6 +71,15 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
+        .nav-links a:first-child {
+            background: rgba(255, 165, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-links a:first-child:hover {
+            background: rgba(255, 165, 0, 0.95);
+        }
+
         .card {
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
@@ -472,6 +481,34 @@
                 opacity: 1;
             }
         }
+
+        .lang-selector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-selector:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .lang-selector option {
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -480,17 +517,22 @@
         <div id="youtube-player"></div>
     </div>
 
+    <select class="lang-selector">
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="en">🇬🇧 English</option>
+    </select>
+
     <div class="container">
         <div class="header">
-            <h1>🎵 Пользовательские станции</h1>
-            <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.7.0 - Unified Radio Types</p>
+            <h1 class="page-title">🎵 Пользовательские станции</h1>
+            <p class="page-subtitle">Добавьте свои радиостанции, треки и плейлисты</p>
+            <p class="version">v1.8.0 - YouTube Playlists + i18n</p>
         </div>
 
         <div class="nav-links">
-            <a href="index.html">⏰ Главная</a>
-            <a href="timer.html">⏲️ Таймер</a>
-            <a href="stopwatch.html">⏱️ Секундомер</a>
+            <a href="index.html" class="nav-home">⏰ Главная</a>
+            <a href="timer.html" class="nav-timer">⏲️ Таймер</a>
+            <a href="stopwatch.html" class="nav-stopwatch">⏱️ Секундомер</a>
         </div>
 
         <!-- Player Controls -->
@@ -545,6 +587,16 @@
                     <div class="file-list" id="fileList"></div>
                 </div>
 
+                <div class="form-group add-tracks-section" id="youtubePlaylistSection" style="display: none;">
+                    <h3>🎵 Управление плейлистом YouTube</h3>
+                    <p class="help-text">Создайте плейлист, добавляя видео по одному или сразу несколько через запятую</p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <input type="text" id="youtubeTrackUrl" placeholder="YouTube URL или ID (или несколько через запятую)" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary btn-small" onclick="addYouTubeTrack()">➕ Добавить</button>
+                    </div>
+                    <div class="file-list" id="youtubeTrackList" style="margin-top: 10px;"></div>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Добавить</button>
             </form>
         </div>
@@ -576,6 +628,7 @@
 
         // Selected files for upload
         let selectedFiles = [];
+        let selectedYouTubeTracks = []; // For YouTube playlists
 
         // IndexedDB for storing large files
         let db = null;
@@ -973,21 +1026,32 @@
                 // Handle other URL-based stations (youtube)
                 const url = document.getElementById('stationUrl').value.trim();
 
-                if (!url) {
-                    alert('Пожалуйста, укажите URL или YouTube ID');
-                    return;
-                }
-
-                // Extract YouTube ID from URL if needed
                 if (type === 'youtube') {
-                    const videoId = extractYouTubeId(url);
-                    if (!videoId) {
-                        alert('Не удалось извлечь YouTube ID. Проверьте ссылку или введите ID вручную (например: dQw4w9WgXcQ)');
+                    // Check if we have playlist or single video
+                    if (selectedYouTubeTracks.length > 0) {
+                        // Playlist mode - save all tracks
+                        stationData.videoIds = selectedYouTubeTracks.map(t => t.id);
+                        stationData.isPlaylist = true;
+                        console.log(`✅ YouTube playlist created with ${selectedYouTubeTracks.length} tracks`);
+                    } else if (url) {
+                        // Single video mode
+                        const videoId = extractYouTubeId(url);
+                        if (!videoId) {
+                            alert('Не удалось извлечь YouTube ID. Проверьте ссылку или введите ID вручную (например: dQw4w9WgXcQ)');
+                            return;
+                        }
+                        stationData.url = videoId;
+                        stationData.isPlaylist = false;
+                        console.log(`✅ YouTube ID extracted: ${videoId}`);
+                    } else {
+                        alert('Добавьте хотя бы одно видео в плейлист или введите URL');
                         return;
                     }
-                    stationData.url = videoId;
-                    console.log(`✅ YouTube ID extracted: ${videoId}`);
                 } else {
+                    if (!url) {
+                        alert('Пожалуйста, укажите URL');
+                        return;
+                    }
                     stationData.url = url;
                 }
             }
@@ -1001,8 +1065,11 @@
             document.getElementById('stationUrl').value = '';
             document.getElementById('localFiles').value = '';
             document.getElementById('radioFile').value = '';
+            document.getElementById('youtubeTrackUrl').value = '';
             selectedFiles = [];
+            selectedYouTubeTracks = [];
             renderFileList();
+            renderYouTubeTrackList();
 
             renderStations();
             console.log('✅ Station added:', name);
@@ -1151,7 +1218,21 @@
 
             switch (station.type) {
                 case 'youtube':
-                    playYouTubeStation(station.url);
+                    if (station.isPlaylist && station.videoIds && station.videoIds.length > 0) {
+                        // YouTube playlist mode
+                        currentPlayingId = id;
+                        currentPlaylist = station.videoIds.map((id, index) => ({
+                            id: id,
+                            name: `Video ${index + 1}`,
+                            type: 'youtube'
+                        }));
+                        currentTrackIndex = 0;
+                        playYouTubeTrack(0, station.name);
+                    } else {
+                        // Single YouTube video
+                        currentPlaylist = null;
+                        playYouTubeStation(station.url);
+                    }
                     break;
                 case 'hls':
                     // Legacy HLS type - now handled as radio with auto-detection
@@ -1163,6 +1244,34 @@
                     // Auto-detect format (MP3/AAC/HLS) and play appropriately
                     playRadioStation(station.url, station.isLocalFile);
                     break;
+            }
+        }
+
+        // Play YouTube track from playlist
+        function playYouTubeTrack(trackIndex, playlistName) {
+            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
+                console.error('Invalid track index');
+                return;
+            }
+
+            const track = currentPlaylist[trackIndex];
+            currentTrackIndex = trackIndex;
+
+            console.log(`🎵 Playing YouTube track ${trackIndex + 1}/${currentPlaylist.length}: ${track.id}`);
+
+            if (!youtubePlayerReady) {
+                alert('YouTube Player ещё не готов. Попробуйте снова.');
+                return;
+            }
+
+            try {
+                youtubePlayer.loadVideoById(track.id);
+                youtubePlayer.setVolume(50);
+                updateNowPlaying(`YouTube: ${track.id}`, `Видео ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
+                console.log('✅ YouTube playlist track started');
+            } catch (error) {
+                console.error('❌ YouTube error:', error);
+                alert('Ошибка воспроизведения YouTube.');
             }
         }
 
@@ -1543,12 +1652,17 @@
 
             const nextIndex = (currentTrackIndex + 1) % currentPlaylist.length;
 
-            stopAllAudio();
-
             const stations = loadCustomStations();
             const station = stations[parseInt(currentPlayingId)];
 
-            playLocalTrack(nextIndex, station.name);
+            if (currentPlaylist[0].type === 'youtube') {
+                // YouTube playlist
+                playYouTubeTrack(nextIndex, station.name);
+            } else {
+                // Local files playlist
+                stopAllAudio();
+                playLocalTrack(nextIndex, station.name);
+            }
         }
 
         // Previous track
@@ -1560,12 +1674,17 @@
 
             const prevIndex = currentTrackIndex - 1 >= 0 ? currentTrackIndex - 1 : currentPlaylist.length - 1;
 
-            stopAllAudio();
-
             const stations = loadCustomStations();
             const station = stations[parseInt(currentPlayingId)];
 
-            playLocalTrack(prevIndex, station.name);
+            if (currentPlaylist[0].type === 'youtube') {
+                // YouTube playlist
+                playYouTubeTrack(prevIndex, station.name);
+            } else {
+                // Local files playlist
+                stopAllAudio();
+                playLocalTrack(prevIndex, station.name);
+            }
         }
 
         // Stop all audio
@@ -1642,12 +1761,14 @@
             const fileGroup = document.getElementById('fileGroup');
             const radioFileGroup = document.getElementById('radioFileGroup');
             const radioOrDivider = document.getElementById('radioOrDivider');
+            const youtubePlaylistSection = document.getElementById('youtubePlaylistSection');
 
             // Hide all first
             urlGroup.style.display = 'none';
             fileGroup.style.display = 'none';
             radioFileGroup.style.display = 'none';
             radioOrDivider.style.display = 'none';
+            youtubePlaylistSection.style.display = 'none';
 
             if (type === 'local') {
                 fileGroup.style.display = 'block';
@@ -1660,9 +1781,72 @@
                 urlInput.placeholder = 'http://example.com/stream.mp3 или http://example.com/stream.m3u8';
             } else if (type === 'youtube') {
                 urlGroup.style.display = 'block';
-                urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
-                urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
+                youtubePlaylistSection.style.display = 'block';
+                urlHelp.textContent = 'Добавьте одно видео или создайте плейлист ниже';
+                urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ (необязательно если используете плейлист)';
             }
+        }
+
+        // Add YouTube track to playlist
+        function addYouTubeTrack() {
+            const input = document.getElementById('youtubeTrackUrl');
+            const urlsInput = input.value.trim();
+
+            if (!urlsInput) {
+                alert('Введите YouTube URL или ID');
+                return;
+            }
+
+            // Split by comma for multiple URLs
+            const urls = urlsInput.split(',').map(u => u.trim()).filter(u => u);
+
+            for (const url of urls) {
+                const videoId = extractYouTubeId(url);
+                if (!videoId) {
+                    alert(`Не удалось извлечь YouTube ID из: ${url}`);
+                    continue;
+                }
+
+                // Check if already added
+                if (selectedYouTubeTracks.some(t => t.id === videoId)) {
+                    alert(`Видео ${videoId} уже добавлено`);
+                    continue;
+                }
+
+                selectedYouTubeTracks.push({
+                    id: videoId,
+                    title: `YouTube: ${videoId}`
+                });
+            }
+
+            input.value = '';
+            renderYouTubeTrackList();
+        }
+
+        // Render YouTube track list
+        function renderYouTubeTrackList() {
+            const list = document.getElementById('youtubeTrackList');
+
+            if (selectedYouTubeTracks.length === 0) {
+                list.innerHTML = '<p style="opacity: 0.6; font-size: 14px;">Треков пока нет. Добавьте первый трек выше.</p>';
+                return;
+            }
+
+            list.innerHTML = selectedYouTubeTracks.map((track, index) => `
+                <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px; margin-bottom: 5px;">
+                    <div>
+                        <div style="font-weight: bold;">📺 ${track.title}</div>
+                        <div style="font-size: 12px; opacity: 0.7;">ID: ${track.id}</div>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-small" onclick="removeYouTubeTrack(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        // Remove YouTube track from list
+        function removeYouTubeTrack(index) {
+            selectedYouTubeTracks.splice(index, 1);
+            renderYouTubeTrackList();
         }
 
         document.getElementById('stationType').addEventListener('change', updateFormFields);
@@ -1889,6 +2073,146 @@
             updateFormFields();
 
             renderStations();
+
+            // ========= LANGUAGE SWITCHING =========
+            const translations = {
+                ru: {
+                    pageTitle: '🎵 Пользовательские станции',
+                    pageSubtitle: 'Добавьте свои радиостанции, треки и плейлисты',
+                    navHome: '⏰ Главная',
+                    navTimer: '⏲️ Таймер',
+                    navStopwatch: '⏱️ Секундомер',
+                    nowPlaying: 'Сейчас играет',
+                    previousBtn: '⏮️ Предыдущий',
+                    stopBtn: '⏹️ Стоп',
+                    nextBtn: '⏭️ Следующий',
+                    addStationTitle: '➕ Добавить станцию или трек',
+                    stationName: 'Название',
+                    stationType: 'Тип',
+                    typeRadio: '📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)',
+                    typeLocal: '🎵 Локальные файлы (MP3/FLAC/WAV)',
+                    typeYoutube: '📺 YouTube (ID видео)',
+                    urlLabel: 'URL / YouTube ID',
+                    orDivider: 'ИЛИ',
+                    selectM3U: 'Выберите .m3u или .m3u8 плейлист',
+                    selectAudioFiles: 'Выберите аудио файлы',
+                    youtubePlaylistTitle: '🎵 Управление плейлистом YouTube',
+                    youtubePlaylistHelp: 'Создайте плейлист, добавляя видео по одному или сразу несколько через запятую',
+                    addTrackBtn: '➕ Добавить',
+                    submitBtn: 'Добавить',
+                    myStationsTitle: '📻 Мои станции',
+                    emptyStateText: 'Станции ещё не добавлены',
+                    emptyStateHelp: 'Добавьте свою первую станцию выше ⬆️',
+                    editPlaylistTitle: 'Редактировать плейлист',
+                    addTracksTitle: 'Добавить треки',
+                    addSelectedBtn: 'Добавить выбранные'
+                },
+                en: {
+                    pageTitle: '🎵 Custom Stations',
+                    pageSubtitle: 'Add your radio stations, tracks and playlists',
+                    navHome: '⏰ Home',
+                    navTimer: '⏲️ Timer',
+                    navStopwatch: '⏱️ Stopwatch',
+                    nowPlaying: 'Now Playing',
+                    previousBtn: '⏮️ Previous',
+                    stopBtn: '⏹️ Stop',
+                    nextBtn: '⏭️ Next',
+                    addStationTitle: '➕ Add Station or Track',
+                    stationName: 'Name',
+                    stationType: 'Type',
+                    typeRadio: '📻 Radio Stream (MP3/AAC/HLS/.m3u/.m3u8)',
+                    typeLocal: '🎵 Local Files (MP3/FLAC/WAV)',
+                    typeYoutube: '📺 YouTube (Video ID)',
+                    urlLabel: 'URL / YouTube ID',
+                    orDivider: 'OR',
+                    selectM3U: 'Select .m3u or .m3u8 playlist',
+                    selectAudioFiles: 'Select audio files',
+                    youtubePlaylistTitle: '🎵 Manage YouTube Playlist',
+                    youtubePlaylistHelp: 'Create a playlist by adding videos one by one or multiple separated by commas',
+                    addTrackBtn: '➕ Add',
+                    submitBtn: 'Add',
+                    myStationsTitle: '📻 My Stations',
+                    emptyStateText: 'No stations added yet',
+                    emptyStateHelp: 'Add your first station above ⬆️',
+                    editPlaylistTitle: 'Edit Playlist',
+                    addTracksTitle: 'Add Tracks',
+                    addSelectedBtn: 'Add Selected'
+                }
+            };
+
+            let currentLang = localStorage.getItem('language') || 'ru';
+
+            function switchLanguage(lang) {
+                currentLang = lang;
+                localStorage.setItem('language', lang);
+                const t = translations[lang];
+
+                // Update page elements
+                const pageTitle = document.querySelector('.page-title');
+                if (pageTitle) pageTitle.textContent = t.pageTitle;
+
+                const pageSubtitle = document.querySelector('.page-subtitle');
+                if (pageSubtitle) pageSubtitle.textContent = t.pageSubtitle;
+
+                // Update navigation
+                const navHome = document.querySelector('.nav-home');
+                if (navHome) navHome.textContent = t.navHome;
+
+                const navTimer = document.querySelector('.nav-timer');
+                if (navTimer) navTimer.textContent = t.navTimer;
+
+                const navStopwatch = document.querySelector('.nav-stopwatch');
+                if (navStopwatch) navStopwatch.textContent = t.navStopwatch;
+
+                // Update player controls
+                const controlButtons = document.querySelectorAll('.control-buttons .btn');
+                if (controlButtons[0]) controlButtons[0].textContent = t.previousBtn;
+                if (controlButtons[1]) controlButtons[1].textContent = t.stopBtn;
+                if (controlButtons[2]) controlButtons[2].textContent = t.nextBtn;
+
+                // Update form
+                const cardTitles = document.querySelectorAll('.card h2');
+                if (cardTitles[0]) cardTitles[0].innerHTML = t.addStationTitle;
+
+                const stationCount = document.getElementById('stationCount');
+                if (cardTitles[1] && stationCount) {
+                    cardTitles[1].innerHTML = `${t.myStationsTitle} (<span id="stationCount">${stationCount.textContent}</span>)`;
+                }
+
+                const formLabels = document.querySelectorAll('.form-group label');
+                if (formLabels[0]) formLabels[0].textContent = t.stationName;
+                if (formLabels[1]) formLabels[1].textContent = t.stationType;
+                if (formLabels[2]) formLabels[2].textContent = t.urlLabel;
+
+                const typeOptions = document.querySelectorAll('#stationType option');
+                if (typeOptions[0]) typeOptions[0].textContent = t.typeRadio;
+                if (typeOptions[1]) typeOptions[1].textContent = t.typeLocal;
+                if (typeOptions[2]) typeOptions[2].textContent = t.typeYoutube;
+
+                const submitBtn = document.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.textContent = t.submitBtn;
+
+                // Update empty state
+                const emptyState = document.querySelector('.empty-state');
+                if (emptyState) {
+                    const emptyP = emptyState.querySelectorAll('p');
+                    if (emptyP[0]) emptyP[0].textContent = t.emptyStateText;
+                    if (emptyP[1]) emptyP[1].textContent = t.emptyStateHelp;
+                }
+
+                document.querySelector('.lang-selector').value = lang;
+            }
+
+            document.querySelector('.lang-selector').addEventListener('change', (e) => {
+                switchLanguage(e.target.value);
+            });
+
+            // Set initial language
+            const langSelector = document.querySelector('.lang-selector');
+            langSelector.value = currentLang;
+            if (currentLang === 'en') {
+                switchLanguage('en');
+            }
         });
     </script>
 
