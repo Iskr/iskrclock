@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IskrCLOCK - Тест плавных переходов v2.1</title>
+    <title>IskrCLOCK - Тест плавных переходов v3.0</title>
     <style>
         * {
             margin: 0;
@@ -17,95 +17,7 @@
             min-height: 100vh;
             overflow: hidden;
             position: relative;
-            transition: background 40s ease-in-out;
-        }
-
-        /* МИКРО-ШАГОВЫЕ переходы - каждый цвет отличается на 8-12 единиц */
-        /* Ночь: темно-синий (#1a1a2e) → светло-синий (#5a7bb5) */
-        body.scene-01-deep-night {
-            background: linear-gradient(135deg, #1a1a2e 0%, #1e1e36 100%);
-        }
-
-        body.scene-02-night {
-            background: linear-gradient(135deg, #22223e 0%, #262646 100%);
-        }
-
-        body.scene-03-late-night {
-            background: linear-gradient(135deg, #2a2a4e 0%, #2e2e56 100%);
-        }
-
-        body.scene-04-pre-dawn {
-            background: linear-gradient(135deg, #32325e 0%, #363666 100%);
-        }
-
-        /* Рассвет: синий → сине-фиолетовый (#363666) → фиолетовый (#5a4a8e) */
-        body.scene-05-early-dawn {
-            background: linear-gradient(135deg, #3a3a6e 0%, #3e3e76 100%);
-        }
-
-        body.scene-06-dawn {
-            background: linear-gradient(135deg, #42427e 0%, #464686 100%);
-        }
-
-        body.scene-07-sunrise {
-            background: linear-gradient(135deg, #4a4a8e 0%, #524a96 100%);
-        }
-
-        /* Утро: фиолетовый → розово-фиолетовый (#524a96) → светло-розовый (#a68abe) */
-        body.scene-08-early-morning {
-            background: linear-gradient(135deg, #5a529e 0%, #6a5aae 100%);
-        }
-
-        body.scene-09-morning {
-            background: linear-gradient(135deg, #7a6ab6 0%, #8a7abe 100%);
-        }
-
-        body.scene-10-late-morning {
-            background: linear-gradient(135deg, #9a8ac6 0%, #aa9ace 100%);
-        }
-
-        /* День: розовый → светло-бежевый (#aa9ace) → почти белый (#f0f0e8) */
-        body.scene-11-midday {
-            background: linear-gradient(135deg, #baaad6 0%, #cabad8 100%);
-        }
-
-        body.scene-12-afternoon {
-            background: linear-gradient(135deg, #dacada 0%, #e0d0dc 100%);
-        }
-
-        body.scene-13-late-afternoon {
-            background: linear-gradient(135deg, #e6dade 0%, #ece0dc 100%);
-        }
-
-        /* Поздний день: светлый → теплый бежевый (#ece0dc) → оранжевый (#f0c0a0) */
-        body.scene-14-early-evening {
-            background: linear-gradient(135deg, #f0e0d8 0%, #f0dcd0 100%);
-        }
-
-        body.scene-15-evening {
-            background: linear-gradient(135deg, #f0d8c8 0%, #f0d0c0 100%);
-        }
-
-        body.scene-16-sunset {
-            background: linear-gradient(135deg, #f0c8b8 0%, #f0c0a8 100%);
-        }
-
-        /* Закат: оранжевый → розово-оранжевый (#f0c0a8) → розово-фиолетовый (#c080a8) */
-        body.scene-17-late-evening {
-            background: linear-gradient(135deg, #e8b0a0 0%, #d8a098 100%);
-        }
-
-        body.scene-18-dusk {
-            background: linear-gradient(135deg, #c89090 0%, #b88090 100%);
-        }
-
-        body.scene-19-early-night {
-            background: linear-gradient(135deg, #a87090 0%, #986088 100%);
-        }
-
-        /* Возврат к ночи: фиолетовый → темно-синий (#986088) → (#1a1a2e) */
-        body.scene-20-night-transition {
-            background: linear-gradient(135deg, #785070 0%, #584058 100%);
+            /* NO CSS transition - будем анимировать через JS! */
         }
 
         .mountain-bg {
@@ -116,64 +28,6 @@
             height: 100%;
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><polygon fill="%23234a87" points="0,600 300,200 600,350 900,100 1200,250 1200,600"/><polygon fill="%231a3660" points="0,600 200,300 500,400 800,150 1200,300 1200,600"/></svg>') no-repeat center bottom;
             background-size: cover;
-            transition: filter 30s ease-in-out, opacity 30s ease-in-out;
-        }
-
-        /* Горы - плавные переходы фильтров */
-        .mountain-bg.scene-01-deep-night,
-        .mountain-bg.scene-02-night,
-        .mountain-bg.scene-03-late-night,
-        .mountain-bg.scene-04-pre-dawn {
-            filter: hue-rotate(0deg) brightness(0.7) saturate(0.8);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-05-early-dawn,
-        .mountain-bg.scene-06-dawn {
-            filter: hue-rotate(320deg) brightness(0.9) saturate(1.0);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-07-sunrise,
-        .mountain-bg.scene-08-early-morning {
-            filter: hue-rotate(280deg) brightness(1.1) saturate(1.1);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-09-morning,
-        .mountain-bg.scene-10-late-morning {
-            filter: hue-rotate(200deg) brightness(1.3) saturate(1.2);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-11-midday,
-        .mountain-bg.scene-12-afternoon {
-            filter: hue-rotate(150deg) brightness(1.5) saturate(1.2);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-13-late-afternoon,
-        .mountain-bg.scene-14-early-evening {
-            filter: hue-rotate(100deg) brightness(1.3) saturate(1.2);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-15-evening,
-        .mountain-bg.scene-16-sunset {
-            filter: hue-rotate(50deg) brightness(1.1) saturate(1.3);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-17-late-evening,
-        .mountain-bg.scene-18-dusk {
-            filter: hue-rotate(20deg) brightness(0.9) saturate(1.2);
-            transition: filter 40s ease-in-out;
-        }
-
-        .mountain-bg.scene-19-early-night,
-        .mountain-bg.scene-20-night-transition {
-            filter: hue-rotate(0deg) brightness(0.8) saturate(0.9);
-            transition: filter 40s ease-in-out;
         }
 
         .stars {
@@ -181,7 +35,6 @@
             width: 100%;
             height: 100%;
             opacity: 1;
-            transition: opacity 30s ease-in-out;
         }
 
         .stars.hidden {
@@ -210,7 +63,6 @@
             border-radius: 50%;
             box-shadow: 0 0 30px rgba(240, 248, 255, 0.6);
             opacity: 1;
-            transition: all 30s ease-in-out;
         }
 
         .moon.hidden {
@@ -228,7 +80,6 @@
             border-radius: 50%;
             box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
             opacity: 0;
-            transition: all 30s ease-in-out;
             animation: sunRotate 30s ease-in-out infinite;
         }
 
@@ -250,42 +101,6 @@
             width: 40px;
             height: 30px;
             background: #8B4513;
-            transition: filter 40s ease-in-out;
-        }
-
-        /* Домик днем - светлый */
-        .house.scene-09-morning,
-        .house.scene-10-late-morning,
-        .house.scene-11-midday,
-        .house.scene-12-afternoon,
-        .house.scene-13-late-afternoon {
-            filter: brightness(1.3) saturate(1.2);
-            transition: filter 40s ease-in-out;
-        }
-
-        /* Домик ночью - темный */
-        .house.scene-01-deep-night,
-        .house.scene-02-night,
-        .house.scene-03-late-night,
-        .house.scene-19-early-night,
-        .house.scene-20-night-transition {
-            filter: brightness(0.8) saturate(0.9);
-            transition: filter 40s ease-in-out;
-        }
-
-        /* Домик в переходное время */
-        .house.scene-04-pre-dawn,
-        .house.scene-05-early-dawn,
-        .house.scene-06-dawn,
-        .house.scene-07-sunrise,
-        .house.scene-08-early-morning,
-        .house.scene-14-early-evening,
-        .house.scene-15-evening,
-        .house.scene-16-sunset,
-        .house.scene-17-late-evening,
-        .house.scene-18-dusk {
-            filter: brightness(1.0) saturate(1.0);
-            transition: filter 40s ease-in-out;
         }
 
         .house::before {
@@ -308,45 +123,7 @@
             height: 8px;
             background: #FFD700;
             border-radius: 2px;
-            transition: all 30s ease-in-out;
-        }
-
-        /* Окно днем - голубое (свет не горит) */
-        .house-window.scene-09-morning,
-        .house-window.scene-10-late-morning,
-        .house-window.scene-11-midday,
-        .house-window.scene-12-afternoon,
-        .house-window.scene-13-late-afternoon {
-            background: #87CEEB;
-            box-shadow: none;
-            transition: all 40s ease-in-out;
-        }
-
-        /* Окно вечером и ночью - желтое (свет горит) */
-        .house-window.scene-01-deep-night,
-        .house-window.scene-02-night,
-        .house-window.scene-03-late-night,
-        .house-window.scene-14-early-evening,
-        .house-window.scene-15-evening,
-        .house-window.scene-16-sunset,
-        .house-window.scene-17-late-evening,
-        .house-window.scene-18-dusk,
-        .house-window.scene-19-early-night,
-        .house-window.scene-20-night-transition {
-            background: #FFD700;
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-            transition: all 40s ease-in-out;
-        }
-
-        /* Окно на рассвете - переходное состояние */
-        .house-window.scene-04-pre-dawn,
-        .house-window.scene-05-early-dawn,
-        .house-window.scene-06-dawn,
-        .house-window.scene-07-sunrise,
-        .house-window.scene-08-early-morning {
-            background: #b8d4e8;
-            box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
-            transition: all 40s ease-in-out;
         }
 
         .clouds {
@@ -354,7 +131,6 @@
             width: 100%;
             height: 100%;
             opacity: 0;
-            transition: opacity 30s ease-in-out;
         }
 
         .clouds.visible {
@@ -631,89 +407,66 @@
     <header class="header">
         <div class="logo">
             IskrCLOCK
-            <span class="logo-version">Тест плавных переходов v2.1 | 2025-11-07 22:30</span>
+            <span class="logo-version">Тест плавных переходов v3.0 | 2025-11-07 22:45</span>
         </div>
     </header>
 
     <div class="main-container">
-        <h1 class="title">Тестирование плавных переходов</h1>
+        <h1 class="title">Непрерывное перетекание цветов</h1>
 
         <div class="clock-display">
             <div class="current-time" id="currentTime">00:00</div>
-            <div class="current-scene" id="currentScene">Сцена: Ночь</div>
+            <div class="current-scene" id="currentScene">RGB: (26, 26, 46)</div>
         </div>
 
         <div class="controls">
             <div class="control-group">
-                <label for="transitionSpeed">Скорость смены сцен (секунды между сменами)</label>
-                <input type="range" id="transitionSpeed" min="10" max="120" value="60" step="5">
+                <label for="transitionSpeed">Скорость смены цветов (секунды на новый цвет)</label>
+                <input type="range" id="transitionSpeed" min="30" max="180" value="60" step="10">
                 <div class="value-display"><span id="speedValue">60</span> сек</div>
             </div>
 
             <div class="control-group">
-                <label for="transitionDuration">Плавность перехода (длительность анимации)</label>
-                <input type="range" id="transitionDuration" min="10" max="60" value="40" step="5">
-                <div class="value-display"><span id="durationValue">40</span> сек</div>
+                <label for="colorRange">Диапазон изменения цветов</label>
+                <input type="range" id="colorRange" min="10" max="50" value="20" step="5">
+                <div class="value-display">±<span id="rangeValue">20</span> единиц</div>
             </div>
 
             <div class="control-group">
                 <label>
-                    <input type="checkbox" id="sequentialMode" checked>
-                    Последовательные переходы (без резких скачков)
+                    <input type="checkbox" id="animationEnabled" checked>
+                    Анимация включена
                 </label>
             </div>
 
             <div>
-                <button class="btn btn-primary" id="nextScene">Следующая сцена</button>
-                <button class="btn btn-secondary" id="prevScene">Предыдущая сцена</button>
-                <button class="btn btn-secondary" id="randomScene">Случайная сцена</button>
+                <button class="btn btn-primary" id="newColorBtn">Новый целевой цвет</button>
+                <button class="btn btn-secondary" id="resetBtn">Сброс к ночи</button>
             </div>
         </div>
 
         <div class="info-panel">
-            <h3>Информация о тесте v2.1</h3>
+            <h3>Информация о тесте v3.0</h3>
             <ul>
-                <li>20 сцен с МИКРО-ШАГОВЫМИ цветовыми переходами (разница 8-12 единиц)</li>
-                <li>Каждый цвет отличается МИНИМАЛЬНО от предыдущего - нет резких скачков!</li>
-                <li>Увеличенная длительность анимации (40 сек) для максимальной плавности</li>
-                <li>Цветовой градиент: темно-синий → синий → фиолетовый → розовый → светло-бежевый → оранжевый → розово-оранжевый → фиолетовый → темно-синий</li>
-                <li>Все элементы (фон, горы, солнце, луна, облака, окно, домик) синхронизированы</li>
-                <li>Исправлено позиционирование домика (теперь видно на всех экранах)</li>
+                <li>НЕПРЕРЫВНОЕ перетекание цветов через JavaScript анимацию</li>
+                <li>Нет фиксированных сцен - цвета меняются плавно в реальном времени</li>
+                <li>60 FPS интерполяция RGB значений между текущим и целевым цветом</li>
+                <li>Случайный выбор нового целевого цвета в заданном диапазоне</li>
+                <li>Цвета меняются постепенно на малые величины - полностью исключены скачки</li>
+                <li>Как лава-лампа - бесконечное плавное движение цвета</li>
             </ul>
         </div>
     </div>
 
     <script>
-        // Сцены времени суток (20 сцен для максимально плавных переходов)
-        // Цвета меняются постепенно: ночь (синий) → рассвет (фиолетовый-розовый) → день (светлый) → закат (оранжевый-красный) → вечер (фиолетовый) → ночь
-        const timeScenes = [
-            { name: 'scene-01-deep-night', label: '🌑 Глубокая ночь' },
-            { name: 'scene-02-night', label: '🌙 Ночь' },
-            { name: 'scene-03-late-night', label: '🌙 Поздняя ночь' },
-            { name: 'scene-04-pre-dawn', label: '🌌 Предрассветная тьма' },
-            { name: 'scene-05-early-dawn', label: '🌅 Ранний рассвет' },
-            { name: 'scene-06-dawn', label: '🌅 Рассвет' },
-            { name: 'scene-07-sunrise', label: '🌄 Восход солнца' },
-            { name: 'scene-08-early-morning', label: '🌄 Раннее утро' },
-            { name: 'scene-09-morning', label: '☀️ Утро' },
-            { name: 'scene-10-late-morning', label: '☀️ Позднее утро' },
-            { name: 'scene-11-midday', label: '🌞 Полдень' },
-            { name: 'scene-12-afternoon', label: '🌤️ День' },
-            { name: 'scene-13-late-afternoon', label: '🌤️ Поздний день' },
-            { name: 'scene-14-early-evening', label: '🌆 Ранний вечер' },
-            { name: 'scene-15-evening', label: '🌆 Вечер' },
-            { name: 'scene-16-sunset', label: '🌇 Закат' },
-            { name: 'scene-17-late-evening', label: '🌆 Поздний вечер' },
-            { name: 'scene-18-dusk', label: '🌃 Сумерки' },
-            { name: 'scene-19-early-night', label: '🌃 Ранняя ночь' },
-            { name: 'scene-20-night-transition', label: '🌙 Переход к ночи' }
-        ];
-
-        let currentSceneIndex = 0;
-        let transitionInterval = null;
-        let transitionSpeed = 60; // секунды
-        let transitionDuration = 40; // секунды (увеличено!)
-        let sequentialMode = true;
+        // Система непрерывной интерполяции цветов
+        let currentColor = { r: 26, g: 26, b: 46 };
+        let targetColor = { r: 42, g: 42, b: 78 };
+        let transitionSpeed = 60000; // миллисекунды
+        let colorRange = 20; // диапазон изменения
+        let animationEnabled = true;
+        let animationStartTime = Date.now();
+        let lastTargetChangeTime = Date.now();
 
         // Создание звездного неба
         function createStars() {
@@ -744,174 +497,180 @@
             document.getElementById('currentTime').textContent = timeString;
         }
 
-        // Применение сцены
-        function applyScene(sceneIndex) {
-            const body = document.body;
-            const mountainBg = document.getElementById('mountainBg');
+        // Генерация нового целевого цвета
+        function generateNewTargetColor() {
+            // Генерируем новый цвет в пределах диапазона от текущего
+            targetColor = {
+                r: Math.max(0, Math.min(255, currentColor.r + (Math.random() * colorRange * 2 - colorRange))),
+                g: Math.max(0, Math.min(255, currentColor.g + (Math.random() * colorRange * 2 - colorRange))),
+                b: Math.max(0, Math.min(255, currentColor.b + (Math.random() * colorRange * 2 - colorRange)))
+            };
+
+            animationStartTime = Date.now();
+            lastTargetChangeTime = Date.now();
+
+            console.log(`🎨 Новый целевой цвет: RGB(${Math.round(targetColor.r)}, ${Math.round(targetColor.g)}, ${Math.round(targetColor.b)})`);
+        }
+
+        // Линейная интерполяция между двумя значениями
+        function lerp(start, end, progress) {
+            return start + (end - start) * progress;
+        }
+
+        // Easing функция для более плавного перехода
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        // Анимация цветов (вызывается каждый кадр)
+        function animateColors() {
+            if (!animationEnabled) {
+                requestAnimationFrame(animateColors);
+                return;
+            }
+
+            const now = Date.now();
+            const elapsed = now - animationStartTime;
+            const progress = Math.min(elapsed / transitionSpeed, 1);
+            const easedProgress = easeInOutCubic(progress);
+
+            // Интерполируем каждый канал
+            currentColor.r = lerp(currentColor.r, targetColor.r, easedProgress * 0.016); // медленная интерполяция
+            currentColor.g = lerp(currentColor.g, targetColor.g, easedProgress * 0.016);
+            currentColor.b = lerp(currentColor.b, targetColor.b, easedProgress * 0.016);
+
+            // Когда достигли цели (или прошло достаточно времени), генерируем новую цель
+            if (now - lastTargetChangeTime >= transitionSpeed) {
+                generateNewTargetColor();
+            }
+
+            // Применяем цвета
+            applyColors();
+
+            // Следующий кадр
+            requestAnimationFrame(animateColors);
+        }
+
+        // Применение цветов к элементам
+        function applyColors() {
+            const r = Math.round(currentColor.r);
+            const g = Math.round(currentColor.g);
+            const b = Math.round(currentColor.b);
+
+            // Рассчитываем второй цвет градиента (немного светлее/темнее)
+            const r2 = Math.min(255, Math.round(r * 1.1));
+            const g2 = Math.min(255, Math.round(g * 1.1));
+            const b2 = Math.min(255, Math.round(b * 1.1));
+
+            // Применяем градиент к фону
+            document.body.style.background = `linear-gradient(135deg, rgb(${r}, ${g}, ${b}) 0%, rgb(${r2}, ${g2}, ${b2}) 100%)`;
+
+            // Обновляем текст
+            document.getElementById('currentScene').textContent = `RGB: (${r}, ${g}, ${b})`;
+
+            // Определяем яркость для управления элементами
+            const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+
+            // Управляем видимостью элементов в зависимости от яркости
             const stars = document.getElementById('stars');
             const moon = document.getElementById('moon');
             const sun = document.getElementById('sun');
             const clouds = document.getElementById('clouds');
+
+            // Темные цвета (ночь) - показываем звезды и луну
+            if (brightness < 0.3) {
+                stars.style.opacity = (0.3 - brightness) / 0.3;
+                moon.style.opacity = (0.3 - brightness) / 0.3;
+                sun.style.opacity = 0;
+                clouds.style.opacity = 0;
+            }
+            // Светлые цвета (день) - показываем солнце и облака
+            else if (brightness > 0.6) {
+                stars.style.opacity = 0;
+                moon.style.opacity = 0;
+                sun.style.opacity = (brightness - 0.6) / 0.4;
+                clouds.style.opacity = (brightness - 0.6) / 0.4;
+            }
+            // Средние (рассвет/закат) - показываем облака
+            else {
+                stars.style.opacity = 0;
+                moon.style.opacity = 0;
+                sun.style.opacity = 0.3;
+                clouds.style.opacity = 0.5;
+            }
+
+            // Обновляем фильтры для гор
+            const mountainBg = document.getElementById('mountainBg');
+            const hueRotate = (brightness * 360) % 360;
+            const mountainBrightness = 0.7 + brightness * 0.5;
+            mountainBg.style.filter = `hue-rotate(${hueRotate}deg) brightness(${mountainBrightness}) saturate(${1.0 + brightness * 0.2})`;
+
+            // Обновляем домик
             const house = document.getElementById('house');
+            const houseBrightness = 0.8 + brightness * 0.5;
+            house.style.filter = `brightness(${houseBrightness})`;
+
+            // Обновляем окно домика
             const houseWindow = document.getElementById('houseWindow');
-
-            // Удаляем все классы сцен
-            timeScenes.forEach(scene => {
-                body.classList.remove(scene.name);
-                mountainBg.classList.remove(scene.name);
-                house.classList.remove(scene.name);
-                houseWindow.classList.remove(scene.name);
-            });
-
-            // Применяем новую сцену
-            const currentScene = timeScenes[sceneIndex];
-            body.classList.add(currentScene.name);
-            mountainBg.classList.add(currentScene.name);
-            house.classList.add(currentScene.name);
-            houseWindow.classList.add(currentScene.name);
-
-            // Обновляем элементы в зависимости от времени суток
-            const sceneName = currentScene.name;
-
-            // Определяем категорию времени суток по номеру сцены (1-20)
-            const sceneNumber = sceneIndex + 1;
-
-            // Ночные сцены (1-4, 19-20): звезды + луна
-            const isNightTime = sceneNumber <= 4 || sceneNumber >= 19;
-
-            // Дневные сцены (9-13): солнце + облака
-            const isDayTime = sceneNumber >= 9 && sceneNumber <= 13;
-
-            // Утренние сцены (5-8): рассвет, постепенно появляется солнце
-            const isMorningTime = sceneNumber >= 5 && sceneNumber <= 8;
-
-            // Вечерние сцены (14-18): закат, солнце уходит
-            const isEveningTime = sceneNumber >= 14 && sceneNumber <= 18;
-
-            // Звезды и луна - видны ночью
-            if (isNightTime) {
-                stars.classList.remove('hidden');
-                moon.classList.remove('hidden');
+            if (brightness < 0.5) {
+                // Вечер/ночь - свет горит
+                houseWindow.style.background = '#FFD700';
+                houseWindow.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.8)';
             } else {
-                stars.classList.add('hidden');
-                moon.classList.add('hidden');
+                // День - свет не горит
+                houseWindow.style.background = '#87CEEB';
+                houseWindow.style.boxShadow = 'none';
             }
-
-            // Солнце - видно днем и частично утром/вечером
-            if (isDayTime || isMorningTime) {
-                sun.classList.add('visible');
-            } else {
-                sun.classList.remove('visible');
-            }
-
-            // Облака - видны днем, утром и вечером
-            if (isDayTime || isMorningTime || isEveningTime) {
-                clouds.classList.add('visible');
-            } else {
-                clouds.classList.remove('visible');
-            }
-
-            // Обновляем текст
-            document.getElementById('currentScene').textContent = `Сцена: ${currentScene.label}`;
-            console.log(`🎨 Сцена изменена на: ${currentScene.label} (${sceneIndex + 1}/${timeScenes.length})`);
         }
 
-        // Следующая сцена
-        function nextScene() {
-            if (sequentialMode) {
-                currentSceneIndex = (currentSceneIndex + 1) % timeScenes.length;
-            } else {
-                // Случайная сцена в пределах ±2 от текущей
-                const offset = Math.floor(Math.random() * 5) - 2;
-                currentSceneIndex = (currentSceneIndex + offset + timeScenes.length) % timeScenes.length;
-            }
-            applyScene(currentSceneIndex);
-        }
-
-        // Предыдущая сцена
-        function prevScene() {
-            currentSceneIndex = (currentSceneIndex - 1 + timeScenes.length) % timeScenes.length;
-            applyScene(currentSceneIndex);
-        }
-
-        // Случайная сцена
-        function randomScene() {
-            currentSceneIndex = Math.floor(Math.random() * timeScenes.length);
-            applyScene(currentSceneIndex);
-        }
-
-        // Обновление длительности переходов
-        function updateTransitionDuration(duration) {
-            transitionDuration = duration;
-            const elements = [
-                document.body,
-                document.getElementById('mountainBg'),
-                document.getElementById('stars'),
-                document.getElementById('moon'),
-                document.getElementById('sun'),
-                document.getElementById('clouds'),
-                document.getElementById('house'),
-                document.getElementById('houseWindow')
-            ];
-
-            elements.forEach(el => {
-                if (el) {
-                    el.style.transition = `all ${duration}s ease-in-out`;
-                }
-            });
-
-            console.log(`⏱️ Длительность перехода изменена на ${duration} сек`);
-        }
-
-        // Запуск автоматической смены сцен
-        function startAutoTransition() {
-            if (transitionInterval) {
-                clearInterval(transitionInterval);
-            }
-
-            transitionInterval = setInterval(() => {
-                nextScene();
-            }, transitionSpeed * 1000);
-
-            console.log(`🔄 Автоматическая смена сцен запущена (каждые ${transitionSpeed} сек)`);
+        // Сброс к начальному цвету (ночь)
+        function resetToNight() {
+            currentColor = { r: 26, g: 26, b: 46 };
+            targetColor = { r: 42, g: 42, b: 78 };
+            animationStartTime = Date.now();
+            lastTargetChangeTime = Date.now();
+            console.log('🌙 Сброс к ночному цвету');
         }
 
         // Обработчики событий
-        document.getElementById('nextScene').addEventListener('click', nextScene);
-        document.getElementById('prevScene').addEventListener('click', prevScene);
-        document.getElementById('randomScene').addEventListener('click', randomScene);
-
         document.getElementById('transitionSpeed').addEventListener('input', (e) => {
-            transitionSpeed = parseInt(e.target.value);
-            document.getElementById('speedValue').textContent = transitionSpeed;
-            startAutoTransition();
+            transitionSpeed = parseInt(e.target.value) * 1000;
+            document.getElementById('speedValue').textContent = e.target.value;
+            console.log(`⏱️ Скорость изменена: ${e.target.value} сек`);
         });
 
-        document.getElementById('transitionDuration').addEventListener('input', (e) => {
-            const duration = parseInt(e.target.value);
-            document.getElementById('durationValue').textContent = duration;
-            updateTransitionDuration(duration);
+        document.getElementById('colorRange').addEventListener('input', (e) => {
+            colorRange = parseInt(e.target.value);
+            document.getElementById('rangeValue').textContent = e.target.value;
+            console.log(`🎨 Диапазон изменен: ±${e.target.value} единиц`);
         });
 
-        document.getElementById('sequentialMode').addEventListener('change', (e) => {
-            sequentialMode = e.target.checked;
-            console.log(`📋 Режим: ${sequentialMode ? 'Последовательный' : 'Случайный в пределах ±2'}`);
+        document.getElementById('animationEnabled').addEventListener('change', (e) => {
+            animationEnabled = e.target.checked;
+            console.log(`${animationEnabled ? '▶️ Анимация включена' : '⏸️ Анимация остановлена'}`);
+        });
+
+        document.getElementById('newColorBtn').addEventListener('click', () => {
+            generateNewTargetColor();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            resetToNight();
         });
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             console.log('═══════════════════════════════════════════════════════');
-            console.log('🎨 IskrCLOCK - Тест плавных переходов v2.1');
-            console.log('📅 Обновлено: 2025-11-07 22:30');
+            console.log('🎨 IskrCLOCK - Тест плавных переходов v3.0');
+            console.log('📅 Обновлено: 2025-11-07 22:45');
             console.log('═══════════════════════════════════════════════════════');
-            console.log('✨ Особенности v2.1:');
-            console.log('  • 20 сцен с МИКРО-ШАГОВЫМИ переходами (∆8-12 единиц)');
-            console.log('  • Увеличенная длительность переходов (40 сек)');
-            console.log('  • МИНИМАЛЬНАЯ разница между соседними цветами!');
-            console.log('  • Цветовой градиент: темно-синий → фиолетовый → розовый → светлый → оранжевый → фиолетовый → синий');
-            console.log('  • Последовательные переходы БЕЗ резких скачков');
-            console.log('  • Исправлено позиционирование домика');
-            console.log('  • Полная синхронизация всех элементов');
+            console.log('✨ Особенности v3.0:');
+            console.log('  • НЕПРЕРЫВНАЯ интерполяция цветов через JavaScript');
+            console.log('  • 60 FPS плавное изменение RGB значений');
+            console.log('  • Нет фиксированных сцен - цвета "текут" свободно');
+            console.log('  • Случайные целевые цвета в заданном диапазоне');
+            console.log('  • Easing функция для максимальной плавности');
+            console.log('  • Как лава-лампа - бесконечное движение');
             console.log('═══════════════════════════════════════════════════════');
 
             // Создаем звезды
@@ -921,17 +680,18 @@
             updateTime();
             setInterval(updateTime, 1000);
 
-            // Применяем начальную сцену
-            applyScene(currentSceneIndex);
+            // Применяем начальные цвета
+            applyColors();
 
-            // Устанавливаем начальную длительность переходов
-            updateTransitionDuration(transitionDuration);
-
-            // Запускаем автоматическую смену сцен
+            // Генерируем первый целевой цвет через 2 секунды
             setTimeout(() => {
-                startAutoTransition();
-                console.log('✅ Автоматическая смена сцен активирована');
-            }, 1000);
+                generateNewTargetColor();
+                console.log('✅ Автоматическая смена цветов активирована');
+            }, 2000);
+
+            // Запускаем анимацию
+            requestAnimationFrame(animateColors);
+            console.log('🎬 Анимация запущена');
         });
     </script>
 </body>
