@@ -362,6 +362,116 @@
                 flex-direction: column;
             }
         }
+
+        /* Playlist Editor Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .close-modal:hover {
+            opacity: 1;
+        }
+
+        .track-list {
+            margin-top: 20px;
+        }
+
+        .track-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .track-info {
+            flex: 1;
+            margin-right: 15px;
+        }
+
+        .track-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .track-size {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .track-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 14px;
+            min-width: auto;
+        }
+
+        .add-tracks-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -374,7 +484,7 @@
         <div class="header">
             <h1>🎵 Пользовательские станции</h1>
             <p>Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v1.4.1 - Fixed Local M3U + 50MB Limit</p>
+            <p class="version">v1.6.0 - Playlist Management</p>
         </div>
 
         <div class="nav-links">
@@ -408,7 +518,7 @@
                     <label for="stationType">Тип</label>
                     <select id="stationType" required>
                         <option value="radio">📻 Радио-поток (MP3/AAC)</option>
-                        <option value="local">🎵 Локальные файлы (MP3)</option>
+                        <option value="local">🎵 Локальные файлы (MP3/FLAC/WAV)</option>
                         <option value="hls">🎶 HLS поток (.m3u/.m3u8)</option>
                         <option value="youtube">📺 YouTube (ID видео)</option>
                     </select>
@@ -421,10 +531,18 @@
                     <p class="help-text" id="urlHelp">Для YouTube укажите ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)</p>
                 </div>
 
+                <div id="radioOrDivider" class="or-divider" style="display: none;">ИЛИ</div>
+
+                <div class="form-group" id="radioFileGroup" style="display: none;">
+                    <label for="radioFile">Выберите .m3u плейлист</label>
+                    <input type="file" id="radioFile" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl">
+                    <p class="help-text">Загрузите локальный .m3u файл со списком радиостанций.</p>
+                </div>
+
                 <div class="form-group" id="fileGroup" style="display: none;">
-                    <label for="localFiles">Выберите MP3 файлы</label>
-                    <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg" multiple>
-                    <p class="help-text">Выберите один или несколько MP3 файлов. Для плейлиста выберите несколько.</p>
+                    <label for="localFiles">Выберите аудио файлы</label>
+                    <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
+                    <p class="help-text">Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.</p>
                     <div class="file-list" id="fileList"></div>
                 </div>
 
@@ -474,8 +592,8 @@
         const DB_VERSION = 1;
         const STORE_NAME = 'audioFiles';
 
-        // File size limit (50MB per file - enough for high quality music)
-        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+        // File size limit (350MB per file - enough for FLAC albums and long mixes)
+        const MAX_FILE_SIZE = 350 * 1024 * 1024; // 350 MB
 
         // CORS Proxy система с fallback (для HTTP стримов на HTTPS странице)
         const corsProxies = [
@@ -697,6 +815,7 @@
                             <button class="btn btn-play" onclick="togglePlay('${index}')">
                                 <span id="play-btn-${index}">▶ Play</span>
                             </button>
+                            ${isPlaylist ? `<button class="btn btn-secondary" onclick="openPlaylistEditor(${index})">✏️ Редактировать</button>` : ''}
                             <button class="btn btn-danger" onclick="deleteStation(${index})">🗑️</button>
                         </div>
                     </div>
@@ -860,8 +979,44 @@
                     // Handle URL
                     stationData.url = url;
                 }
+            } else if (type === 'radio') {
+                // Handle radio - can be URL or file
+                const url = document.getElementById('stationUrl').value.trim();
+                const radioFileInput = document.getElementById('radioFile');
+                const radioFile = radioFileInput.files[0];
+
+                if (!url && !radioFile) {
+                    alert('Пожалуйста, укажите URL или загрузите .m3u файл');
+                    return;
+                }
+
+                if (radioFile) {
+                    // Handle local M3U file for radio
+                    console.log(`📄 Processing radio M3U file: ${radioFile.name}`);
+
+                    try {
+                        // Read file as text
+                        const fileContent = await readFileAsText(radioFile);
+                        console.log(`✅ Radio M3U file read: ${fileContent.length} bytes`);
+
+                        // Store file content as data URL
+                        const blob = new Blob([fileContent], { type: 'audio/x-mpegurl' });
+                        const dataUrl = await blobToDataURL(blob);
+
+                        stationData.url = dataUrl;
+                        stationData.isLocalFile = true;
+                        console.log(`✅ Radio M3U file converted to data URL`);
+                    } catch (error) {
+                        console.error('❌ Error reading radio M3U file:', error);
+                        alert('Ошибка чтения файла: ' + error.message);
+                        return;
+                    }
+                } else {
+                    // Handle URL
+                    stationData.url = url;
+                }
             } else {
-                // Handle other URL-based stations (radio, youtube)
+                // Handle other URL-based stations (youtube)
                 const url = document.getElementById('stationUrl').value.trim();
 
                 if (!url) {
@@ -892,6 +1047,7 @@
             document.getElementById('stationUrl').value = '';
             document.getElementById('localFiles').value = '';
             document.getElementById('hlsFile').value = '';
+            document.getElementById('radioFile').value = '';
             selectedFiles = [];
             renderFileList();
 
@@ -1050,7 +1206,7 @@
                     break;
                 case 'radio':
                 default:
-                    playRadioStation(station.url);
+                    playRadioStation(station.url, station.isLocalFile);
                     break;
             }
         }
@@ -1104,15 +1260,35 @@
             }
         }
 
-        // Play regular radio stream
-        function playRadioStation(url) {
+        // Play regular radio stream (or parse M3U if local file)
+        async function playRadioStation(url, isLocalFile = false) {
             try {
-                const audio = new Audio();
                 const originalUrl = url;
 
                 // Сохраняем для retry
                 currentStationUrl = originalUrl;
                 currentStationType = 'radio';
+
+                // Check if this is a local M3U file (data URL)
+                const isDataURL = url.startsWith('data:');
+
+                if (isLocalFile && isDataURL) {
+                    console.log('📄 Detected local M3U file for radio, parsing...');
+                    const result = await parseM3UPlaylist(url);
+
+                    if (result.success) {
+                        console.log(`🎵 Playing extracted stream: ${result.streamUrl}`);
+                        // Recursively call playRadioStation with extracted URL
+                        playRadioStation(result.streamUrl, false);
+                        return;
+                    } else {
+                        console.log('⚠️ M3U parsing failed');
+                        alert('Не удалось извлечь URL из M3U файла');
+                        return;
+                    }
+                }
+
+                const audio = new Audio();
 
                 // Проверяем нужен ли CORS proxy (для HTTP стримов)
                 if (needsCorsProxy(originalUrl)) {
@@ -1494,20 +1670,24 @@
         }
 
         // Update help text based on selected type
-        document.getElementById('stationType').addEventListener('change', function(e) {
-            const type = e.target.value;
+        function updateFormFields() {
+            const type = document.getElementById('stationType').value;
             const urlHelp = document.getElementById('urlHelp');
             const urlInput = document.getElementById('stationUrl');
             const urlGroup = document.getElementById('urlGroup');
             const fileGroup = document.getElementById('fileGroup');
             const hlsFileGroup = document.getElementById('hlsFileGroup');
             const hlsOrDivider = document.getElementById('hlsOrDivider');
+            const radioFileGroup = document.getElementById('radioFileGroup');
+            const radioOrDivider = document.getElementById('radioOrDivider');
 
             // Hide all first
             urlGroup.style.display = 'none';
             fileGroup.style.display = 'none';
             hlsFileGroup.style.display = 'none';
             hlsOrDivider.style.display = 'none';
+            radioFileGroup.style.display = 'none';
+            radioOrDivider.style.display = 'none';
 
             if (type === 'local') {
                 fileGroup.style.display = 'block';
@@ -1518,22 +1698,223 @@
                 hlsFileGroup.style.display = 'block';
                 urlHelp.textContent = 'URL HLS манифеста (.m3u8) или плейлиста (.m3u с URL потока внутри). HTTP потоки работают через CORS прокси.';
                 urlInput.placeholder = 'http://example.com/stream.m3u или https://example.com/stream.m3u8';
+            } else if (type === 'radio') {
+                // For Radio, show both URL and File options with OR divider
+                urlGroup.style.display = 'block';
+                radioOrDivider.style.display = 'block';
+                radioFileGroup.style.display = 'block';
+                urlHelp.textContent = 'URL прямого потока (MP3/AAC). HTTP потоки работают через CORS прокси.';
+                urlInput.placeholder = 'http://example.com/stream.mp3 или https://example.com/stream.mp3';
             } else {
                 urlGroup.style.display = 'block';
 
-                switch (type) {
-                    case 'youtube':
-                        urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
-                        urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
-                        break;
-                    case 'radio':
-                    default:
-                        urlHelp.textContent = 'URL прямого потока (MP3/AAC). HTTP потоки работают через CORS прокси.';
-                        urlInput.placeholder = 'http://example.com/stream.mp3 или https://example.com/stream.mp3';
-                        break;
+                if (type === 'youtube') {
+                    urlHelp.textContent = 'Введите YouTube ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)';
+                    urlInput.placeholder = 'dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ';
                 }
             }
-        });
+        }
+
+        document.getElementById('stationType').addEventListener('change', updateFormFields);
+
+        // Playlist Editor Functions
+        let currentEditingPlaylistIndex = null;
+
+        async function openPlaylistEditor(index) {
+            currentEditingPlaylistIndex = index;
+            const stations = loadCustomStations();
+            const station = stations[index];
+
+            if (!station || station.type !== 'local') {
+                alert('Эта станция не является плейлистом');
+                return;
+            }
+
+            document.getElementById('modalPlaylistName').textContent = `Редактировать: ${station.name}`;
+
+            // Load tracks from IndexedDB
+            try {
+                const files = await loadFilesFromDB(station.id);
+                renderModalTrackList(files);
+                document.getElementById('playlistEditorModal').classList.add('active');
+            } catch (error) {
+                console.error('❌ Error loading playlist:', error);
+                alert('Ошибка загрузки плейлиста');
+            }
+        }
+
+        function closePlaylistEditor() {
+            document.getElementById('playlistEditorModal').classList.remove('active');
+            currentEditingPlaylistIndex = null;
+            document.getElementById('addTracksInput').value = '';
+        }
+
+        function renderModalTrackList(files) {
+            const container = document.getElementById('modalTrackList');
+
+            if (files.length === 0) {
+                container.innerHTML = '<p>Треков нет</p>';
+                return;
+            }
+
+            container.innerHTML = files.map((file, index) => `
+                <div class="track-item">
+                    <div class="track-info">
+                        <div class="track-name">${escapeHtml(file.name)}</div>
+                        <div class="track-size">Трек ${index + 1} из ${files.length}</div>
+                    </div>
+                    <div class="track-actions">
+                        ${index > 0 ? `<button class="btn btn-small btn-secondary" onclick="moveTrackUp(${index})">⬆</button>` : ''}
+                        ${index < files.length - 1 ? `<button class="btn btn-small btn-secondary" onclick="moveTrackDown(${index})">⬇</button>` : ''}
+                        <button class="btn btn-small btn-danger" onclick="deleteTrack(${index})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function moveTrackUp(trackIndex) {
+            if (trackIndex === 0) return;
+
+            const stations = loadCustomStations();
+            const station = stations[currentEditingPlaylistIndex];
+
+            try {
+                const files = await loadFilesFromDB(station.id);
+                // Swap with previous
+                [files[trackIndex - 1], files[trackIndex]] = [files[trackIndex], files[trackIndex - 1]];
+
+                // Re-save to IndexedDB
+                await resavePlaylistTracks(station.id, files);
+                renderModalTrackList(files);
+
+                console.log(`✅ Moved track up: ${trackIndex} -> ${trackIndex - 1}`);
+            } catch (error) {
+                console.error('❌ Error moving track:', error);
+                alert('Ошибка перемещения трека');
+            }
+        }
+
+        async function moveTrackDown(trackIndex) {
+            const stations = loadCustomStations();
+            const station = stations[currentEditingPlaylistIndex];
+
+            try {
+                const files = await loadFilesFromDB(station.id);
+                if (trackIndex >= files.length - 1) return;
+
+                // Swap with next
+                [files[trackIndex], files[trackIndex + 1]] = [files[trackIndex + 1], files[trackIndex]];
+
+                // Re-save to IndexedDB
+                await resavePlaylistTracks(station.id, files);
+                renderModalTrackList(files);
+
+                console.log(`✅ Moved track down: ${trackIndex} -> ${trackIndex + 1}`);
+            } catch (error) {
+                console.error('❌ Error moving track:', error);
+                alert('Ошибка перемещения трека');
+            }
+        }
+
+        async function deleteTrack(trackIndex) {
+            if (!confirm('Удалить этот трек из плейлиста?')) return;
+
+            const stations = loadCustomStations();
+            const station = stations[currentEditingPlaylistIndex];
+
+            try {
+                const files = await loadFilesFromDB(station.id);
+                files.splice(trackIndex, 1);
+
+                if (files.length === 0) {
+                    alert('Нельзя удалить последний трек. Удалите весь плейлист вместо этого.');
+                    return;
+                }
+
+                // Re-save to IndexedDB
+                await resavePlaylistTracks(station.id, files);
+
+                // Update file count in station metadata
+                station.fileCount = files.length;
+                saveCustomStations(stations);
+
+                renderModalTrackList(files);
+                renderStations();
+
+                console.log(`✅ Deleted track: ${trackIndex}`);
+            } catch (error) {
+                console.error('❌ Error deleting track:', error);
+                alert('Ошибка удаления трека');
+            }
+        }
+
+        async function addTracksToPlaylist() {
+            const input = document.getElementById('addTracksInput');
+            const newFiles = Array.from(input.files);
+
+            if (newFiles.length === 0) {
+                alert('Выберите файлы для добавления');
+                return;
+            }
+
+            const stations = loadCustomStations();
+            const station = stations[currentEditingPlaylistIndex];
+
+            try {
+                // Check file sizes
+                for (const file of newFiles) {
+                    const sizeCheck = checkFileSize(file);
+                    if (!sizeCheck.ok) {
+                        alert(sizeCheck.message);
+                        return;
+                    }
+                }
+
+                // Load existing tracks
+                const existingFiles = await loadFilesFromDB(station.id);
+
+                // Read and add new files
+                console.log(`📦 Adding ${newFiles.length} new track(s)...`);
+
+                for (let i = 0; i < newFiles.length; i++) {
+                    const file = newFiles[i];
+                    console.log(`📄 Reading file ${i + 1}/${newFiles.length}: ${file.name}`);
+
+                    const fileData = await readFileAsBase64(file);
+                    const newTrackIndex = existingFiles.length + i;
+                    await saveFileToDB(station.id, newTrackIndex, file.name, fileData);
+
+                    existingFiles.push({ name: file.name, data: fileData });
+                    console.log(`✅ Added: ${file.name}`);
+                }
+
+                // Update file count
+                station.fileCount = existingFiles.length;
+                saveCustomStations(stations);
+
+                // Refresh view
+                renderModalTrackList(existingFiles);
+                renderStations();
+
+                input.value = '';
+
+                console.log(`✅ Added ${newFiles.length} track(s) to playlist`);
+                alert(`Добавлено треков: ${newFiles.length}`);
+            } catch (error) {
+                console.error('❌ Error adding tracks:', error);
+                alert('Ошибка добавления треков: ' + error.message);
+            }
+        }
+
+        async function resavePlaylistTracks(stationId, files) {
+            // Delete all existing tracks
+            await deleteFilesFromDB(stationId);
+
+            // Re-save in new order
+            for (let i = 0; i < files.length; i++) {
+                await saveFileToDB(stationId, i, files[i].name, files[i].data);
+            }
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1554,8 +1935,32 @@
                 alert('Ошибка инициализации базы данных. Локальные файлы могут не работать.');
             }
 
+            // Initialize form fields visibility
+            updateFormFields();
+
             renderStations();
         });
     </script>
+
+    <!-- Playlist Editor Modal -->
+    <div id="playlistEditorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalPlaylistName">Редактировать плейлист</h2>
+                <button class="close-modal" onclick="closePlaylistEditor()">&times;</button>
+            </div>
+
+            <div class="track-list" id="modalTrackList">
+                <!-- Tracks will be rendered here -->
+            </div>
+
+            <div class="add-tracks-section">
+                <h3>Добавить треки</h3>
+                <input type="file" id="addTracksInput" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
+                <button class="btn btn-primary" style="margin-top: 10px;" onclick="addTracksToPlaylist()">Добавить выбранные</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
