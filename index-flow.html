@@ -763,7 +763,8 @@
         }
 
         // Рандомный старт - сбалансированное распределение времени суток
-        let currentColor = generateBalancedStartColor();
+        let startColor = generateBalancedStartColor();
+        let currentColor = { r: startColor.r, g: startColor.g, b: startColor.b };
         let targetColor = generateBalancedStartColor();
         let transitionSpeed = 60000; // 60 секунд
         let colorRange = 30;
@@ -906,6 +907,9 @@
         // ===== ФУНКЦИИ НЕПРЕРЫВНОГО ПЕРЕТЕКАНИЯ ЦВЕТОВ =====
 
         function generateNewTargetColor() {
+            // Текущий цвет становится стартовым для следующей анимации
+            startColor = { r: currentColor.r, g: currentColor.g, b: currentColor.b };
+
             // Используем сбалансированную генерацию для разнообразия времен суток
             targetColor = generateBalancedStartColor();
             animationStartTime = Date.now();
@@ -933,9 +937,10 @@
             const progress = Math.min(elapsed / transitionSpeed, 1);
             const easedProgress = easeInOutCubic(progress);
 
-            currentColor.r = lerp(currentColor.r, targetColor.r, easedProgress * 0.016);
-            currentColor.g = lerp(currentColor.g, targetColor.g, easedProgress * 0.016);
-            currentColor.b = lerp(currentColor.b, targetColor.b, easedProgress * 0.016);
+            // Правильная интерполяция от startColor к targetColor
+            currentColor.r = lerp(startColor.r, targetColor.r, easedProgress);
+            currentColor.g = lerp(startColor.g, targetColor.g, easedProgress);
+            currentColor.b = lerp(startColor.b, targetColor.b, easedProgress);
 
             if (now - lastTargetChangeTime >= transitionSpeed) {
                 generateNewTargetColor();
