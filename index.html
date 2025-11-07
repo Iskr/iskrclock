@@ -684,12 +684,12 @@
         </div>
 
         <div class="control-buttons">
-            <button class="btn btn-secondary" id="toggleAlarm">Включить</button>
-            <button class="btn btn-secondary" id="snoozeButton">Подремать</button>
+            <button class="btn btn-secondary" id="toggleAlarm">Turn On</button>
+            <button class="btn btn-secondary" id="snoozeButton">Snooze</button>
             <button class="btn btn-fullscreen" id="fullscreenButton">⛶</button>
         </div>
 
-        <div class="remaining-time" id="remainingTime">Будильник выключен</div>
+        <div class="remaining-time" id="remainingTime">Alarm is off</div>
     </div>
 
     <div class="alarm-modal" id="alarmModal">
@@ -1248,7 +1248,8 @@
             
             alarmTime = { hours, minutes };
             alarmActive = true;
-            document.getElementById('toggleAlarm').textContent = 'Выключить';
+            const t = window.currentTranslations || translations[localStorage.getItem('language') || 'ru'];
+            document.getElementById('toggleAlarm').textContent = t.toggleAlarmOn;
             document.getElementById('toggleAlarm').classList.remove('btn-secondary');
             document.getElementById('toggleAlarm').classList.add('btn-primary');
             
@@ -1261,10 +1262,11 @@
             alarmActive = false;
             alarmTime = null;
             alarmTriggered = false; // Сбрасываем флаг срабатывания
-            document.getElementById('toggleAlarm').textContent = 'Включить';
+            const t = window.currentTranslations || translations[localStorage.getItem('language') || 'ru'];
+            document.getElementById('toggleAlarm').textContent = t.toggleAlarmOff;
             document.getElementById('toggleAlarm').classList.remove('btn-primary');
             document.getElementById('toggleAlarm').classList.add('btn-secondary');
-            document.getElementById('remainingTime').textContent = 'Будильник выключен';
+            document.getElementById('remainingTime').textContent = t.alarmOff;
 
             stopRadio();
             console.log('✅ Будильник выключен');
@@ -2109,9 +2111,19 @@
         // Воспроизведение пользовательской YouTube-станции
         function playCustomYouTubeStation(station) {
             const playButton = document.getElementById('playButton');
-            const videoId = extractYouTubeId(station.url);
+            let videoId;
 
-            console.log('📺 Playing custom YouTube station:', videoId);
+            // Check if it's a playlist
+            if (station.isPlaylist && station.videoIds && station.videoIds.length > 0) {
+                // For playlists, pick a random video
+                const randomIndex = Math.floor(Math.random() * station.videoIds.length);
+                videoId = station.videoIds[randomIndex];
+                console.log(`📺 Playing custom YouTube playlist: ${station.videoIds.length} videos, selected #${randomIndex + 1} (${videoId})`);
+            } else {
+                // Single video
+                videoId = extractYouTubeId(station.url);
+                console.log('📺 Playing custom YouTube station:', videoId);
+            }
 
             if (!youtubePlayerReady || !videoId) {
                 console.log('⚠️ YouTube Player not ready or invalid ID');
@@ -2284,6 +2296,7 @@
                     hours: 'Часы',
                     minutes: 'Минуты',
                     snooze: 'Подремать (мин)',
+                    snoozeButton: 'Подремать',
                     selectAlarmSound: 'Выбрать сигнал будильника?',
                     classicBeep: '🔔 Классический сигнал',
                     europaPlus: '📻 Европа Плюс',
@@ -2303,6 +2316,7 @@
                     hours: 'Hours',
                     minutes: 'Minutes',
                     snooze: 'Snooze (min)',
+                    snoozeButton: 'Snooze',
                     selectAlarmSound: 'Select alarm sound:',
                     classicBeep: '🔔 Classic Beep',
                     europaPlus: '📻 Europa Plus',
@@ -2356,6 +2370,18 @@
                 const customStationsSpan = document.querySelector('.btn-manage-stations span:nth-child(2)');
                 if (customStationsSpan) customStationsSpan.textContent = t.customStations;
 
+                // Update snooze button
+                const snoozeButton = document.getElementById('snoozeButton');
+                if (snoozeButton) snoozeButton.textContent = t.snoozeButton;
+
+                // Update toggle alarm button based on current state
+                const toggleAlarmBtn = document.getElementById('toggleAlarm');
+                if (toggleAlarmBtn && alarmActive) {
+                    toggleAlarmBtn.textContent = t.toggleAlarmOn;
+                } else if (toggleAlarmBtn) {
+                    toggleAlarmBtn.textContent = t.toggleAlarmOff;
+                }
+
                 // Update select options
                 const selectOptions = document.querySelectorAll('#radioSelect option');
                 selectOptions.forEach(option => {
@@ -2378,9 +2404,7 @@
             // Set initial language
             const langSelector = document.querySelector('.lang-selector');
             langSelector.value = currentLang;
-            if (currentLang === 'en') {
-                switchLanguage('en');
-            }
+            switchLanguage(currentLang); // Always call to ensure proper initialization
         });
     </script>
 </body>
