@@ -734,30 +734,37 @@
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // Генерация сбалансированных цветов - 50% день, 30% сумерки, 20% ночь
+        // Генерация 4 времен суток: 25% рассвет, 40% день, 25% закат, 10% ночь
         function generateBalancedStartColor() {
             const timeOfDay = Math.random();
 
-            if (timeOfDay < 0.5) {
-                // День: яркость > 0.6 (средний RGB ~204) - ЯРКИЕ цвета (50% вероятность)
+            if (timeOfDay < 0.25) {
+                // 🌅 Рассвет: яркость 0.4-0.55, розовые/оранжевые тона (25% вероятность)
                 return {
-                    r: randomColorInRange(180, 230),
-                    g: randomColorInRange(180, 230),
-                    b: randomColorInRange(190, 240)
+                    r: randomColorInRange(150, 200),  // больше красного
+                    g: randomColorInRange(100, 150),  // средне зеленого
+                    b: randomColorInRange(120, 170)   // средне синего
                 };
-            } else if (timeOfDay < 0.8) {
-                // Сумерки: яркость 0.35-0.6 (средний RGB ~140) - БОЛЕЕ СВЕТЛЫЕ (30% вероятность)
+            } else if (timeOfDay < 0.65) {
+                // ☀️ День: яркость > 0.65 - ЯРКИЕ светлые цвета (40% вероятность)
                 return {
-                    r: randomColorInRange(110, 170),
-                    g: randomColorInRange(110, 170),
-                    b: randomColorInRange(120, 180)
+                    r: randomColorInRange(180, 240),
+                    g: randomColorInRange(180, 240),
+                    b: randomColorInRange(190, 250)
+                };
+            } else if (timeOfDay < 0.9) {
+                // 🌇 Закат: яркость 0.45-0.6, оранжевые/фиолетовые тона (25% вероятность)
+                return {
+                    r: randomColorInRange(160, 210),  // много красного
+                    g: randomColorInRange(90, 140),   // мало зеленого
+                    b: randomColorInRange(130, 180)   // средне синего
                 };
             } else {
-                // Ночь: яркость < 0.3 (средний RGB ~51) - ТЕМНЫЕ цвета (20% вероятность)
+                // 🌙 Ночь: яркость < 0.25 - ТЕМНЫЕ цвета (10% вероятность)
                 return {
-                    r: randomColorInRange(20, 60),
-                    g: randomColorInRange(20, 60),
-                    b: randomColorInRange(30, 70)
+                    r: randomColorInRange(15, 50),
+                    g: randomColorInRange(15, 50),
+                    b: randomColorInRange(25, 60)
                 };
             }
         }
@@ -916,11 +923,22 @@
             lastTargetChangeTime = Date.now();
 
             const brightness = (targetColor.r * 0.299 + targetColor.g * 0.587 + targetColor.b * 0.114) / 255;
-            let timeOfDayName = 'сумерки';
-            if (brightness < 0.3) timeOfDayName = 'ночь';
-            else if (brightness > 0.6) timeOfDayName = 'день';
+            const r = targetColor.r, g = targetColor.g, b = targetColor.b;
 
-            console.log(`🎨 Новый целевой цвет (${timeOfDayName}): RGB(${Math.round(targetColor.r)}, ${Math.round(targetColor.g)}, ${Math.round(targetColor.b)}), яркость: ${brightness.toFixed(2)}`);
+            // Определяем время суток по цветам и яркости
+            let timeOfDayName = 'день';
+            if (brightness < 0.3) {
+                timeOfDayName = 'ночь 🌙';
+            } else if (brightness > 0.65) {
+                timeOfDayName = 'день ☀️';
+            } else if (r > g && r > b) {
+                // Красный доминирует - рассвет или закат
+                timeOfDayName = (r > 170) ? 'закат 🌇' : 'рассвет 🌅';
+            } else {
+                timeOfDayName = 'сумерки 🌆';
+            }
+
+            console.log(`🎨 Новый целевой цвет (${timeOfDayName}): RGB(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}), яркость: ${brightness.toFixed(2)}`);
         }
 
         function lerp(start, end, progress) {
@@ -1627,7 +1645,7 @@
             console.log('🎨 ВЕРСИЯ 5.0 FLOW - НОВАЯ ЭПОХА ДИЗАЙНА!');
             console.log(' 🌊 Непрерывное перетекание цветов (60 FPS)');
             console.log(' 🎲 Рандомный старт - каждый раз новый цвет!');
-            console.log(' ⚖️ Распределение: 50% день ☀️ / 30% сумерки 🌆 / 20% ночь 🌙');
+            console.log(' ⚖️ Распределение: 40% день ☀️ / 25% рассвет 🌅 / 25% закат 🌇 / 10% ночь 🌙');
             console.log(' ⏱️ Новый целевой цвет каждую минуту');
             console.log('');
             console.log(' 📻 BBC Radio 1 - 320kbps HLS via hls.js (NEW!)');
@@ -1673,10 +1691,21 @@
             // Применяем начальный цвет
             applyColors();
             const initialBrightness = (currentColor.r * 0.299 + currentColor.g * 0.587 + currentColor.b * 0.114) / 255;
-            let initialTimeOfDay = 'сумерки';
-            if (initialBrightness < 0.3) initialTimeOfDay = 'ночь';
-            else if (initialBrightness > 0.6) initialTimeOfDay = 'день';
-            console.log('✅ Начальный цвет применен (' + initialTimeOfDay + '): RGB(' + Math.round(currentColor.r) + ', ' + Math.round(currentColor.g) + ', ' + Math.round(currentColor.b) + '), яркость: ' + initialBrightness.toFixed(2));
+            const r = currentColor.r, g = currentColor.g, b = currentColor.b;
+
+            // Определяем время суток
+            let initialTimeOfDay = 'день';
+            if (initialBrightness < 0.3) {
+                initialTimeOfDay = 'ночь 🌙';
+            } else if (initialBrightness > 0.65) {
+                initialTimeOfDay = 'день ☀️';
+            } else if (r > g && r > b) {
+                initialTimeOfDay = (r > 170) ? 'закат 🌇' : 'рассвет 🌅';
+            } else {
+                initialTimeOfDay = 'сумерки 🌆';
+            }
+
+            console.log('✅ Начальный цвет применен (' + initialTimeOfDay + '): RGB(' + Math.round(r) + ', ' + Math.round(g) + ', ' + Math.round(b) + '), яркость: ' + initialBrightness.toFixed(2));
 
             // Генерируем первый целевой цвет через 2 секунды
             setTimeout(() => {
