@@ -1,7 +1,3 @@
-import 'package:hive/hive.dart';
-
-part 'radio_station.g.dart';
-
 enum StationType {
   radio,
   youtube,
@@ -9,33 +5,15 @@ enum StationType {
   classic,
 }
 
-@HiveType(typeId: 1)
-class RadioStation extends HiveObject {
-  @HiveField(0)
+class RadioStation {
   String id;
-
-  @HiveField(1)
   String name;
-
-  @HiveField(2)
   String type; // 'radio', 'youtube', 'local', 'classic'
-
-  @HiveField(3)
   String? url;
-
-  @HiveField(4)
   bool isPlaylist;
-
-  @HiveField(5)
   List<String> videoIds;
-
-  @HiveField(6)
   bool isLocalFile;
-
-  @HiveField(7)
   int fileCount;
-
-  @HiveField(8)
   bool isBuiltIn;
 
   RadioStation({

@@ -58,7 +58,7 @@ class TimerManager with ChangeNotifier {
     _timerState.isRunning = false;
 
     // Play notification sound
-    _audioPlayer._playClassicAlarm();
+    _audioPlayer.playClassicAlarm();
 
     // Send notification
     _notificationService.sendAlarmNotification();

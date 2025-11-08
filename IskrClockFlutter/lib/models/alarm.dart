@@ -1,34 +1,12 @@
-import 'package:hive/hive.dart';
-
-part 'alarm.g.dart';
-
-@HiveType(typeId: 0)
-class Alarm extends HiveObject {
-  @HiveField(0)
+class Alarm {
   String id;
-
-  @HiveField(1)
   int hour;
-
-  @HiveField(2)
   int minute;
-
-  @HiveField(3)
   bool isEnabled;
-
-  @HiveField(4)
   int snoozeDuration; // in minutes
-
-  @HiveField(5)
   int snoozeCount;
-
-  @HiveField(6)
   bool volumeFadeIn;
-
-  @HiveField(7)
   String selectedStation;
-
-  @HiveField(8)
   DateTime? alarmDateTime;
 
   Alarm({

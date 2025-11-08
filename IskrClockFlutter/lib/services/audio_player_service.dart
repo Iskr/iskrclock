@@ -79,7 +79,7 @@ class AudioPlayerService with ChangeNotifier {
       // Set initial volume
       if (fadeIn) {
         await _audioPlayer.setVolume(0.0);
-        await _startFadeIn();
+        _startFadeIn(); // Start fade-in timer (don't await)
       } else {
         await _audioPlayer.setVolume(_volume);
       }
@@ -94,6 +94,11 @@ class AudioPlayerService with ChangeNotifier {
   Future<void> _playLocalFile({required String stationId, bool fadeIn = false}) async {
     // TODO: Implement local file playback
     // For now, fallback to classic alarm
+    await _playClassicAlarm();
+  }
+
+  // Public method to play classic alarm
+  Future<void> playClassicAlarm() async {
     await _playClassicAlarm();
   }
 
