@@ -36,7 +36,7 @@ class AudioPlayer(private val context: Context) {
     }
 
     private fun playClassicBeep(fadeIn: Boolean) {
-        // Using MediaPlayer for simple tone generation
+        // Using MediaPlayer for system default alarm sound
         mediaPlayer = MediaPlayer().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
@@ -45,13 +45,15 @@ class AudioPlayer(private val context: Context) {
                     .build()
             )
 
-            // In a real app, you would use a tone generator or audio file
-            // For now, we'll use a default alarm sound
+            // Use system default alarm ringtone
             try {
-                setDataSource(
-                    context,
-                    Uri.parse("android.resource://${context.packageName}/raw/alarm_beep")
+                val alarmUri = android.media.RingtoneManager.getDefaultUri(
+                    android.media.RingtoneManager.TYPE_ALARM
+                ) ?: android.media.RingtoneManager.getDefaultUri(
+                    android.media.RingtoneManager.TYPE_NOTIFICATION
                 )
+
+                setDataSource(context, alarmUri)
                 isLooping = true
                 prepare()
 
@@ -65,7 +67,7 @@ class AudioPlayer(private val context: Context) {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Fallback: just use system default alarm
+                // If all fails, at least vibrate
             }
         }
     }
