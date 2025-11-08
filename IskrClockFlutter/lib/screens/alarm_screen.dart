@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/alarm_manager.dart';
 import '../services/audio_player_service.dart';
+import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../services/custom_stations_manager.dart';
 import '../models/radio_station.dart';
@@ -19,6 +20,18 @@ class _AlarmScreenState extends State<AlarmScreen> {
   int selectedHour = 7;
   int selectedMinute = 0;
   int snoozeDuration = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set dependencies after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final alarmManager = Provider.of<AlarmManager>(context, listen: false);
+      final audioPlayer = Provider.of<AudioPlayerService>(context, listen: false);
+      final notificationService = NotificationService();
+      alarmManager.setDependencies(audioPlayer, notificationService);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

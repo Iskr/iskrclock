@@ -7,10 +7,16 @@ import 'notification_service.dart';
 class TimerManager with ChangeNotifier {
   TimerState _timerState = TimerState();
   Timer? _timer;
-  final AudioPlayerService _audioPlayer = AudioPlayerService();
-  final NotificationService _notificationService = NotificationService();
+  AudioPlayerService? _audioPlayer;
+  NotificationService? _notificationService;
 
   TimerState get timerState => _timerState;
+
+  // Set dependencies from context
+  void setDependencies(AudioPlayerService audioPlayer, NotificationService notificationService) {
+    _audioPlayer = audioPlayer;
+    _notificationService = notificationService;
+  }
 
   void start() {
     _timerState.start();
@@ -58,10 +64,10 @@ class TimerManager with ChangeNotifier {
     _timerState.isRunning = false;
 
     // Play notification sound
-    _audioPlayer.playClassicAlarm();
+    _audioPlayer?.playClassicAlarm();
 
     // Send notification
-    _notificationService.sendAlarmNotification();
+    _notificationService?.sendAlarmNotification();
 
     notifyListeners();
   }

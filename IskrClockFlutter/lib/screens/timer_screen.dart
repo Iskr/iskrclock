@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/timer_manager.dart';
+import '../services/audio_player_service.dart';
+import '../services/notification_service.dart';
 import '../services/localization_service.dart';
 import '../widgets/animated_background.dart';
 
@@ -15,6 +17,18 @@ class _TimerScreenState extends State<TimerScreen> {
   int hours = 0;
   int minutes = 0;
   int seconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set dependencies after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final timerManager = Provider.of<TimerManager>(context, listen: false);
+      final audioPlayer = Provider.of<AudioPlayerService>(context, listen: false);
+      final notificationService = NotificationService();
+      timerManager.setDependencies(audioPlayer, notificationService);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -13,16 +13,22 @@ class AlarmManager with ChangeNotifier {
   bool _isAlarmTriggered = false;
   Timer? _clockTimer;
 
+  AudioPlayerService? _audioPlayer;
+  NotificationService? _notificationService;
+
   Alarm get alarm => _alarm;
   DateTime get currentTime => _currentTime;
   bool get isAlarmTriggered => _isAlarmTriggered;
 
-  final AudioPlayerService _audioPlayer = AudioPlayerService();
-  final NotificationService _notificationService = NotificationService();
-
   AlarmManager() {
     _loadAlarm();
     _startClockTimer();
+  }
+
+  // Set dependencies from context
+  void setDependencies(AudioPlayerService audioPlayer, NotificationService notificationService) {
+    _audioPlayer = audioPlayer;
+    _notificationService = notificationService;
   }
 
   void _startClockTimer() {
@@ -57,7 +63,7 @@ class AlarmManager with ChangeNotifier {
     } else {
       _isAlarmTriggered = false;
       await _cancelNotification();
-      _audioPlayer.stop();
+      _audioPlayer?.stop();
     }
 
     await _saveAlarm();
@@ -100,7 +106,7 @@ class AlarmManager with ChangeNotifier {
 
     _alarm.snoozeCount++;
     _isAlarmTriggered = false;
-    _audioPlayer.stop();
+    _audioPlayer?.stop();
 
     // Schedule alarm for snooze duration
     final snoozeDateTime = DateTime.now().add(
@@ -117,7 +123,7 @@ class AlarmManager with ChangeNotifier {
     _isAlarmTriggered = false;
     _alarm.isEnabled = false;
     _alarm.snoozeCount = 0;
-    _audioPlayer.stop();
+    _audioPlayer?.stop();
     await _cancelNotification();
     await _saveAlarm();
     notifyListeners();
@@ -143,24 +149,24 @@ class AlarmManager with ChangeNotifier {
     _isAlarmTriggered = true;
 
     // Play alarm sound
-    _audioPlayer.playAlarm(
+    _audioPlayer?.playAlarm(
       stationId: _alarm.selectedStation,
       fadeIn: _alarm.volumeFadeIn,
     );
 
     // Send local notification
-    _notificationService.sendAlarmNotification();
+    _notificationService?.sendAlarmNotification();
 
     notifyListeners();
   }
 
   Future<void> _scheduleNotification() async {
     if (_alarm.alarmDateTime == null) return;
-    await _notificationService.scheduleAlarmNotification(_alarm.alarmDateTime!);
+    await _notificationService?.scheduleAlarmNotification(_alarm.alarmDateTime!);
   }
 
   Future<void> _cancelNotification() async {
-    await _notificationService.cancelAllNotifications();
+    await _notificationService?.cancelAllNotifications();
   }
 
   @override
