@@ -8,6 +8,18 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <!-- HLS.js Library for HLS streams (BBC Radio 1) -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Auth & Sync Modules -->
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="sync.js"></script>
+    <script src="auth-ui.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -293,6 +305,55 @@
             background: rgba(102, 126, 234, 0.95);
             color: white;
             padding: 10px;
+        }
+
+        .auth-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .auth-button {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-info {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .user-email {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sync-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
         }
 
         .main-container {
@@ -619,10 +680,18 @@
             <a href="custom-stations.html" class="nav-item">🎵 Станции</a>
             <a href="sleep-calculator.html" class="nav-item">🧮 Калькулятор сна</a>
         </nav>
-        <select class="lang-selector">
-            <option value="ru">🇷🇺 Русский</option>
-            <option value="en">🇬🇧 English</option>
-        </select>
+        <div class="auth-container">
+            <select class="lang-selector">
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="en">🇬🇧 English</option>
+            </select>
+            <button id="loginButton" class="auth-button" onclick="showAuthModal('login')">🔐 Вход</button>
+            <div id="userInfo" class="user-info">
+                <div class="sync-indicator"></div>
+                <span id="userEmail" class="user-email"></span>
+                <button id="logoutButton" class="auth-button" style="padding: 8px 15px; font-size: 13px;">Выйти</button>
+            </div>
+        </div>
     </header>
 
     <div class="main-container">
@@ -2199,6 +2268,32 @@
             console.log('🔧 HLS.js ' + Hls.version + ' • IndexedDB • YouTube API');
             console.log('═══════════════════════════════════════════════════════');
 
+            // Initialize Firebase
+            if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey) {
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    const auth = firebase.auth();
+                    const firestore = firebase.firestore();
+
+                    // Initialize auth and sync managers
+                    window.authManager.initAuth(auth);
+                    window.syncManager.initSync(firestore);
+
+                    console.log('✅ Firebase initialized');
+                    console.log('✅ Auth & Sync ready');
+                } catch (error) {
+                    console.error('❌ Firebase initialization error:', error);
+                }
+            } else {
+                console.log('⚠️  Firebase not configured. Create firebase-config.js to enable sync.');
+            }
+
+            // Callback when stations are updated from cloud
+            window.onStationsUpdated = function() {
+                populateStationsList();
+                console.log('✅ Stations updated from cloud sync');
+            };
+
             // Инициализация IndexedDB и загрузка пользовательских станций
             initDB()
                 .then(() => {
@@ -2395,6 +2490,23 @@
 
                 // Update remaining time display
                 updateRemainingTime();
+
+                // Update auth UI language
+                if (typeof setAuthLanguage === 'function') {
+                    setAuthLanguage(lang);
+                }
+
+                // Update login button text
+                const loginButton = document.getElementById('loginButton');
+                if (loginButton) {
+                    loginButton.textContent = lang === 'ru' ? '🔐 Вход' : '🔐 Login';
+                }
+
+                // Update logout button text
+                const logoutButton = document.getElementById('logoutButton');
+                if (logoutButton) {
+                    logoutButton.textContent = lang === 'ru' ? 'Выйти' : 'Logout';
+                }
 
                 document.querySelector('.lang-selector').value = lang;
             }
