@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IskrCLOCK</string>
+
+    <!-- Navigation -->
+    <string name="nav_alarm">⏰ Будильник</string>
+    <string name="nav_timer">⏱️ Таймер</string>
+    <string name="nav_stopwatch">⏲️ Секундомер</string>
+    <string name="nav_sleep_calc">😴 Калькулятор сна</string>
+    <string name="nav_settings">⚙️ Настройки</string>
+
+    <!-- Alarm Screen -->
+    <string name="alarm_set_time">Установить время будильника</string>
+    <string name="alarm_hours">Часы</string>
+    <string name="alarm_minutes">Минуты</string>
+    <string name="alarm_snooze_duration">Длительность отложения (мин)</string>
+    <string name="alarm_volume_fade">Плавное увеличение громкости</string>
+    <string name="alarm_select_station">Выбрать станцию</string>
+    <string name="alarm_toggle_on">Включить будильник</string>
+    <string name="alarm_toggle_off">Выключить будильник</string>
+    <string name="alarm_remaining">До будильника: %s</string>
+    <string name="alarm_triggered">БУДИЛЬНИК!</string>
+    <string name="alarm_stop">Остановить</string>
+    <string name="alarm_snooze">Отложить</string>
+
+    <!-- Stations -->
+    <string name="station_classic_beep">🔔 Классический сигнал</string>
+    <string name="station_manage">Управление станциями</string>
+    <string name="station_add">Добавить станцию</string>
+    <string name="station_custom">Пользовательские станции</string>
+    <string name="station_type_local">Локальный файл</string>
+    <string name="station_type_radio">Радио поток</string>
+    <string name="station_type_youtube">YouTube</string>
+
+    <!-- Timer -->
+    <string name="timer_minutes">Минуты</string>
+    <string name="timer_seconds">Секунды</string>
+    <string name="timer_start">Старт</string>
+    <string name="timer_pause">Пауза</string>
+    <string name="timer_reset">Сброс</string>
+    <string name="timer_resume">Продолжить</string>
+
+    <!-- Stopwatch -->
+    <string name="stopwatch_lap">Круг</string>
+    <string name="stopwatch_laps">Круги</string>
+
+    <!-- Sleep Calculator -->
+    <string name="sleep_calc_mode_wake">Когда проснуться</string>
+    <string name="sleep_calc_mode_sleep">Когда лечь спать</string>
+    <string name="sleep_calc_bedtime">Время сна</string>
+    <string name="sleep_calc_waketime">Время пробуждения</string>
+    <string name="sleep_calc_cycles">Циклы сна (по 90 мин)</string>
+    <string name="sleep_calc_calculate">Рассчитать</string>
+
+    <!-- Settings -->
+    <string name="settings_language">Язык</string>
+    <string name="settings_language_ru">Русский</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_animations">Анимации FLOW</string>
+
+    <!-- Common -->
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="edit">Изменить</string>
+    <string name="play">Воспроизвести</string>
+    <string name="loading">Загрузка…</string>
+    <string name="error">Ошибка</string>
+</resources>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IskrCLOCK</string>
+
+    <!-- Navigation -->
+    <string name="nav_alarm">⏰ Alarm</string>
+    <string name="nav_timer">⏱️ Timer</string>
+    <string name="nav_stopwatch">⏲️ Stopwatch</string>
+    <string name="nav_sleep_calc">😴 Sleep Calculator</string>
+    <string name="nav_settings">⚙️ Settings</string>
+
+    <!-- Alarm Screen -->
+    <string name="alarm_set_time">Set alarm time</string>
+    <string name="alarm_hours">Hours</string>
+    <string name="alarm_minutes">Minutes</string>
+    <string name="alarm_snooze_duration">Snooze duration (min)</string>
+    <string name="alarm_volume_fade">Volume fade-in</string>
+    <string name="alarm_select_station">Select station</string>
+    <string name="alarm_toggle_on">Enable alarm</string>
+    <string name="alarm_toggle_off">Disable alarm</string>
+    <string name="alarm_remaining">Time until alarm: %s</string>
+    <string name="alarm_triggered">ALARM!</string>
+    <string name="alarm_stop">Stop</string>
+    <string name="alarm_snooze">Snooze</string>
+
+    <!-- Stations -->
+    <string name="station_classic_beep">🔔 Classic Beep</string>
+    <string name="station_manage">Manage Stations</string>
+    <string name="station_add">Add Station</string>
+    <string name="station_custom">Custom Stations</string>
+    <string name="station_type_local">Local File</string>
+    <string name="station_type_radio">Radio Stream</string>
+    <string name="station_type_youtube">YouTube</string>
+
+    <!-- Timer -->
+    <string name="timer_minutes">Minutes</string>
+    <string name="timer_seconds">Seconds</string>
+    <string name="timer_start">Start</string>
+    <string name="timer_pause">Pause</string>
+    <string name="timer_reset">Reset</string>
+    <string name="timer_resume">Resume</string>
+
+    <!-- Stopwatch -->
+    <string name="stopwatch_lap">Lap</string>
+    <string name="stopwatch_laps">Laps</string>
+
+    <!-- Sleep Calculator -->
+    <string name="sleep_calc_mode_wake">When to wake up</string>
+    <string name="sleep_calc_mode_sleep">When to go to sleep</string>
+    <string name="sleep_calc_bedtime">Bedtime</string>
+    <string name="sleep_calc_waketime">Wake time</string>
+    <string name="sleep_calc_cycles">Sleep cycles (90 min each)</string>
+    <string name="sleep_calc_calculate">Calculate</string>
+
+    <!-- Settings -->
+    <string name="settings_language">Language</string>
+    <string name="settings_language_ru">Russian</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_animations">FLOW Animations</string>
+
+    <!-- Common -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="play">Play</string>
+    <string name="loading">Loading…</string>
+    <string name="error">Error</string>
+</resources>
