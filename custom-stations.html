@@ -564,6 +564,7 @@
                         <option value="radio">📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)</option>
                         <option value="local">🎵 Локальные файлы (MP3/FLAC/WAV)</option>
                         <option value="youtube">📺 YouTube (ID видео)</option>
+                        <option value="playlist">🎼 Микс-плейлист (YouTube + Локальные + Потоки)</option>
                     </select>
                     <p class="help-text" id="typeHelp">URL прямого потока радиостанции. HTTP потоки работают через CORS прокси.</p>
                 </div>
@@ -597,6 +598,48 @@
                         <button type="button" class="btn btn-primary btn-small" onclick="addYouTubeTrack()">➕ Добавить в плейлист</button>
                     </div>
                     <div class="file-list" id="youtubeTrackList" style="margin-top: 10px;"></div>
+                </div>
+
+                <!-- Mix Playlist Section -->
+                <div class="form-group add-tracks-section" id="mixPlaylistSection" style="display: none;">
+                    <h3 id="mixPlaylistTitle">🎼 Создать микс-плейлист</h3>
+                    <p class="help-text" id="mixPlaylistHelp">Добавьте треки из разных источников: YouTube, локальные файлы, радио-потоки</p>
+
+                    <!-- Track Type Selector -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="mixTrackType">Тип трека</label>
+                        <select id="mixTrackType" style="margin-bottom: 10px;">
+                            <option value="youtube">📺 YouTube видео</option>
+                            <option value="local">🎵 Локальный файл</option>
+                            <option value="stream">📻 Поток/URL</option>
+                        </select>
+                    </div>
+
+                    <!-- YouTube track input -->
+                    <div id="mixYoutubeInput" style="display: block; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="mixYoutubeUrl" placeholder="YouTube URL или ID" style="flex: 1;">
+                            <button type="button" class="btn btn-primary btn-small" onclick="addMixYouTubeTrack()">➕ Добавить</button>
+                        </div>
+                    </div>
+
+                    <!-- Local file input -->
+                    <div id="mixLocalInput" style="display: none; margin-bottom: 10px;">
+                        <input type="file" id="mixLocalFile" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
+                        <button type="button" class="btn btn-primary btn-small" onclick="addMixLocalFiles()" style="margin-top: 5px;">➕ Добавить файлы</button>
+                    </div>
+
+                    <!-- Stream URL input -->
+                    <div id="mixStreamInput" style="display: none; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="mixStreamUrl" placeholder="URL потока (MP3/AAC/HLS)" style="flex: 1;">
+                            <input type="text" id="mixStreamName" placeholder="Название" style="flex: 0.5;">
+                            <button type="button" class="btn btn-primary btn-small" onclick="addMixStreamTrack()">➕ Добавить</button>
+                        </div>
+                    </div>
+
+                    <!-- Mix playlist tracks list -->
+                    <div class="track-list" id="mixPlaylistTracks" style="margin-top: 15px;"></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Добавить</button>
@@ -749,6 +792,7 @@
         // Selected files for upload
         let selectedFiles = [];
         let selectedYouTubeTracks = []; // For YouTube playlists
+        let mixPlaylistTracks = []; // For mixed playlists (YouTube + Local + Stream)
 
         // IndexedDB for storing large files
         let db = null;
@@ -954,12 +998,16 @@
                 const typeLabels = {
                     'radio': '📻 Radio',
                     'youtube': '📺 YouTube',
-                    'local': '🎵 Локально'
+                    'local': '🎵 Локально',
+                    'playlist': '🎼 Микс-плейлист'
                 };
 
                 const fileCount = station.fileCount || 0;
                 const videoCount = station.videoIds ? station.videoIds.length : 0;
-                const isPlaylist = (station.type === 'local' && fileCount > 1) || (station.type === 'youtube' && station.isPlaylist);
+                const mixTrackCount = station.tracks ? station.tracks.length : 0;
+                const isPlaylist = (station.type === 'local' && fileCount > 1) ||
+                                   (station.type === 'youtube' && station.isPlaylist) ||
+                                   (station.type === 'playlist');
                 const playlistClass = isPlaylist ? 'playlist' : '';
 
                 const lang = localStorage.getItem('language') || 'ru';
@@ -970,11 +1018,27 @@
                     playlistBadge = `<span class="station-type">📀 ${t.playlistLabel} (${fileCount} ${t.tracksLabel})</span>`;
                 } else if (station.type === 'youtube' && station.isPlaylist) {
                     playlistBadge = `<span class="station-type">📀 ${t.playlistLabel} (${videoCount} ${t.videosLabel})</span>`;
+                } else if (station.type === 'playlist') {
+                    playlistBadge = `<span class="station-type">📀 ${t.playlistLabel} (${mixTrackCount} ${t.tracksLabel})</span>`;
                 }
 
-                const urlDisplay = station.type === 'local'
-                    ? `${fileCount} ${t.filesLabel}`
-                    : escapeHtml(station.url || '');
+                let urlDisplay = '';
+                if (station.type === 'local') {
+                    urlDisplay = `${fileCount} ${t.filesLabel}`;
+                } else if (station.type === 'playlist') {
+                    // Show track type summary for mixed playlists
+                    const trackTypes = {};
+                    station.tracks.forEach(track => {
+                        trackTypes[track.type] = (trackTypes[track.type] || 0) + 1;
+                    });
+                    const summary = [];
+                    if (trackTypes.youtube) summary.push(`📺 ${trackTypes.youtube}`);
+                    if (trackTypes.local) summary.push(`🎵 ${trackTypes.local}`);
+                    if (trackTypes.stream) summary.push(`📻 ${trackTypes.stream}`);
+                    urlDisplay = summary.join(' • ');
+                } else {
+                    urlDisplay = escapeHtml(station.url || '');
+                }
 
                 return `
                     <div class="station-item ${playlistClass}">
@@ -1155,6 +1219,17 @@
                     // Handle URL
                     stationData.url = url;
                 }
+            } else if (type === 'playlist') {
+                // Handle mixed playlist
+                if (mixPlaylistTracks.length === 0) {
+                    alert(lang === 'en' ? 'Add at least one track to the playlist' : 'Добавьте хотя бы один трек в плейлист');
+                    return;
+                }
+
+                // Store tracks array
+                stationData.tracks = mixPlaylistTracks;
+                stationData.isPlaylist = true;
+                console.log(`✅ Mixed playlist created with ${mixPlaylistTracks.length} tracks`);
             } else {
                 // Handle other URL-based stations (youtube)
                 const url = document.getElementById('stationUrl').value.trim();
@@ -1195,8 +1270,10 @@
             document.getElementById('youtubeTrackUrl').value = '';
             selectedFiles = [];
             selectedYouTubeTracks = [];
+            mixPlaylistTracks = [];
             renderFileList();
             renderYouTubeTrackList();
+            renderMixPlaylistTracks();
 
             renderStations();
             console.log('✅ Station added:', name);
@@ -1317,6 +1394,10 @@
                             currentPlayingId = null;
                             return;
                         }
+                    } else if (station.type === 'playlist') {
+                        // Play mixed playlist
+                        currentPlaylist = station.tracks;
+                        playMixPlaylist(0, station.name);
                     } else {
                         currentPlaylist = null;
                         playStation(station, indexStr);
@@ -1334,7 +1415,8 @@
             const types = {
                 'radio': 'Радио поток',
                 'youtube': 'YouTube',
-                'local': `Локально (${station.fileCount || 0} треков)`
+                'local': `Локально (${station.fileCount || 0} треков)`,
+                'playlist': `Микс-плейлист (${station.tracks ? station.tracks.length : 0} треков)`
             };
             return types[station.type] || station.type;
         }
@@ -1454,6 +1536,115 @@
             } catch (error) {
                 console.error('❌ Error:', error);
                 alert('Ошибка создания аудио.');
+            }
+        }
+
+        // Play track from mixed playlist
+        function playMixPlaylist(trackIndex, playlistName) {
+            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
+                console.error('Invalid track index');
+                return;
+            }
+
+            const track = currentPlaylist[trackIndex];
+            currentTrackIndex = trackIndex;
+
+            console.log(`🎵 Playing mixed track ${trackIndex + 1}/${currentPlaylist.length}: ${track.name} (${track.type})`);
+
+            // Stop current playback before starting new track
+            stopAllAudio();
+
+            try {
+                if (track.type === 'youtube') {
+                    // Play YouTube track
+                    if (!youtubePlayerReady) {
+                        alert('YouTube Player ещё не готов. Попробуйте снова.');
+                        return;
+                    }
+
+                    youtubePlayer.loadVideoById(track.videoId);
+                    youtubePlayer.setVolume(50);
+                    updateNowPlaying(`📺 ${track.name}`, `Трек ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
+
+                    // Set up ended listener for YouTube
+                    if (!window.mixPlaylistYTListener) {
+                        window.mixPlaylistYTListener = function(event) {
+                            if (event.data === YT.PlayerState.ENDED) {
+                                console.log('✅ YouTube track ended, playing next...');
+                                nextTrack();
+                            }
+                        };
+                        youtubePlayer.addEventListener('onStateChange', window.mixPlaylistYTListener);
+                    }
+
+                } else if (track.type === 'local') {
+                    // Play local file
+                    const audio = new Audio();
+                    audio.src = track.data;
+                    audio.volume = 0.5;
+
+                    audio.addEventListener('error', (e) => {
+                        console.error('❌ Track error:', e);
+                        alert('Ошибка воспроизведения трека.');
+                        nextTrack();
+                    });
+
+                    audio.addEventListener('ended', () => {
+                        console.log('✅ Track ended, playing next...');
+                        nextTrack();
+                    });
+
+                    audio.play()
+                        .then(() => {
+                            console.log('✅ Local track playback started');
+                            currentAudio = audio;
+                            updateNowPlaying(`🎵 ${track.name}`, `Трек ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
+                        })
+                        .catch(err => {
+                            console.error('❌ Play error:', err);
+                            alert('Не удалось воспроизвести трек.');
+                        });
+
+                } else if (track.type === 'stream') {
+                    // Play stream URL
+                    const audio = new Audio();
+
+                    // Check if CORS proxy needed
+                    if (needsCorsProxy(track.url)) {
+                        audio.src = getProxiedURL(track.url);
+                        console.log(`🔐 HTTP stream detected, using CORS proxy`);
+                    } else {
+                        audio.src = track.url;
+                    }
+
+                    audio.volume = 0.5;
+
+                    audio.addEventListener('error', (e) => {
+                        console.error('❌ Stream error:', e);
+                        alert('Ошибка воспроизведения потока.');
+                        nextTrack();
+                    });
+
+                    audio.addEventListener('ended', () => {
+                        console.log('✅ Stream ended, playing next...');
+                        nextTrack();
+                    });
+
+                    audio.play()
+                        .then(() => {
+                            console.log('✅ Stream playback started');
+                            currentAudio = audio;
+                            updateNowPlaying(`📻 ${track.name}`, `Трек ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
+                        })
+                        .catch(err => {
+                            console.error('❌ Play error:', err);
+                            alert('Не удалось воспроизвести поток.');
+                        });
+                }
+
+            } catch (error) {
+                console.error('❌ Error playing mixed track:', error);
+                alert('Ошибка воспроизведения: ' + error.message);
             }
         }
 
@@ -1788,7 +1979,10 @@
             const stations = loadCustomStations();
             const station = stations[parseInt(currentPlayingId)];
 
-            if (currentPlaylist[0].type === 'youtube') {
+            if (station.type === 'playlist') {
+                // Mixed playlist
+                playMixPlaylist(nextIndex, station.name);
+            } else if (currentPlaylist[0].type === 'youtube') {
                 // YouTube playlist
                 playYouTubeTrack(nextIndex, station.name);
             } else {
@@ -1810,7 +2004,10 @@
             const stations = loadCustomStations();
             const station = stations[parseInt(currentPlayingId)];
 
-            if (currentPlaylist[0].type === 'youtube') {
+            if (station.type === 'playlist') {
+                // Mixed playlist
+                playMixPlaylist(prevIndex, station.name);
+            } else if (currentPlaylist[0].type === 'youtube') {
                 // YouTube playlist
                 playYouTubeTrack(prevIndex, station.name);
             } else {
@@ -1896,6 +2093,7 @@
             const radioFileGroup = document.getElementById('radioFileGroup');
             const radioOrDivider = document.getElementById('radioOrDivider');
             const youtubePlaylistSection = document.getElementById('youtubePlaylistSection');
+            const mixPlaylistSection = document.getElementById('mixPlaylistSection');
 
             // Hide all first
             urlGroup.style.display = 'none';
@@ -1903,6 +2101,7 @@
             radioFileGroup.style.display = 'none';
             radioOrDivider.style.display = 'none';
             youtubePlaylistSection.style.display = 'none';
+            mixPlaylistSection.style.display = 'none';
 
             const lang = localStorage.getItem('language') || 'ru';
 
@@ -1932,6 +2131,8 @@
                 } else {
                     // Already set by default
                 }
+            } else if (type === 'playlist') {
+                mixPlaylistSection.style.display = 'block';
             }
         }
 
@@ -2001,7 +2202,193 @@
             renderYouTubeTrackList();
         }
 
+        // ========= MIX PLAYLIST FUNCTIONS =========
+
+        // Add YouTube track to mix playlist
+        function addMixYouTubeTrack() {
+            const input = document.getElementById('mixYoutubeUrl');
+            const url = input.value.trim();
+
+            if (!url) {
+                alert('Введите YouTube URL или ID');
+                return;
+            }
+
+            const videoId = extractYouTubeId(url);
+            if (!videoId) {
+                alert('Не удалось извлечь ID видео. Проверьте URL.');
+                return;
+            }
+
+            // Check if already added
+            if (mixPlaylistTracks.some(t => t.type === 'youtube' && t.videoId === videoId)) {
+                alert('Это видео уже добавлено в плейлист');
+                return;
+            }
+
+            mixPlaylistTracks.push({
+                type: 'youtube',
+                videoId: videoId,
+                name: `YouTube: ${videoId}`,
+                title: `YouTube видео ${videoId}`
+            });
+
+            input.value = '';
+            renderMixPlaylistTracks();
+            console.log(`✅ Added YouTube track: ${videoId}`);
+        }
+
+        // Add local files to mix playlist
+        async function addMixLocalFiles() {
+            const input = document.getElementById('mixLocalFile');
+            const files = Array.from(input.files);
+
+            if (files.length === 0) {
+                alert('Выберите файлы для добавления');
+                return;
+            }
+
+            for (const file of files) {
+                // Check file size
+                const sizeCheck = checkFileSize(file);
+                if (!sizeCheck.ok) {
+                    alert(sizeCheck.message);
+                    continue;
+                }
+
+                try {
+                    // Read file as base64
+                    const fileData = await readFileAsBase64(file);
+
+                    mixPlaylistTracks.push({
+                        type: 'local',
+                        name: file.name,
+                        title: `🎵 ${file.name}`,
+                        data: fileData,
+                        size: file.size
+                    });
+
+                    console.log(`✅ Added local file: ${file.name}`);
+                } catch (error) {
+                    console.error('❌ Error reading file:', error);
+                    alert(`Ошибка чтения файла ${file.name}: ${error.message}`);
+                }
+            }
+
+            input.value = '';
+            renderMixPlaylistTracks();
+        }
+
+        // Add stream URL to mix playlist
+        function addMixStreamTrack() {
+            const urlInput = document.getElementById('mixStreamUrl');
+            const nameInput = document.getElementById('mixStreamName');
+            const url = urlInput.value.trim();
+            const name = nameInput.value.trim() || 'Поток';
+
+            if (!url) {
+                alert('Введите URL потока');
+                return;
+            }
+
+            // Check if already added
+            if (mixPlaylistTracks.some(t => t.type === 'stream' && t.url === url)) {
+                alert('Этот поток уже добавлен в плейлист');
+                return;
+            }
+
+            mixPlaylistTracks.push({
+                type: 'stream',
+                url: url,
+                name: name,
+                title: `📻 ${name}`
+            });
+
+            urlInput.value = '';
+            nameInput.value = '';
+            renderMixPlaylistTracks();
+            console.log(`✅ Added stream: ${name} (${url})`);
+        }
+
+        // Render mix playlist tracks
+        function renderMixPlaylistTracks() {
+            const container = document.getElementById('mixPlaylistTracks');
+
+            if (mixPlaylistTracks.length === 0) {
+                container.innerHTML = '<p style="opacity: 0.6; font-size: 14px;">Треки ещё не добавлены</p>';
+                return;
+            }
+
+            container.innerHTML = mixPlaylistTracks.map((track, index) => {
+                let icon = '';
+                let details = '';
+
+                if (track.type === 'youtube') {
+                    icon = '📺';
+                    details = `ID: ${track.videoId}`;
+                } else if (track.type === 'local') {
+                    icon = '🎵';
+                    details = `${formatFileSize(track.size)}`;
+                } else if (track.type === 'stream') {
+                    icon = '📻';
+                    details = track.url.substring(0, 50) + (track.url.length > 50 ? '...' : '');
+                }
+
+                return `
+                    <div class="track-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold;">${icon} ${escapeHtml(track.name)}</div>
+                            <div style="font-size: 12px; opacity: 0.7;">${details}</div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            ${index > 0 ? `<button type="button" class="btn btn-secondary btn-small" onclick="moveMixTrack(${index}, -1)">↑</button>` : ''}
+                            ${index < mixPlaylistTracks.length - 1 ? `<button type="button" class="btn btn-secondary btn-small" onclick="moveMixTrack(${index}, 1)">↓</button>` : ''}
+                            <button type="button" class="btn btn-danger btn-small" onclick="removeMixTrack(${index})">❌</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Remove track from mix playlist
+        function removeMixTrack(index) {
+            mixPlaylistTracks.splice(index, 1);
+            renderMixPlaylistTracks();
+        }
+
+        // Move track in mix playlist
+        function moveMixTrack(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= mixPlaylistTracks.length) return;
+
+            const temp = mixPlaylistTracks[index];
+            mixPlaylistTracks[index] = mixPlaylistTracks[newIndex];
+            mixPlaylistTracks[newIndex] = temp;
+
+            renderMixPlaylistTracks();
+        }
+
         document.getElementById('stationType').addEventListener('change', updateFormFields);
+
+        // Mix playlist track type selector handler
+        document.getElementById('mixTrackType').addEventListener('change', function() {
+            const trackType = this.value;
+            const youtubeInput = document.getElementById('mixYoutubeInput');
+            const localInput = document.getElementById('mixLocalInput');
+            const streamInput = document.getElementById('mixStreamInput');
+
+            youtubeInput.style.display = 'none';
+            localInput.style.display = 'none';
+            streamInput.style.display = 'none';
+
+            if (trackType === 'youtube') {
+                youtubeInput.style.display = 'block';
+            } else if (trackType === 'local') {
+                localInput.style.display = 'block';
+            } else if (trackType === 'stream') {
+                streamInput.style.display = 'block';
+            }
+        });
 
         // Playlist Editor Functions
         let currentEditingPlaylistIndex = null;
