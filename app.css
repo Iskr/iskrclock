@@ -12,7 +12,7 @@
     --best: #a8f0bf;
     --glass: rgba(0, 0, 0, .2);
     --glass-border: rgba(255, 255, 255, .12);
-    --pop: rgba(20, 22, 40, .88);
+    --pop: rgb(22, 24, 42);
     --shadow-text: 0 1px 10px rgba(0, 0, 0, .45);
     --shadow-digits: 0 2px 30px rgba(0, 0, 0, .2);
     --ease-hide: .45s;          /* hover-revealed controls linger before hiding */
@@ -211,6 +211,10 @@ iskr-sky {
     background: rgba(255, 255, 255, .12);
 }
 
+.tab-icon, .tab-short {
+    display: none;
+}
+
 .tabs a.active {
     background: #f4f3f8;
     color: #151935;
@@ -338,6 +342,16 @@ iskr-sky {
     text-shadow: 0 1px 10px rgba(0, 0, 0, .35);
 }
 
+.al-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.step.rename {
+    font-size: 15px;
+}
+
 .al-label {
     font-size: 16px;
     color: var(--ink-85);
@@ -405,14 +419,14 @@ iskr-sky {
 
 .al-head:hover .al-row,
 :is(.al-head:has(:focus-visible)) .al-row,
-.reveal-all .al-row {
+.touch .al-row {
     background: rgba(0, 0, 0, .22);
     transition-delay: 0s;
 }
 
 .al-head:hover .step,
 :is(.al-head:has(:focus-visible)) .step,
-.reveal-all .step {
+.touch .step {
     width: 32px;
     opacity: 1;
     pointer-events: auto;
@@ -655,10 +669,6 @@ iskr-sky {
     white-space: nowrap;
 }
 
-.player-music {
-    margin-top: 10px;
-}
-
 /* ◀◀ ▶▶ — flip through stations (or tracks of a playing playlist); shown with "Change" */
 .player-skip {
     display: flex;
@@ -698,18 +708,18 @@ iskr-sky {
 
 /* The alarm player opens while the pointer is over the toggle button or the player;
    the timer / stopwatch players open on their own hover */
-.al-ctl:hover .expand, :is(.al-ctl:has(:focus-visible)) .expand, .reveal-all .al-ctl .expand,
-.player-small:hover .expand, :is(.player-small:has(:focus-visible)) .expand, .reveal-all .player-small .expand,
+.al-ctl:hover .expand, :is(.al-ctl:has(:focus-visible)) .expand, .touch .al-ctl .expand,
+.player-small:hover .expand, :is(.player-small:has(:focus-visible)) .expand,
 .player.pop-open .expand {
     grid-template-rows: 1fr;
     opacity: 1;
     transition-delay: 0s;
 }
 
-.al-ctl:hover .player-change, :is(.al-ctl:has(:focus-visible)) .player-change, .reveal-all .player-change,
+.al-ctl:hover .player-change, :is(.al-ctl:has(:focus-visible)) .player-change, .touch .player-change,
 .player-small:hover .player-change, :is(.player-small:has(:focus-visible)) .player-change,
 .player.pop-open .player-change,
-.al-ctl:hover .player-skip, :is(.al-ctl:has(:focus-visible)) .player-skip, .reveal-all .player-skip,
+.al-ctl:hover .player-skip, :is(.al-ctl:has(:focus-visible)) .player-skip, .touch .player-skip,
 .player-small:hover .player-skip, :is(.player-small:has(:focus-visible)) .player-skip,
 .player.pop-open .player-skip {
     opacity: 1;
@@ -914,20 +924,16 @@ iskr-sky {
 /* Station list popping up above a player */
 .st-pop {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: -2px;
+    right: -2px;
     bottom: calc(100% + 8px);
     max-height: 340px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, .25) transparent;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 2px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+    display: flex;
+    flex-direction: column;
     padding: 6px;
     border-radius: 16px;
-    background: rgba(20, 22, 40, .86);
+    background: rgb(22, 24, 42);
     border: 1px solid rgba(255, 255, 255, .14);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -937,6 +943,18 @@ iskr-sky {
 .player-small .st-pop {
     max-height: 320px;
     background: var(--pop);
+}
+
+/* The list scrolls; the "add station" footer below it stays in place */
+.st-pop-list {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, .25) transparent;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2px;
 }
 
 .st-opt {
@@ -984,17 +1002,19 @@ iskr-sky {
 }
 
 .st-add {
-    grid-column: 1 / -1;
-    position: sticky;
-    bottom: -6px;
-    background: rgb(28, 30, 52);
+    flex: none;
     justify-content: center;
-    margin-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, .1);
-    border-radius: 0 0 10px 10px;
+    margin-top: 6px;
     color: var(--accent);
     font-size: 14px;
     font-weight: 600;
+}
+
+.st-add-sep {
+    flex: none;
+    height: 1px;
+    margin: 6px 4px 0;
+    background: rgba(255, 255, 255, .1);
 }
 
 .st-opt-mark {
@@ -1066,7 +1086,7 @@ iskr-sky {
 
 .digits.editable:hover .dstep,
 :is(.digits.editable:has(:focus-visible)) .dstep,
-.reveal-all .digits.editable .dstep {
+.touch .digits.editable .dstep {
     opacity: 1;
     pointer-events: auto;
     transition-delay: 0s;
@@ -1242,9 +1262,7 @@ iskr-sky {
 /* ===== Stations ===== */
 .big-player {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 16px 12px 22px;
+    flex-direction: column;
     width: 1100px;
     max-width: calc(100vw - 32px);
     background: rgba(0, 0, 0, .24);
@@ -1252,6 +1270,42 @@ iskr-sky {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: 18px;
+}
+
+.bp-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px 12px 22px;
+}
+
+/* Volume slides out under every player on hover */
+.big-player:hover .expand, :is(.big-player:has(:focus-visible)) .expand {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition-delay: 0s;
+}
+
+.big-player .vol-row {
+    padding: 10px 22px;
+}
+
+.sig-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+}
+
+.sig-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .big-player-text {
@@ -2155,6 +2209,10 @@ body.ringing .app {
         row-gap: 12px;
     }
 
+    .top-left {
+        min-width: 0;
+    }
+
     .tabs {
         grid-column: 1 / -1;
         grid-row: 2;
@@ -2183,6 +2241,123 @@ body.ringing .app {
     }
 }
 
+/* Phones: the tabs become a bottom tab bar */
+@media (max-width: 600px) {
+    .app {
+        padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    }
+
+    .tabs {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 15;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 2px;
+        max-width: none;
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+        border-radius: 18px 18px 0 0;
+        border-width: 1px 0 0;
+        background: rgba(14, 16, 32, .82);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        overflow: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .tabs a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 2px;
+        border-radius: 12px;
+        font-size: 11px;
+        min-width: 0;
+    }
+
+    .tab-icon {
+        display: block;
+        font-size: 18px;
+        line-height: 1.2;
+    }
+
+    .tab-full {
+        display: none;
+    }
+
+    .tab-short {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .tabs a.active {
+        background: rgba(255, 255, 255, .16);
+        color: var(--ink);
+    }
+
+    /* Demo and fullscreen don't fit next to the tab bar (fullscreen doesn't work on iPhone anyway) */
+    .corner, .demo-panel {
+        display: none !important;
+    }
+
+    .keys-hint {
+        display: none;
+    }
+
+    .big-btns {
+        width: calc(100vw - 32px);
+        max-width: 520px;
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+
+    .btn-accent, .btn-glass {
+        flex: 1;
+        min-width: 0;
+        padding: 0 10px;
+    }
+
+    .presets {
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .preset {
+        padding: 0 11px;
+        font-size: 13px;
+    }
+
+    .mine-row {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+
+    .mine-row .tile-text {
+        flex: 1 1 calc(100% - 44px);
+    }
+
+    .mine-row .badge, .mine-row .row-link.accent {
+        margin-left: 40px;
+    }
+
+    .mine-row .row-link:not(.accent) {
+        margin-left: auto;
+    }
+
+    .sl-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        text-align: center;
+        padding: 0 16px;
+    }
+}
+
 @media (max-width: 600px) {
     .top {
         padding: 16px 16px 12px;
@@ -2190,10 +2365,6 @@ body.ringing .app {
 
     .top-left .plaque, .top-right .plaque {
         max-width: 150px;
-    }
-
-    .tabs a {
-        padding: 8px 12px;
     }
 
     .al-row {
@@ -2224,30 +2395,40 @@ body.ringing .app {
         display: none;
     }
 
-    .big-player {
+    .bp-row {
         padding: 10px 12px;
         gap: 8px;
+    }
+
+    .big-player .vol-row {
+        padding: 10px 12px;
     }
 
     .big-player-name {
         font-size: 20px;
     }
 
-    .big-btns {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .btn-accent {
-        min-width: 160px;
-    }
-
-    .btn-glass {
-        min-width: 110px;
-    }
-
-    .st-pop {
+    .st-pop-list {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .player-row {
+        gap: 10px;
+    }
+
+    .player-skip {
+        gap: 4px;
+    }
+
+    .skip {
+        width: 28px;
+        height: 28px;
+    }
+
+    .player-state {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .ring-stop, .ring-snooze {
@@ -2282,7 +2463,7 @@ body.ringing .app {
         min-width: 0;
     }
 
-    .reveal-all .step {
+    .touch .step {
         width: 44px;
     }
 
@@ -2306,6 +2487,10 @@ body.ringing .app {
     }
 }
 
-.st-add:hover {
-    background: rgb(40, 42, 66);
+/* Tall narrow screens (phones): the landscape is cropped at the sides — keep the house
+   and the trees on the left in view instead of the empty middle */
+@media (max-aspect-ratio: 4/5) {
+    iskr-sky canvas {
+        object-position: 4% 80% !important;
+    }
 }

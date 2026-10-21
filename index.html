@@ -10,10 +10,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="app.css?v=6.0.3">
+    <link rel="stylesheet" href="app.css?v=6.3">
     <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
-    <script src="iskr-sky.js?v=6.0.1"></script>
+    <script src="iskr-sky.js?v=6.2"></script>
     <script src="media.js?v=6.0"></script>
 </head>
 <body>
@@ -35,11 +35,11 @@
             </div>
 
             <nav class="tabs ui" id="tabs">
-                <a href="#alarms" data-tab="alarms" data-i18n="tabAlarms">Будильники</a>
-                <a href="#timer" data-tab="timer" data-i18n="tabTimer">Таймер</a>
-                <a href="#stopwatch" data-tab="stopwatch" data-i18n="tabStopwatch">Секундомер</a>
-                <a href="#stations" data-tab="stations" data-i18n="tabStations">Станции</a>
-                <a href="#sleep" data-tab="sleep" data-i18n="tabSleep">Калькулятор сна</a>
+                <a href="#alarms" data-tab="alarms"><span class="tab-icon" aria-hidden="true">⏰️</span><span class="tab-full" data-i18n="tabAlarms">Будильники</span><span class="tab-short" data-i18n="tabAlarmsShort">Будильники</span></a>
+                <a href="#timer" data-tab="timer"><span class="tab-icon" aria-hidden="true">⏲️</span><span class="tab-full" data-i18n="tabTimer">Таймер</span><span class="tab-short" data-i18n="tabTimerShort">Таймер</span></a>
+                <a href="#stopwatch" data-tab="stopwatch"><span class="tab-icon" aria-hidden="true">⏱️</span><span class="tab-full" data-i18n="tabStopwatch">Секундомер</span><span class="tab-short" data-i18n="tabStopwatchShort">Секундомер</span></a>
+                <a href="#stations" data-tab="stations"><span class="tab-icon" aria-hidden="true">📻</span><span class="tab-full" data-i18n="tabStations">Станции</span><span class="tab-short" data-i18n="tabStationsShort">Станции</span></a>
+                <a href="#sleep" data-tab="sleep"><span class="tab-icon" aria-hidden="true">🌙</span><span class="tab-full" data-i18n="tabSleep">Калькулятор сна</span><span class="tab-short" data-i18n="tabSleepShort">Калькулятор сна</span></a>
             </nav>
 
             <div class="top-right">
@@ -69,7 +69,10 @@
                         <div class="clock-num" id="clockM">00</div>
                     </div>
                     <div class="al-row">
-                        <input class="al-label" id="alLabel" maxlength="30" spellcheck="false" aria-label="Название будильника">
+                        <div class="al-name">
+                            <input class="al-label" id="alLabel" maxlength="30" spellcheck="false" aria-label="Название будильника">
+                            <button class="step rename" id="alRename">✎</button>
+                        </div>
                         <div class="al-time">
                             <button class="step" data-act="alH" data-d="-1" aria-label="−1 ч">−</button>
                             <span class="al-num" id="alH">07</span>
@@ -172,31 +175,7 @@
                     <button class="btn-accent" id="tmMain"></button>
                     <button class="btn-glass" id="tmReset" data-i18n="reset">Сброс</button>
                 </div>
-                <div class="player player-small" id="tmPlayer">
-                    <div class="player-row">
-                        <button class="player-play" id="tmPlay" aria-label="Play">▶</button>
-                        <div class="player-text">
-                            <span class="player-state" id="tmPlayState"></span>
-                            <span class="player-name" id="tmPlayName"></span>
-                        </div>
-                        <div class="player-skip">
-                            <button class="skip" data-skip="tm" data-d="-1">◀◀</button>
-                            <button class="skip" data-skip="tm" data-d="1">▶▶</button>
-                        </div>
-                        <a class="player-change" id="tmChange" role="button" tabindex="0"></a>
-                    </div>
-                    <div class="st-pop" id="tmList" hidden></div>
-                    <div class="expand">
-                        <div class="expand-inner">
-                            <div class="vol-row">
-                                <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
-                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
-                                <span class="vol-val" data-vol-val></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="player player-small player-music" id="muPlayer">
+                <div class="player player-small" id="muPlayer">
                     <div class="player-row">
                         <button class="player-play" id="muPlay" aria-label="Play">▶</button>
                         <div class="player-text">
@@ -210,6 +189,7 @@
                         <a class="player-change" id="muChange" role="button" tabindex="0"></a>
                     </div>
                     <div class="st-pop" id="muList" hidden></div>
+                    <div class="st-pop" id="tmList" hidden></div>
                     <div class="expand">
                         <div class="expand-inner">
                             <div class="vol-row">
@@ -217,10 +197,15 @@
                                 <input type="range" class="vol" min="0" max="100" step="5" data-vol>
                                 <span class="vol-val" data-vol-val></span>
                             </div>
+                            <div class="sig-row">
+                                <span class="opt-label" data-i18n="timerSignal">Сигнал по окончании</span>
+                                <span class="sig-name" id="tmSigName"></span>
+                                <a class="accent-link" id="tmChange" role="button" tabindex="0"></a>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <p class="hint ui" data-i18n="timerHint"></p>
+                <p class="hint ui keys-hint" data-i18n="timerHint"></p>
             </section>
 
             <!-- ===== Секундомер ===== -->
@@ -260,20 +245,31 @@
                     </div>
                 </div>
                 <div class="laps" id="swLaps"></div>
-                <p class="hint ui" data-i18n="stopwatchHint"></p>
+                <p class="hint ui keys-hint" data-i18n="stopwatchHint"></p>
             </section>
 
             <!-- ===== Станции ===== -->
             <section class="sec sec-stations" data-sec="stations" hidden>
                 <div class="big-player">
-                    <div class="big-player-text">
-                        <span class="player-state" id="bpState"></span>
-                        <span class="big-player-name" id="bpName"></span>
-                        <span class="big-player-sub" id="bpSub"></span>
+                    <div class="bp-row">
+                        <div class="big-player-text">
+                            <span class="player-state" id="bpState"></span>
+                            <span class="big-player-name" id="bpName"></span>
+                            <span class="big-player-sub" id="bpSub"></span>
+                        </div>
+                        <button class="round" id="bpPrev">◀◀</button>
+                        <button class="round round-accent" id="bpPlay">▶</button>
+                        <button class="round" id="bpNext">▶▶</button>
                     </div>
-                    <button class="round" id="bpPrev">◀◀</button>
-                    <button class="round round-accent" id="bpPlay">▶</button>
-                    <button class="round" id="bpNext">▶▶</button>
+                    <div class="expand">
+                        <div class="expand-inner">
+                            <div class="vol-row">
+                                <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
+                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                <span class="vol-val" data-vol-val></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="st-grid ui">
                     <div class="st-col">
@@ -394,6 +390,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=6.0.3"></script>
+    <script src="app.js?v=6.3"></script>
 </body>
 </html>

@@ -12,9 +12,15 @@ const I18N = {
         tabStopwatch: 'Секундомер',
         tabStations: 'Станции',
         tabSleep: 'Калькулятор сна',
+        tabAlarmsShort: 'Будильник',
+        tabTimerShort: 'Таймер',
+        tabStopwatchShort: 'Секундомер',
+        tabStationsShort: 'Станции',
+        tabSleepShort: 'Сон',
         alarmDefault: 'Будильник',
         alarmN: 'Будильник {n}',
         alarmLabelAria: 'Название будильника',
+        rename: 'Переименовать будильник',
         until: (h, m) => 'через ' + (h ? h + ' ч ' : '') + m + ' мин',
         alarmOff: 'выключен',
         toggleOn: 'Включить будильник',
@@ -139,9 +145,15 @@ const I18N = {
         tabStopwatch: 'Stopwatch',
         tabStations: 'Stations',
         tabSleep: 'Sleep calculator',
+        tabAlarmsShort: 'Alarms',
+        tabTimerShort: 'Timer',
+        tabStopwatchShort: 'Stopwatch',
+        tabStationsShort: 'Stations',
+        tabSleepShort: 'Sleep',
         alarmDefault: 'Alarm',
         alarmN: 'Alarm {n}',
         alarmLabelAria: 'Alarm name',
+        rename: 'Rename alarm',
         until: (h, m) => 'in ' + (h ? h + ' h ' : '') + m + ' min',
         alarmOff: 'off',
         toggleOn: 'Turn alarm on',
@@ -336,7 +348,7 @@ const state = {
     alarms: [],
     selectedAlarmId: null,
     volume: 50,
-    playerKey: 'fip',
+    playerKey: 'hermitage',
     timer: { h: 0, m: 5, s: 0, total: 0, remain: 0, end: 0, running: false, done: false, station: 'classic' },
     sw: { acc: 0, start: 0, running: false, laps: [] },
     sleep: { mode: 'wake', h: 7, m: 30 },
@@ -379,7 +391,7 @@ function loadAlarms(keyMap) {
             writeJSON('alarmSettings_v1', saved);
         }
         const old = saved || {};
-        let station = localStorage.getItem('selectedStation') || 'classic';
+        let station = localStorage.getItem('selectedStation') || 'hermitage';
         station = keyMap[station] || station;
         const hour = parseInt(old.hour, 10), minute = parseInt(old.minute, 10), snooze = parseInt(old.snooze, 10), volume = parseInt(old.volume, 10);
         const alarm = newAlarm(hour >= 0 && hour <= 23 ? hour : 7, minute >= 0 && minute <= 59 ? minute : 30);
@@ -495,13 +507,26 @@ function playingKey() {
     return s.playing ? s.key : null;
 }
 
+// There is one player for the whole app: whatever is played becomes "the" station
+// that the players on every tab show
+function previewPlay(key, options = {}) {
+    setPlayerKey(key);
+    engine.play(key, { purpose: 'preview', startAt: options.startAt });
+}
+
 // ▶ / ❚❚ for a station: preview it, or stop it if it is what's playing now
 function togglePreview(key, options = {}) {
     if (playingKey() === key && options.startAt == null) {
         engine.stop();
         return;
     }
-    engine.play(key, { purpose: 'preview', startAt: options.startAt });
+    previewPlay(key, options);
+}
+
+// The ▶ / ❚❚ button of a tab's player: stops whatever plays, otherwise plays `key`
+function togglePlayer(key) {
+    if (playingKey()) engine.stop();
+    else previewPlay(key);
 }
 
 function setPlayerKey(key) {
@@ -913,6 +938,8 @@ function renderAlarms() {
     if (document.activeElement !== label) label.value = alarm.label || t('alarmDefault');
     fitLabel();
     label.setAttribute('aria-label', t('alarmLabelAria'));
+    $('alRename').title = t('rename');
+    $('alRename').setAttribute('aria-label', t('rename'));
     setText('alH', pad(alarm.h));
     setText('alM', pad(alarm.m));
     setText('alUntil', untilText(alarm));
@@ -948,9 +975,10 @@ function renderAlarms() {
 function stationPopup(boxId, currentKey, onPick) {
     const box = $(boxId);
     box.textContent = '';
+    const list = h('div', { class: 'st-pop-list' });
     allStations().forEach(entry => {
         const cur = entry.key === currentKey;
-        box.append(h('button', {
+        list.append(h('button', {
             class: 'st-opt' + (cur ? ' cur' : ''),
             onclick: () => {
                 state.popup = null;
@@ -963,7 +991,7 @@ function stationPopup(boxId, currentKey, onPick) {
         h('span', { class: 'st-opt-mark', text: cur ? '✓' : '' })));
     });
     // Leads to the "new station" form on the Stations tab
-    box.append(h('button', {
+    box.append(list, h('div', { class: 'st-add-sep' }), h('button', {
         class: 'st-opt st-add',
         text: t('addStation'),
         onclick: () => {
@@ -971,7 +999,7 @@ function stationPopup(boxId, currentKey, onPick) {
             state.editId = null;
             location.hash = '#stations';
             setTab('stations');
-            showUi(isTouch ? 4000 : 0);
+            showUi(0);
             $('fName').focus();
         }
     }));
@@ -992,30 +1020,37 @@ function renderSmallPlayer(prefix, key, idleText, popupId, onPick) {
     });
     const open = state.popup === popupId;
     setText(prefix + 'Change', open ? t('hide') : t('change'));
-    $(prefix + 'Player').classList.toggle('pop-open', open);
+    $(prefix + 'Player').classList.toggle('pop-open', open || (prefix === 'mu' && state.popup === 'tm'));
     const list = $(prefix + 'List');
     list.hidden = !open;
     if (open) stationPopup(prefix + 'List', key, onPick);
 }
 
+// Every tab shows the same player: what's playing now. When nothing plays, the alarms
+// tab shows the selected alarm's sound (picking a station there sets it), the other
+// tabs — the last played station. A station picked from a list starts playing at once.
 function renderPlayers() {
     const alarm = selectedAlarm();
-    // A station picked from a list starts playing right away
-    renderSmallPlayer('al', alarm.station, t('alarmSignal'), 'al', key => {
+    const playing = playingKey();
+    renderSmallPlayer('al', playing || alarm.station, t('alarmSignal'), 'al', key => {
         updateAlarm(a => { a.station = key; });
-        engine.play(key, { purpose: 'preview' });
+        previewPlay(key);
     });
-    renderSmallPlayer('tm', state.timer.station, t('timerSignal'), 'tm', key => {
-        state.timer.station = key;
-        saveTimer();
-        engine.play(key, { purpose: 'preview' });
-    });
-    const pickMusic = key => {
-        setPlayerKey(key);
-        engine.play(key, { purpose: 'preview' });
-    };
-    renderSmallPlayer('sw', state.playerKey, t('swMusic'), 'sw', pickMusic);
-    renderSmallPlayer('mu', state.playerKey, t('swMusic'), 'mu', pickMusic);
+    renderSmallPlayer('sw', playing || state.playerKey, t('swMusic'), 'sw', key => previewPlay(key));
+    renderSmallPlayer('mu', playing || state.playerKey, t('swMusic'), 'mu', key => previewPlay(key));
+
+    // The timer's end signal is a setting inside the timer tab's player
+    const sigOpen = state.popup === 'tm';
+    setText('tmSigName', stationEntry(state.timer.station).name);
+    setText('tmChange', sigOpen ? t('hide') : t('change'));
+    $('tmList').hidden = !sigOpen;
+    if (sigOpen) {
+        stationPopup('tmList', state.timer.station, key => {
+            state.timer.station = key;
+            saveTimer();
+            previewPlay(key);
+        });
+    }
     document.querySelectorAll('[data-vol]').forEach(input => {
         if (document.activeElement !== input) input.value = state.volume;
     });
@@ -1028,31 +1063,19 @@ function neighbourStation(key, delta) {
     return list[(i + delta + list.length) % list.length].key;
 }
 
-// ◀◀ ▶▶ in a player: plays the next station (and makes it the alarm / timer signal);
-// for music — the next track of a playing playlist, otherwise the next station
+// ◀◀ ▶▶ in a player: the next track of a playing playlist, otherwise the next station
+// (on the alarms tab it also becomes the alarm's sound)
 function skipPlayer(which, delta) {
-    if (which === 'al' || which === 'tm') {
-        const old = which === 'al' ? selectedAlarm().station : state.timer.station;
-        const next = neighbourStation(old, delta);
-        if (which === 'al') {
-            updateAlarm(a => { a.station = next; });
-        } else {
-            state.timer.station = next;
-            saveTimer();
-        }
-        engine.play(next, { purpose: 'preview' });
-        return;
-    }
-    const key = state.playerKey;
+    const shown = playingKey() || (which === 'al' ? selectedAlarm().station : state.playerKey);
     const s = engine.getState();
-    const custom = findCustomStation(key);
-    if (s.playing && s.key === key && custom && custom.items.length > 1) {
+    const custom = findCustomStation(shown);
+    if (s.playing && s.key === shown && custom && custom.items.length > 1) {
         engine.step(delta);
         return;
     }
-    const next = neighbourStation(key, delta);
-    setPlayerKey(next);
-    engine.play(next, { purpose: 'preview' });
+    const next = neighbourStation(shown, delta);
+    if (which === 'al') updateAlarm(a => { a.station = next; });
+    previewPlay(next);
 }
 
 // Everything that depends on what's playing
@@ -1336,8 +1359,7 @@ function stepStation(delta) {
     const list = allStations();
     const i = Math.max(0, list.findIndex(x => x.key === key));
     const next = list[(i + delta + list.length) % list.length].key;
-    setPlayerKey(next);
-    engine.play(next, { purpose: 'preview' });
+    previewPlay(next);
 }
 
 function renderStations() {
@@ -1401,7 +1423,7 @@ async function deleteStation(id) {
     saveCustomStations(stations.filter(s => s.id !== id));
     state.alarms.forEach(a => { if (a.station === key) a.station = 'classic'; });
     if (state.timer.station === key) state.timer.station = 'classic';
-    if (state.playerKey === key) setPlayerKey('fip');
+    if (state.playerKey === key) setPlayerKey('hermitage');
     if (state.editId === id) state.editId = null;
     saveAlarms();
     saveTimer();
@@ -1492,8 +1514,7 @@ async function saveNewStation() {
         state.draft = [];
         $('fName').value = '';
         $('fLink').value = '';
-        setPlayerKey('custom-' + id);
-        engine.play('custom-' + id, { purpose: 'preview' });
+        previewPlay('custom-' + id);
         renderStations();
     } catch (error) {
         alert(t('saveError', { error: error.message }));
@@ -1540,8 +1561,7 @@ function renderEditor() {
         const now = s.playing && s.key === key && s.itemIndex === i;
         list.append(h('div', { class: 'ed-item' + (now ? ' now' : '') },
             h('button', { class: 'ed-n', text: String(i + 1), title: t('playFrom'), onclick: () => {
-                setPlayerKey(key);
-                engine.play(key, { purpose: 'preview', startAt: i });
+                previewPlay(key, { startAt: i });
             } }),
             h('span', { class: 'kind', text: t('kinds')[item.k] }),
             h('span', { class: 'ed-text' },
@@ -1699,19 +1719,21 @@ function renderAll() {
 // ========= SHOW CONTROLS ON HOVER / TAP =========
 const app = $('app');
 let uiHideTimeout = null;
+// Touch screens have no hover: there the controls are always shown (hiding them
+// left holes in the layout and made everything jump on the first tap)
 const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+if (isTouch) document.documentElement.classList.add('touch');
 
 function showUi(hideAfter) {
     clearTimeout(uiHideTimeout);
     app.classList.add('ui-on');
-    if (isTouch) app.classList.add('reveal-all');
     if (hideAfter) uiHideTimeout = setTimeout(hideUi, hideAfter);
 }
 
 function hideUi() {
     // Keep controls visible while a list or the editor is open
-    if (state.popup || state.chipsOpen) return;
-    app.classList.remove('ui-on', 'reveal-all');
+    if (isTouch || state.popup || state.chipsOpen) return;
+    app.classList.remove('ui-on');
 }
 
 // While the pointer rests over the page the controls fade after a few idle seconds,
@@ -1738,9 +1760,7 @@ document.documentElement.addEventListener('mouseleave', () => {
     clearTimeout(uiHideTimeout);
     uiHideTimeout = setTimeout(hideUi, 400);
 });
-document.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'touch' || isTouch) showUi(4000);
-}, { passive: true });
+if (isTouch) app.classList.add('ui-on');
 
 // ========= EVENTS =========
 function bindEvents() {
@@ -1782,6 +1802,10 @@ function bindEvents() {
         updateAlarm(a => { a.label = value === t('alarmDefault') ? '' : value; });
     });
     label.addEventListener('keydown', e => { if (e.key === 'Enter') label.blur(); });
+    $('alRename').addEventListener('click', () => {
+        label.focus();
+        label.select();
+    });
     $('alToggle').addEventListener('click', () => {
         engine.unlock(); // unlock audio playback on this click
         updateAlarm(a => { a.on = !a.on; });
@@ -1797,7 +1821,7 @@ function bindEvents() {
         armAll();
         renderAlarms();
     });
-    $('alPlay').addEventListener('click', () => togglePreview(selectedAlarm().station));
+    $('alPlay').addEventListener('click', () => togglePlayer(selectedAlarm().station));
 
     // Players: "Change" opens the station list
     document.querySelectorAll('.skip').forEach(b => b.addEventListener('click', () => skipPlayer(b.dataset.skip, +b.dataset.d)));
@@ -1819,9 +1843,8 @@ function bindEvents() {
             renderChips();
         }
     });
-    $('tmPlay').addEventListener('click', () => togglePreview(state.timer.station));
-    $('swPlay').addEventListener('click', () => togglePreview(state.playerKey));
-    $('muPlay').addEventListener('click', () => togglePreview(state.playerKey));
+    $('swPlay').addEventListener('click', () => togglePlayer(state.playerKey));
+    $('muPlay').addEventListener('click', () => togglePlayer(state.playerKey));
 
     // Volume (all sliders share one value)
     document.querySelectorAll('[data-vol]').forEach(input => {
@@ -1859,8 +1882,7 @@ function bindEvents() {
     // Stations
     $('bpPlay').addEventListener('click', () => {
         const key = currentPlayerKey();
-        if (playingKey()) engine.stop();
-        else engine.play(key, { purpose: 'preview' });
+        togglePlayer(key);
     });
     $('bpPrev').addEventListener('click', () => stepStation(-1));
     $('bpNext').addEventListener('click', () => stepStation(1));
