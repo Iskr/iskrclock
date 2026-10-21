@@ -844,7 +844,7 @@
         const BUILTIN_STATIONS = [
             { value: 'bbc-radio-1', label: '📻 BBC Radio 1' },
             { value: 'npr', label: '📻 NPR (National Public Radio)' },
-            { value: 'ninja-chill', label: '🥷 NINJA CHILL 24/7' },
+            { value: 'ninja-chill', label: '🥷 NINJA RADIO 24/7' },
             { value: 'nts-1', label: '🎧 NTS Radio 1 (London)' },
             { value: 'nts-2', label: '🎧 NTS Radio 2 (London)' },
             { value: 'rinse-france', label: '🎧 Rinse France (Paris)' },
@@ -869,7 +869,11 @@
             'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
             'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
             'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
-            'rinse-uk': 'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
+            // Несколько адресов: каждая следующая попытка переподключения берёт следующий
+            'rinse-uk': [
+                'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
+                'https://streamer-uk.rinse.fm:8443/stream'
+            ],
             // Французские станции
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
@@ -885,15 +889,17 @@
             'kurs-radio': 'https://listen9.myradio24.com/kursradio'
         };
 
-        // Станции, которые без CORS прокси не отдаются браузеру (прокси из media.js)
-        const needsCorsProxy = ['rinse-uk'];
+        // Станции, которые без CORS прокси не отдаются браузеру (прокси из media.js).
+        // Сейчас таких нет: <audio> без crossOrigin играет потоки без CORS-заголовков,
+        // а бесплатные прокси нестабильны (из-за них и «умирал» Rinse UK).
+        const needsCorsProxy = [];
 
         // HLS streams that need hls.js (or native HLS on Safari)
         const hlsStreams = ['bbc-radio-1'];
 
         // YouTube станции (ID видео)
         const youtubeStreams = {
-            'ninja-chill': 'vgQyWl3EObY'
+            'ninja-chill': '7bdP1Ion2xk'
         };
 
         // ========= PLAYBACK SETTINGS =========
@@ -1014,8 +1020,9 @@
                 return (s, ctx) => createYouTubeAdapter(youtubeStreams[stationValue], ctx, false);
             }
 
-            const url = radioStreams[stationValue];
-            if (!url) return null;
+            const urls = [].concat(radioStreams[stationValue] || []);
+            if (urls.length === 0) return null;
+            const url = urls[0];
 
             if (hlsStreams.includes(stationValue)) {
                 return (s, ctx) => createHlsAdapter(url, ctx, s.attempt - 1);
@@ -1024,7 +1031,8 @@
                 // Every new attempt goes through the next proxy
                 return (s, ctx) => createAudioAdapter(getProxiedURL(url, s.attempt - 1), ctx);
             }
-            return (s, ctx) => createAudioAdapter(url, ctx);
+            // Stations with several mirrors: every new attempt tries the next address
+            return (s, ctx) => createAudioAdapter(urls[(s.attempt - 1) % urls.length], ctx);
         }
 
         // ========= RESILIENT PLAYBACK SESSION =========
