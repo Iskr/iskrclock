@@ -275,7 +275,8 @@ async function migrateOldStation(old, index, dbReady) {
                 }
                 station.items.push(item);
             }
-        } else if (dbReady && old.id) {
+        } else if (old.id) {
+            if (!dbReady) throw new Error('IndexedDB is not available');
             const records = await loadFilesFromDB(old.id);
             station.items = records.map(record => ({ k: 'file', fileId: record.id, name: record.name, size: fileSizeOf(record.data) }));
         }
@@ -291,29 +292,48 @@ async function migrateOldStation(old, index, dbReady) {
     return station;
 }
 
-// Converts custom stations from older versions. Returns a map old selection value → new key
-// so the alarm keeps its station ("custom-3" by index or "custom-<id>").
+// Converts custom stations from older versions; runs on every load and does nothing
+// once everything is converted. A station whose files can't be read yet (IndexedDB
+// unavailable or failing) keeps its original data in `legacy` and is finished on a later
+// load — nothing is dropped. Returns a map old selection value → new key, so the alarm
+// keeps its station ("custom-3" by index or "custom-<id>").
 async function migrateCustomStations(dbReady) {
     const keyMap = {};
-    if (readJSON(SCHEMA_KEY, 0) >= SCHEMA_VERSION) return keyMap;
-
     const raw = localStorage.getItem(STATIONS_KEY);
-    const old = readJSON(STATIONS_KEY, []);
+    const list = readJSON(STATIONS_KEY, []);
+    const needsWork = Array.isArray(list) && list.some(s => s && (!Array.isArray(s.items) || s.legacy));
+    if (!needsWork) {
+        localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
+        return keyMap;
+    }
     if (raw && localStorage.getItem(STATIONS_BACKUP_KEY) == null) {
         localStorage.setItem(STATIONS_BACKUP_KEY, raw);
     }
 
-    if (Array.isArray(old) && old.length) {
-        const migrated = [];
-        for (let i = 0; i < old.length; i++) {
-            const station = old[i] && Array.isArray(old[i].items) ? old[i] : await migrateOldStation(old[i] || {}, i, dbReady);
-            migrated.push(station);
-            keyMap['custom-' + i] = 'custom-' + station.id;
-            if (old[i] && old[i].id) keyMap['custom-' + old[i].id] = 'custom-' + station.id;
+    let pending = false;
+    const migrated = [];
+    for (let i = 0; i < list.length; i++) {
+        const entry = list[i] || {};
+        let station = entry;
+        if (!Array.isArray(entry.items) || entry.legacy) {
+            const old = entry.legacy || entry;
+            try {
+                const converted = await migrateOldStation(old, i, dbReady);
+                // Items the user added while the station was waiting for its files stay too
+                station = { ...converted, ...(entry.legacy ? { name: entry.name, shuffle: entry.shuffle, loop: entry.loop } : {}), items: [...converted.items, ...(entry.legacy ? entry.items : [])] };
+            } catch (error) {
+                console.warn('⚠️ Station kept for a later migration:', old.name, error);
+                pending = true;
+                station = { id: old.id || 'legacy' + i, name: entry.name || old.name || 'Station ' + (i + 1), items: entry.legacy ? entry.items : [], shuffle: false, loop: true, legacy: old };
+            }
         }
-        saveCustomStations(migrated);
+        migrated.push(station);
+        keyMap['custom-' + i] = 'custom-' + station.id;
+        const oldId = (entry.legacy || entry).id;
+        if (oldId) keyMap['custom-' + oldId] = 'custom-' + station.id;
     }
-    localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
+    saveCustomStations(migrated);
+    localStorage.setItem(SCHEMA_KEY, pending ? '1' : String(SCHEMA_VERSION));
     return keyMap;
 }
 

@@ -44,6 +44,7 @@ const I18N = {
         weekends: 'Выходные',
         delete: 'Удалить',
         alarmHint: 'Будильник срабатывает, пока эта вкладка открыта. Экран не будет гаснуть, пока есть включённый будильник.',
+        unlockHint: 'Нажмите в любом месте страницы, чтобы будильник смог включить звук',
         timerHint: 'Пробел — старт или пауза, R — сброс',
         stopwatchHint: 'Пробел — старт или пауза, L — круг, R — сброс',
         timerRunning: 'Таймер запущен',
@@ -169,6 +170,7 @@ const I18N = {
         weekends: 'Weekends',
         delete: 'Delete',
         alarmHint: 'Alarms ring while this tab is open. The screen stays on while an alarm is enabled.',
+        unlockHint: 'Click anywhere on the page so the alarm is allowed to play sound',
         timerHint: 'Space — start or pause, R — reset',
         stopwatchHint: 'Space — start or pause, L — lap, R — reset',
         timerRunning: 'Timer running',
@@ -638,6 +640,27 @@ function updateWakeLock() {
     }
 }
 
+// ========= AUDIO UNLOCK =========
+// Browsers only allow sound after the user has interacted with the page. Alarms are now
+// remembered as "on" across reloads, so after a reload nobody may have clicked yet:
+// unlock audio on the first interaction and ask for one while an alarm is waiting.
+let audioUnlocked = false;
+
+function hasUserActivation() {
+    return audioUnlocked || !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+}
+
+function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    engine.unlock();
+    renderUnlockHint();
+}
+
+function renderUnlockHint() {
+    $('unlockHint').hidden = hasUserActivation() || !state.alarms.some(a => a.on);
+}
+
 // ========= SKY, ACCENT, DEMO =========
 const sky = $('sky');
 
@@ -790,8 +813,10 @@ function daysText(days) {
 // ========= ALARMS UI =========
 function updateAlarm(fn) {
     const alarm = selectedAlarm();
+    const before = JSON.stringify([alarm.h, alarm.m, alarm.days, alarm.on]);
     fn(alarm);
-    alarm.snoozeUntil = null;
+    // A new time, days or on/off cancel a pending snooze; other settings keep it
+    if (JSON.stringify([alarm.h, alarm.m, alarm.days, alarm.on]) !== before) alarm.snoozeUntil = null;
     arm(alarm);
     scheduleAlarmTimeout();
     updateWakeLock();
@@ -911,6 +936,7 @@ function renderAlarms() {
         }));
     });
     setText('alDaysText', daysText(alarm.days));
+    renderUnlockHint();
     $('alDelete').style.visibility = state.alarms.length > 1 ? 'visible' : 'hidden';
 
     renderPlayers();
@@ -1625,7 +1651,26 @@ function hideUi() {
     app.classList.remove('ui-on', 'reveal-all');
 }
 
-document.addEventListener('mousemove', () => { if (!isTouch) showUi(); });
+// While the pointer rests over the page the controls fade after a few idle seconds,
+// unless it rests on a control itself
+const UI_IDLE_MS = 4000;
+const KEEP_UI = 'button, a, input, label, .player, .tabs, .lang, .chips, .al-head, .digits, .seg, .st-grid, .big-player, .sl-cards, .corner, .demo-panel, .plaque';
+let lastPointerTarget = null;
+
+function hideUiWhenIdle() {
+    if (lastPointerTarget && lastPointerTarget.closest && lastPointerTarget.closest(KEEP_UI)) {
+        uiHideTimeout = setTimeout(hideUiWhenIdle, UI_IDLE_MS);
+        return;
+    }
+    hideUi();
+}
+
+document.addEventListener('mousemove', e => {
+    if (isTouch) return;
+    lastPointerTarget = e.target;
+    showUi();
+    uiHideTimeout = setTimeout(hideUiWhenIdle, UI_IDLE_MS);
+});
 document.documentElement.addEventListener('mouseleave', () => {
     clearTimeout(uiHideTimeout);
     uiHideTimeout = setTimeout(hideUi, 400);
@@ -1636,6 +1681,8 @@ document.addEventListener('pointerdown', e => {
 
 // ========= EVENTS =========
 function bindEvents() {
+    document.addEventListener('pointerdown', unlockAudio, true);
+    document.addEventListener('keydown', unlockAudio, true);
     window.addEventListener('hashchange', () => setTab(location.hash.slice(1)));
 
     document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => {
@@ -1730,8 +1777,8 @@ function bindEvents() {
 
     // Keyboard shortcuts for the timer and the stopwatch
     document.addEventListener('keydown', e => {
-        const tag = e.target.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.ctrlKey || e.metaKey || e.altKey || state.ringing) return;
+        // Space on a focused button already presses it — don't toggle a second time
+        if (e.target.closest('input, textarea, select, button, a, [role="button"], [role="switch"]') || e.ctrlKey || e.metaKey || e.altKey || state.ringing) return;
         if (state.tab === 'timer') {
             if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
             else if (e.code === 'KeyR') resetTimer();
@@ -1880,6 +1927,7 @@ async function init() {
     }
 
     bindEvents();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLabel);
     armAll();
     updateSky();
     applyLanguage();
