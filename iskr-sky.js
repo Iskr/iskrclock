@@ -547,11 +547,15 @@ class IskrSky extends HTMLElement {
     const rc = this.refl.getContext('2d'), RH = 170, LD = 110;
     rc.setTransform(1, 0, 0, 1, 0, 0); rc.clearRect(0, 0, this.refl.width, this.refl.height);
     rc.drawImage(this.cv, 0, Math.round((HZ - RH) * pr), this.cv.width, Math.round(RH * pr), 0, 0, this.refl.width, this.refl.height);
+    // Rows go to whole device pixels: with a fractional scale they would leave seams (stripes on the water)
+    c.setTransform(1, 0, 0, 1, 0, 0);
     for (let r = 0; r < LD; r++) {
       const src = RH - 1 - r * 1.45; if (src < 0) break;
       const amp = 0.5 + r * 0.05, dx = this._still ? 0 : Math.sin(time * 1.3 + r * 0.42) * amp + Math.sin(time * 0.6 + r * 0.11) * amp * 0.7;
-      c.drawImage(this.refl, 0, src * pr, this.refl.width, pr, dx - 4, HZ + r, W + 8, 1.05);
+      const y0 = Math.round((HZ + r) * pr), y1 = Math.round((HZ + r + 1) * pr); if (y1 <= y0) continue;
+      c.drawImage(this.refl, 0, src * pr, this.refl.width, pr, Math.round((dx - 4) * pr), y0, Math.round((W + 8) * pr), y1 - y0);
     }
+    c.setTransform(pr, 0, 0, pr, 0, 0);
     g = c.createLinearGradient(0, HZ, 0, HZ + LD); g.addColorStop(0, css(P.lake, 0.28)); g.addColorStop(1, css(P.lake, 0.6)); c.fillStyle = g; c.fillRect(0, HZ, W, LD);
     c.fillStyle = css(P.lake, 0.35); c.fillRect(0, HZ, W, 1.5);
     c.globalCompositeOperation = 'lighter';
