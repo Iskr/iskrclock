@@ -12,6 +12,11 @@ const I18N = {
         tabStopwatch: 'Секундомер',
         tabStations: 'Станции',
         tabSleep: 'Калькулятор сна',
+        tabAlarmsShort: 'Будильник',
+        tabTimerShort: 'Таймер',
+        tabStopwatchShort: 'Секундомер',
+        tabStationsShort: 'Станции',
+        tabSleepShort: 'Сон',
         alarmDefault: 'Будильник',
         alarmN: 'Будильник {n}',
         alarmLabelAria: 'Название будильника',
@@ -139,6 +144,11 @@ const I18N = {
         tabStopwatch: 'Stopwatch',
         tabStations: 'Stations',
         tabSleep: 'Sleep calculator',
+        tabAlarmsShort: 'Alarms',
+        tabTimerShort: 'Timer',
+        tabStopwatchShort: 'Stopwatch',
+        tabStationsShort: 'Stations',
+        tabSleepShort: 'Sleep',
         alarmDefault: 'Alarm',
         alarmN: 'Alarm {n}',
         alarmLabelAria: 'Alarm name',
@@ -972,7 +982,7 @@ function stationPopup(boxId, currentKey, onPick) {
             state.editId = null;
             location.hash = '#stations';
             setTab('stations');
-            showUi(isTouch ? 4000 : 0);
+            showUi(0);
             $('fName').focus();
         }
     }));
@@ -1700,19 +1710,21 @@ function renderAll() {
 // ========= SHOW CONTROLS ON HOVER / TAP =========
 const app = $('app');
 let uiHideTimeout = null;
+// Touch screens have no hover: there the controls are always shown (hiding them
+// left holes in the layout and made everything jump on the first tap)
 const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+if (isTouch) document.documentElement.classList.add('touch');
 
 function showUi(hideAfter) {
     clearTimeout(uiHideTimeout);
     app.classList.add('ui-on');
-    if (isTouch) app.classList.add('reveal-all');
     if (hideAfter) uiHideTimeout = setTimeout(hideUi, hideAfter);
 }
 
 function hideUi() {
     // Keep controls visible while a list or the editor is open
-    if (state.popup || state.chipsOpen) return;
-    app.classList.remove('ui-on', 'reveal-all');
+    if (isTouch || state.popup || state.chipsOpen) return;
+    app.classList.remove('ui-on');
 }
 
 // While the pointer rests over the page the controls fade after a few idle seconds,
@@ -1739,9 +1751,7 @@ document.documentElement.addEventListener('mouseleave', () => {
     clearTimeout(uiHideTimeout);
     uiHideTimeout = setTimeout(hideUi, 400);
 });
-document.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'touch' || isTouch) showUi(4000);
-}, { passive: true });
+if (isTouch) app.classList.add('ui-on');
 
 // ========= EVENTS =========
 function bindEvents() {

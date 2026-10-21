@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="app.css?v=6.0.5">
+    <link rel="stylesheet" href="app.css?v=6.1">
     <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
     <script src="iskr-sky.js?v=6.0.1"></script>
@@ -35,11 +35,11 @@
             </div>
 
             <nav class="tabs ui" id="tabs">
-                <a href="#alarms" data-tab="alarms" data-i18n="tabAlarms">Будильники</a>
-                <a href="#timer" data-tab="timer" data-i18n="tabTimer">Таймер</a>
-                <a href="#stopwatch" data-tab="stopwatch" data-i18n="tabStopwatch">Секундомер</a>
-                <a href="#stations" data-tab="stations" data-i18n="tabStations">Станции</a>
-                <a href="#sleep" data-tab="sleep" data-i18n="tabSleep">Калькулятор сна</a>
+                <a href="#alarms" data-tab="alarms"><span class="tab-icon" aria-hidden="true">⏰️</span><span class="tab-full" data-i18n="tabAlarms">Будильники</span><span class="tab-short" data-i18n="tabAlarmsShort">Будильники</span></a>
+                <a href="#timer" data-tab="timer"><span class="tab-icon" aria-hidden="true">⏲️</span><span class="tab-full" data-i18n="tabTimer">Таймер</span><span class="tab-short" data-i18n="tabTimerShort">Таймер</span></a>
+                <a href="#stopwatch" data-tab="stopwatch"><span class="tab-icon" aria-hidden="true">⏱️</span><span class="tab-full" data-i18n="tabStopwatch">Секундомер</span><span class="tab-short" data-i18n="tabStopwatchShort">Секундомер</span></a>
+                <a href="#stations" data-tab="stations"><span class="tab-icon" aria-hidden="true">📻</span><span class="tab-full" data-i18n="tabStations">Станции</span><span class="tab-short" data-i18n="tabStationsShort">Станции</span></a>
+                <a href="#sleep" data-tab="sleep"><span class="tab-icon" aria-hidden="true">🌙</span><span class="tab-full" data-i18n="tabSleep">Калькулятор сна</span><span class="tab-short" data-i18n="tabSleepShort">Калькулятор сна</span></a>
             </nav>
 
             <div class="top-right">
@@ -220,7 +220,7 @@
                         </div>
                     </div>
                 </div>
-                <p class="hint ui" data-i18n="timerHint"></p>
+                <p class="hint ui keys-hint" data-i18n="timerHint"></p>
             </section>
 
             <!-- ===== Секундомер ===== -->
@@ -260,7 +260,7 @@
                     </div>
                 </div>
                 <div class="laps" id="swLaps"></div>
-                <p class="hint ui" data-i18n="stopwatchHint"></p>
+                <p class="hint ui keys-hint" data-i18n="stopwatchHint"></p>
             </section>
 
             <!-- ===== Станции ===== -->
@@ -394,6 +394,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=6.0.4"></script>
+    <script src="app.js?v=6.1"></script>
 </body>
 </html>
