@@ -10,11 +10,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="app.css?v=6.4">
+    <link rel="stylesheet" href="app.css?v=6.6">
     <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
     <script src="iskr-sky.js?v=6.3"></script>
-    <script src="media.js?v=6.0"></script>
+    <script src="media.js?v=6.5"></script>
 </head>
 <body>
     <iskr-sky id="sky" aria-hidden="true"></iskr-sky>
@@ -27,7 +27,7 @@
     <div class="app" id="app">
         <header class="top">
             <div class="top-left">
-                <div class="logo">IskrCLOCK<span class="logo-version">v6.0</span></div>
+                <div class="logo">IskrCLOCK<span class="logo-version">v6.1.1</span></div>
                 <div class="plaque" id="npPlaque" hidden>
                     <button class="plaque-play" id="npPlay" aria-label="Pause">❚❚</button>
                     <span class="plaque-text" id="npName"></span>
@@ -98,10 +98,10 @@
                                 <span class="player-name" id="alPlayName"></span>
                             </div>
                             <div class="player-skip">
-                            <button class="skip" data-skip="al" data-d="-1">◀◀</button>
-                            <button class="skip" data-skip="al" data-d="1">▶▶</button>
-                        </div>
-                        <a class="player-change" id="alChange" role="button" tabindex="0"></a>
+                                <button class="skip" data-skip="al" data-d="-1">◀◀</button>
+                                <button class="skip" data-skip="al" data-d="1">▶▶</button>
+                            </div>
+                            <a class="player-change" id="alChange" role="button" tabindex="0"></a>
                         </div>
                         <div class="st-pop" id="alList" hidden></div>
                         <div class="expand">
@@ -118,7 +118,7 @@
                                     </div>
                                     <div class="opt">
                                         <span class="opt-label" data-i18n="fadeLabel">Нарастание</span>
-                                        <div class="opt-row switch-row" id="alFade" role="switch" tabindex="0">
+                                        <div class="opt-row switch-row" id="alFade" role="switch" tabindex="0" data-i18n-aria="fadeLabel">
                                             <span class="switch"><span class="knob"></span></span>
                                             <span class="opt-val" id="alFadeLabel"></span>
                                         </div>
@@ -126,7 +126,7 @@
                                     <div class="opt">
                                         <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
                                         <div class="opt-row">
-                                            <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                            <input type="range" class="vol" min="0" max="100" step="5" data-vol data-i18n-aria="volumeLabel">
                                             <span class="opt-val vol-val" data-vol-val></span>
                                         </div>
                                     </div>
@@ -194,7 +194,7 @@
                         <div class="expand-inner">
                             <div class="vol-row">
                                 <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
-                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                <input type="range" class="vol" min="0" max="100" step="5" data-vol data-i18n-aria="volumeLabel">
                                 <span class="vol-val" data-vol-val></span>
                             </div>
                             <div class="sig-row">
@@ -238,7 +238,7 @@
                         <div class="expand-inner">
                             <div class="vol-row">
                                 <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
-                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                <input type="range" class="vol" min="0" max="100" step="5" data-vol data-i18n-aria="volumeLabel">
                                 <span class="vol-val" data-vol-val></span>
                             </div>
                         </div>
@@ -257,18 +257,13 @@
                             <span class="big-player-name" id="bpName"></span>
                             <span class="big-player-sub" id="bpSub"></span>
                         </div>
+                        <div class="bp-vol">
+                            <input type="range" class="vol" min="0" max="100" step="5" data-vol data-i18n-aria="volumeLabel">
+                            <span class="vol-val" data-vol-val></span>
+                        </div>
                         <button class="round" id="bpPrev">◀◀</button>
                         <button class="round round-accent" id="bpPlay">▶</button>
                         <button class="round" id="bpNext">▶▶</button>
-                    </div>
-                    <div class="expand">
-                        <div class="expand-inner">
-                            <div class="vol-row">
-                                <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
-                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
-                                <span class="vol-val" data-vol-val></span>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 <div class="st-grid ui">
@@ -328,7 +323,7 @@
                     <button id="slWake" data-i18n="wantWake">Хочу встать в</button>
                     <button id="slBed" data-i18n="goingBed">Ложусь в</button>
                 </div>
-                <div class="digits digits-sleep" id="slDigits">
+                <div class="digits digits-sleep editable" id="slDigits">
                     <div class="dgroup">
                         <button class="dstep" data-act="slH" data-d="1" aria-label="+1 ч">+</button>
                         <div class="dnum" id="slH">07</div>
@@ -375,7 +370,7 @@
     <!-- ===== Звонок будильника ===== -->
     <div class="ring" id="ring" role="alertdialog" aria-modal="true" aria-labelledby="ringTitle" hidden>
         <div class="ring-top">
-            <div class="logo">IskrCLOCK<span class="logo-version">v6.0</span></div>
+            <div class="logo">IskrCLOCK<span class="logo-version">v6.1.1</span></div>
         </div>
         <div class="ring-body">
             <div class="ring-title" id="ringTitle"></div>
@@ -390,6 +385,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=6.4"></script>
+    <script src="app.js?v=6.5"></script>
 </body>
 </html>

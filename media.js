@@ -193,7 +193,7 @@ function parseLinks(text) {
 }
 
 // Parse an M3U / PLS playlist and extract the first stream URL
-async function parsePlaylistFile(url) {
+async function parsePlaylistFile(url, proxyIndex = 0) {
     let text;
     if (url.startsWith('data:')) {
         const [header, payload] = url.split(',');
@@ -204,7 +204,17 @@ async function parsePlaylistFile(url) {
             text = decodeURIComponent(payload);
         }
     } else {
-        const response = await fetch(url.startsWith('http:') ? getProxiedURL(url) : url);
+        let response;
+        if (url.startsWith('http:')) {
+            response = await fetch(getProxiedURL(url, proxyIndex));
+        } else {
+            // https: directly; a server without CORS headers is read through a proxy
+            try {
+                response = await fetch(url);
+            } catch (e) {
+                response = await fetch(getProxiedURL(url, proxyIndex));
+            }
+        }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         text = await response.text();
     }
@@ -265,15 +275,21 @@ async function migrateOldStation(old, index, dbReady) {
     if (old.type === 'local') {
         if (Array.isArray(old.files)) {
             // The earliest format kept base64 files in localStorage — move them to IndexedDB
-            for (let i = 0; i < old.files.length; i++) {
-                const file = old.files[i];
-                const item = { k: 'file', name: file.name, size: fileSizeOf(file.data) };
-                if (dbReady) {
-                    item.fileId = await saveFileToDB(station.id, i, file.name, file.data);
-                } else {
-                    item.data = file.data;
+            try {
+                for (let i = 0; i < old.files.length; i++) {
+                    const file = old.files[i];
+                    const item = { k: 'file', name: file.name, size: fileSizeOf(file.data) };
+                    if (dbReady) {
+                        item.fileId = await saveFileToDB(station.id, i, file.name, file.data);
+                    } else {
+                        item.data = file.data;
+                    }
+                    station.items.push(item);
                 }
-                station.items.push(item);
+            } catch (e) {
+                // The station is retried later from the start: don't leave half of it stored twice
+                await Promise.all(station.items.filter(item => item.fileId != null).map(item => deleteFileFromDB(item.fileId).catch(() => {})));
+                throw e;
             }
         } else if (old.id) {
             if (!dbReady) throw new Error('IndexedDB is not available');
@@ -307,7 +323,12 @@ async function migrateCustomStations(dbReady) {
         return keyMap;
     }
     if (raw && localStorage.getItem(STATIONS_BACKUP_KEY) == null) {
-        localStorage.setItem(STATIONS_BACKUP_KEY, raw);
+        // A big old list (files inside) may not fit twice: convert without the copy then
+        try {
+            localStorage.setItem(STATIONS_BACKUP_KEY, raw);
+        } catch (e) {
+            console.warn('⚠️ No room for a backup copy of the stations:', e);
+        }
     }
 
     let pending = false;
@@ -403,7 +424,10 @@ function loadScript(src) {
         const script = document.createElement('script');
         script.src = src;
         script.onload = resolve;
-        script.onerror = () => reject(new Error('Failed to load ' + src));
+        script.onerror = () => {
+            script.remove(); // a later retry adds a fresh tag instead of piling them up
+            reject(new Error('Failed to load ' + src));
+        };
         document.head.appendChild(script);
     });
 }
@@ -612,10 +636,16 @@ function streamContext(ctx) {
 async function createStreamAdapter(streamUrl, ctx, attempt) {
     ctx = streamContext(ctx);
     let url = streamUrl;
-    if (streamKind(url) === 'm3u') {
-        url = await parsePlaylistFile(url);
-    }
     const proxyIndex = Math.max(0, attempt - 1);
+    // A playlist may point to another playlist
+    for (let depth = 0; streamKind(url) === 'm3u'; depth++) {
+        if (depth === 3) {
+            const error = new Error('Playlist nesting is too deep');
+            error.permanent = true;
+            throw error;
+        }
+        url = await parsePlaylistFile(url, proxyIndex);
+    }
     if (streamKind(url) === 'hls') {
         return createHlsAdapter(url, ctx, proxyIndex);
     }
@@ -631,7 +661,12 @@ async function createItemAdapter(item, ctx, attempt) {
         case 'file': {
             let data = item.data;
             if (!data) {
-                const record = await getFileFromDB(item.fileId);
+                let record = null;
+                try {
+                    if (item.fileId != null) record = await getFileFromDB(item.fileId);
+                } catch (e) {
+                    console.warn('⚠️ IndexedDB:', e);
+                }
                 if (!record) {
                     const error = new Error('File not found in IndexedDB');
                     error.permanent = true;
@@ -992,6 +1027,12 @@ function createPlaybackEngine(hooks) {
             // Playlist: skip the broken item; it's a real failure only if every item fails
             s.consecutiveErrors++;
             s.pos++;
+            // A playlist that doesn't loop ends after its last item, even a broken one
+            if (s.purpose === 'preview' && !s.loop && s.pos >= n) {
+                if (s.consecutiveErrors >= n) lastError = 'failed';
+                stop();
+                return;
+            }
             if (s.consecutiveErrors >= n * 2) {
                 startFallback(s, 'fallback');
                 if (s.stopped) return;
@@ -1058,6 +1099,22 @@ function createPlaybackEngine(hooks) {
         return true;
     }
 
+    // The playing playlist was edited: take its new items and order without interrupting
+    // the current one (`currentIndex` — its index in the new list, or -1 if it was removed)
+    function refresh(currentIndex) {
+        const s = session;
+        if (!s || !s.order || s.classicOnly) return;
+        const source = resolveSource(s.key);
+        if (!source || source.classic || !source.items.length) return;
+        const n = source.items.length;
+        s.order = source.shuffle ? shuffledOrder(n) : Array.from({ length: n }, (_, i) => i);
+        s.loop = s.purpose === 'preview' ? source.loop !== false : true;
+        s.factory = source.factory;
+        const at = currentIndex == null ? -1 : s.order.indexOf(currentIndex);
+        s.pos = at >= 0 ? at : Math.min(s.pos, n - 1);
+        notify();
+    }
+
     function applyVolume() {
         if (session && session.media) {
             session.media.setVolume(sessionVolume(session));
@@ -1071,6 +1128,7 @@ function createPlaybackEngine(hooks) {
         play,
         stop: () => stop(),
         step,
+        refresh,
         applyVolume,
         getState: snapshot,
         unlock: getAudioContext
