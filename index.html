@@ -886,10 +886,8 @@
             ],
             // Love Radio (Krutoy Media) — их CDN n340.com (адрес из плеера loveradio.ru);
             // канал 102 на 101.ru — это Юмор FM
-            'love-radio': [
-                'https://stream2.n340.com/12_love_64_reg_44?type=aac',
-                'https://stream2.n340.com/12_love_64_reg_44?type=aac&UID=DDBAB47E03D454FADEDBBD4BFA3DA5EA'
-            ],
+            // Без UID сервер вместо эфира отдаёт голосовое «перейдите на сайт станции»
+            'love-radio': 'https://stream2.n340.com/12_love_64_reg_44?type=aac&UID=DDBAB47E03D454FADEDBBD4BFA3DA5EA',
             // Хит FM — официальный CDN hostingradio.ru
             'hit-fm': [
                 'https://hitfm.hostingradio.ru/hitfm96.aacp',
@@ -907,6 +905,9 @@
         // Сейчас таких нет: <audio> без crossOrigin играет потоки без CORS-заголовков,
         // а бесплатные прокси нестабильны (из-за них и «умирал» Rinse UK).
         const needsCorsProxy = [];
+
+        // Станции, которые отдают заглушку вместо эфира, если запрос пришёл с чужого сайта
+        const noReferrerStreams = ['love-radio'];
 
         // HLS streams that need hls.js (or native HLS on Safari)
         const hlsStreams = ['bbc-radio-1'];
@@ -1046,7 +1047,8 @@
                 return (s, ctx) => createAudioAdapter(getProxiedURL(url, s.attempt - 1), ctx);
             }
             // Stations with several mirrors: every new attempt tries the next address
-            return (s, ctx) => createAudioAdapter(urls[(s.attempt - 1) % urls.length], ctx);
+            const options = { noReferrer: noReferrerStreams.includes(stationValue) };
+            return (s, ctx) => createAudioAdapter(urls[(s.attempt - 1) % urls.length], ctx, null, options);
         }
 
         // ========= RESILIENT PLAYBACK SESSION =========
