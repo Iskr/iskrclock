@@ -386,7 +386,7 @@ class IskrSky extends HTMLElement {
   attributeChangedCallback(n, o, v) { this[n] = n === 'still' ? v : v; }
   connectedCallback() {
     Object.assign(this.style, { display: 'block', position: 'relative', width: '100%', height: '100%', overflow: 'hidden' });
-    this.cv = document.createElement('canvas'); this.cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
+    this.cv = document.createElement('canvas'); this.cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;object-fit:cover;object-position:50% 80%';
     this.appendChild(this.cv); this.ctx = this.cv.getContext('2d');
     this.ro = new ResizeObserver(() => this._resize()); this.ro.observe(this);
     this.io = new IntersectionObserver(es => { this._vis = es[es.length - 1].isIntersecting; }); this.io.observe(this);
@@ -396,8 +396,9 @@ class IskrSky extends HTMLElement {
   }
   disconnectedCallback() { cancelAnimationFrame(this.raf); this.ro && this.ro.disconnect(); this.io && this.io.disconnect(); }
   _resize() {
-    const w = this.clientWidth || W; if (!w) return;
-    const pr = Math.min(2.5, (w / W) * (window.devicePixelRatio || 1));
+    const w = this.clientWidth || W, h = this.clientHeight || H; if (!w) return;
+    // The canvas covers the element (object-fit: cover), so render for whichever side is cropped less
+    const pr = Math.min(2.5, Math.max(w / W, h / H) * (window.devicePixelRatio || 1));
     if (Math.abs(pr - (this.pr || 0)) < 0.01) return;
     this.pr = pr; const cw = Math.round(W * pr), ch = Math.round(H * pr);
     this.cv.width = cw; this.cv.height = ch;

@@ -343,7 +343,7 @@ const state = {
     chipsOpen: false,
     editId: null,            // custom station open in the editor
     draft: [],               // items of the "new station" form (files stay in memory until saved)
-    demo: { on: false, paused: false, speed: 600, doy: 1, hour: 12 },
+    demo: { on: false, paused: false, speed: 1, doy: 1, hour: 12 },
     dbReady: false
 };
 
