@@ -948,9 +948,10 @@ function renderAlarms() {
 function stationPopup(boxId, currentKey, onPick) {
     const box = $(boxId);
     box.textContent = '';
+    const list = h('div', { class: 'st-pop-list' });
     allStations().forEach(entry => {
         const cur = entry.key === currentKey;
-        box.append(h('button', {
+        list.append(h('button', {
             class: 'st-opt' + (cur ? ' cur' : ''),
             onclick: () => {
                 state.popup = null;
@@ -963,7 +964,7 @@ function stationPopup(boxId, currentKey, onPick) {
         h('span', { class: 'st-opt-mark', text: cur ? '✓' : '' })));
     });
     // Leads to the "new station" form on the Stations tab
-    box.append(h('button', {
+    box.append(list, h('div', { class: 'st-add-sep' }), h('button', {
         class: 'st-opt st-add',
         text: t('addStation'),
         onclick: () => {
