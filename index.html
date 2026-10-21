@@ -884,8 +884,12 @@
                 'https://pub0102.101.ru:8443/stream/air/aac/64/99',
                 'https://pub0202.101.ru:8443/stream/air/aac/64/99'
             ],
-            // Love Radio (Krutoy Media) — свой сервер; канал 102 на 101.ru — это Юмор FM
-            'love-radio': 'https://stream.loveradio.ru/12_love_64?type=.aac',
+            // Love Radio (Krutoy Media) — их CDN n340.com (адрес из плеера loveradio.ru);
+            // канал 102 на 101.ru — это Юмор FM
+            'love-radio': [
+                'https://stream2.n340.com/12_love_64_reg_44?type=aac',
+                'https://stream2.n340.com/12_love_64_reg_44?type=aac&UID=DDBAB47E03D454FADEDBBD4BFA3DA5EA'
+            ],
             // Хит FM — официальный CDN hostingradio.ru
             'hit-fm': [
                 'https://hitfm.hostingradio.ru/hitfm96.aacp',
