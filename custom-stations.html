@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Пользовательские станции - IskrCLOCK</title>
-    <!-- YouTube IFrame Player API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <!-- HLS.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <meta name="description" content="Добавьте в будильник свои радиопотоки, локальные аудиофайлы и видео с YouTube.">
+    <meta name="theme-color" content="#667eea">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+    <!-- HLS.js for .m3u8 streams. The YouTube API is loaded from code (media.js). -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
+    <script src="media.js"></script>
     <style>
         * {
             margin: 0;
@@ -51,33 +53,38 @@
             font-style: italic;
         }
 
-        .nav-links {
-            text-align: center;
+        /* Navigation (shared look on all subpages) */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 30px;
         }
 
-        .nav-links a {
+        .site-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .site-nav a {
             color: white;
             text-decoration: none;
-            margin: 0 15px;
-            padding: 10px 20px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+
+        .site-nav a:hover {
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-            transition: all 0.3s;
-            display: inline-block;
         }
 
-        .nav-links a:hover {
+        .site-nav a.active {
             background: rgba(255, 255, 255, 0.3);
-        }
-
-        .nav-links a:first-child {
-            background: rgba(255, 165, 0, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .nav-links a:first-child:hover {
-            background: rgba(255, 165, 0, 0.95);
         }
 
         .card {
@@ -191,6 +198,27 @@
 
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-alarm {
+            background: rgba(255, 165, 0, 0.85);
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .btn-alarm:hover {
+            background: rgba(255, 165, 0, 1);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+            transform: none;
+        }
+
+        .alarm-badge {
+            background: rgba(255, 165, 0, 0.85);
         }
 
         .stations-list {
@@ -320,6 +348,12 @@
             opacity: 0.8;
         }
 
+        .now-playing-status {
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+
         .control-buttons {
             display: flex;
             justify-content: center;
@@ -353,6 +387,22 @@
         }
 
         @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: column;
+            }
+
+            .site-nav {
+                justify-content: center;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
             .station-item {
                 flex-direction: column;
                 align-items: flex-start;
@@ -365,6 +415,10 @@
 
             .btn {
                 width: 100%;
+            }
+
+            .btn-play {
+                margin-right: 0;
             }
 
             .control-buttons {
@@ -483,9 +537,6 @@
         }
 
         .lang-selector {
-            position: fixed;
-            top: 20px;
-            right: 20px;
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -495,7 +546,6 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
-            z-index: 1000;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
@@ -517,24 +567,25 @@
         <div id="youtube-player"></div>
     </div>
 
-    <select class="lang-selector">
-        <option value="ru">🇷🇺 Русский</option>
-        <option value="en">🇬🇧 English</option>
-    </select>
-
     <div class="container">
-        <div class="header">
-            <h1 class="page-title">🎵 Пользовательские станции</h1>
-            <p class="page-subtitle">Добавьте свои радиостанции, треки и плейлисты</p>
-            <p class="version">v5.2 - Custom Stations & Playlists</p>
+        <div class="top-bar">
+            <nav class="site-nav">
+                <a href="index.html" data-nav="home">⏰ Будильники</a>
+                <a href="timer.html" data-nav="timer">⏲️ Таймер</a>
+                <a href="stopwatch.html" data-nav="stopwatch">⏱️ Секундомер</a>
+                <a href="custom-stations.html" data-nav="stations" class="active" aria-current="page">🎵 Станции</a>
+                <a href="sleep-calculator.html" data-nav="calculator">🧮 Калькулятор сна</a>
+            </nav>
+            <select class="lang-selector" aria-label="Language">
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="en">🇬🇧 English</option>
+            </select>
         </div>
 
-        <div class="nav-links">
-            <a href="index.html" class="nav-home">⏰ Будильники</a>
-            <a href="timer.html" class="nav-timer">⏲️ Таймер</a>
-            <a href="stopwatch.html" class="nav-stopwatch">⏱️ Секундомер</a>
-            <a href="custom-stations.html" class="nav-stations">🎵 Станции</a>
-            <a href="sleep-calculator.html" class="nav-calculator">🧮 Калькулятор сна</a>
+        <div class="header">
+            <h1 data-i18n="pageTitle">🎵 Пользовательские станции</h1>
+            <p data-i18n="pageSubtitle">Добавьте свои радиостанции, треки и плейлисты</p>
+            <p class="version">v5.3 - Custom Stations & Playlists</p>
         </div>
 
         <!-- Player Controls -->
@@ -542,89 +593,105 @@
             <div class="now-playing">
                 <div class="now-playing-title" id="nowPlayingTitle">—</div>
                 <div class="now-playing-info" id="nowPlayingInfo">—</div>
+                <div class="now-playing-status" id="nowPlayingStatus" aria-live="polite"></div>
             </div>
             <div class="control-buttons">
-                <button class="btn btn-secondary" onclick="previousTrack()">⏮️ Предыдущий</button>
-                <button class="btn btn-danger" onclick="stopAllAudio()">⏹️ Стоп</button>
-                <button class="btn btn-secondary" onclick="nextTrack()">⏭️ Следующий</button>
+                <button class="btn btn-secondary" id="prevTrackBtn" onclick="previousTrack()" data-i18n="previousBtn">⏮️ Предыдущий</button>
+                <button class="btn btn-danger" onclick="stopPreview()" data-i18n="stopBtn">⏹️ Стоп</button>
+                <button class="btn btn-secondary" id="nextTrackBtn" onclick="nextTrack()" data-i18n="nextBtn">⏭️ Следующий</button>
             </div>
         </div>
 
         <div class="card">
-            <h2>➕ Добавить станцию или трек</h2>
+            <h2 data-i18n="addStationTitle">➕ Добавить станцию или трек</h2>
             <form id="addStationForm">
                 <div class="form-group">
-                    <label for="stationName">Название</label>
-                    <input type="text" id="stationName" placeholder="Например: Моя станция" required>
+                    <label for="stationName" data-i18n="stationName">Название</label>
+                    <input type="text" id="stationName" data-i18n-placeholder="stationNamePlaceholder" placeholder="Например: Моя станция" maxlength="100" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="stationType">Тип</label>
+                    <label for="stationType" data-i18n="stationType">Тип</label>
                     <select id="stationType" required>
-                        <option value="radio">📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)</option>
-                        <option value="local">🎵 Локальные файлы (MP3/FLAC/WAV)</option>
-                        <option value="youtube">📺 YouTube (ID видео)</option>
+                        <option value="radio" data-i18n="typeRadio">📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)</option>
+                        <option value="local" data-i18n="typeLocal">🎵 Локальные файлы (MP3/FLAC/WAV)</option>
+                        <option value="youtube" data-i18n="typeYoutube">📺 YouTube видео</option>
                     </select>
-                    <p class="help-text" id="typeHelp">URL прямого потока радиостанции. HTTP потоки работают через CORS прокси.</p>
                 </div>
 
                 <div class="form-group" id="urlGroup">
-                    <label for="stationUrl" id="urlLabel">URL / YouTube ID</label>
-                    <input type="text" id="stationUrl" placeholder="https://example.com/stream.mp3">
-                    <p class="help-text" id="urlHelp">Для YouTube укажите ID или полную ссылку (например: dQw4w9WgXcQ или https://youtu.be/dQw4w9WgXcQ)</p>
+                    <label for="stationUrl" data-i18n="urlLabel">URL потока</label>
+                    <input type="url" id="stationUrl" data-i18n-placeholder="urlPlaceholder" placeholder="https://example.com/stream.mp3">
+                    <p class="help-text" data-i18n="urlHelp">URL радио-потока (MP3/AAC/HLS/.m3u/.m3u8). Формат определяется автоматически. HTTP потоки работают через CORS прокси.</p>
                 </div>
 
-                <div id="radioOrDivider" class="or-divider" style="display: none;">ИЛИ</div>
+                <div id="radioOrDivider" class="or-divider" data-i18n="orDivider">ИЛИ</div>
 
-                <div class="form-group" id="radioFileGroup" style="display: none;">
-                    <label for="radioFile" id="radioFileLabel">Выберите .m3u или .m3u8 плейлист</label>
+                <div class="form-group" id="radioFileGroup">
+                    <label for="radioFile" data-i18n="radioFileLabel">Выберите .m3u или .m3u8 плейлист</label>
                     <input type="file" id="radioFile" accept=".m3u,.m3u8,audio/x-mpegurl,application/vnd.apple.mpegurl">
-                    <p class="help-text" id="radioFileHelp">Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.</p>
+                    <p class="help-text" data-i18n="radioFileHelp">Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.</p>
                 </div>
 
                 <div class="form-group" id="fileGroup" style="display: none;">
-                    <label for="localFiles" id="localFilesLabel">Выберите аудио файлы</label>
-                    <input type="file" id="localFiles" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
-                    <p class="help-text" id="localFilesHelp">Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.</p>
+                    <label for="localFiles" data-i18n="localFilesLabel">Выберите аудио файлы</label>
+                    <input type="file" id="localFiles" accept=".mp3,.flac,.wav,.ogg,.m4a,.aac,audio/*" multiple>
+                    <p class="help-text" data-i18n="localFilesHelp">Выберите один или несколько файлов (MP3, FLAC, WAV, OGG, M4A). Для плейлиста выберите несколько.</p>
                     <div class="file-list" id="fileList"></div>
                 </div>
 
                 <div class="form-group add-tracks-section" id="youtubePlaylistSection" style="display: none;">
-                    <h3 id="youtubePlaylistTitle">🎵 Создать плейлист YouTube</h3>
-                    <p class="help-text" id="youtubePlaylistHelp">Добавьте несколько видео в плейлист. Можно вставить одну ссылку или несколько через запятую</p>
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <input type="text" id="youtubeTrackUrl" placeholder="Вставьте YouTube URL или ID" style="flex: 1;">
-                        <button type="button" class="btn btn-primary btn-small" onclick="addYouTubeTrack()">➕ Добавить в плейлист</button>
+                    <h3 data-i18n="youtubePlaylistTitle">🎵 YouTube видео/плейлист</h3>
+                    <p class="help-text" data-i18n="youtubePlaylistHelp">Добавьте одно видео или несколько для плейлиста. Можно вставить одну ссылку или несколько через запятую</p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <input type="text" id="youtubeTrackUrl" data-i18n-placeholder="youtubeTrackPlaceholder" placeholder="Вставьте YouTube URL или ID" style="flex: 1; min-width: 200px;">
+                        <button type="button" class="btn btn-primary btn-small" onclick="addYouTubeTrack()" data-i18n="addToPlaylistBtn">➕ Добавить видео</button>
                     </div>
                     <div class="file-list" id="youtubeTrackList" style="margin-top: 10px;"></div>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Добавить</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" data-i18n="submitBtn">Добавить</button>
             </form>
         </div>
 
         <div class="card">
-            <h2>📻 Мои станции (<span id="stationCount">0</span>)</h2>
-            <div class="stations-list" id="stationsList">
-                <div class="empty-state">
-                    <p>Станции ещё не добавлены</p>
-                    <p style="font-size: 12px; margin-top: 10px;">Добавьте свою первую станцию выше ⬆️</p>
-                </div>
+            <h2><span data-i18n="myStationsTitle">📻 Мои станции</span> (<span id="stationCount">0</span>)</h2>
+            <div class="stations-list" id="stationsList"></div>
+        </div>
+    </div>
+
+    <!-- Playlist Editor Modal -->
+    <div id="playlistEditorModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalPlaylistName">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalPlaylistName">Редактировать плейлист</h2>
+                <button class="close-modal" onclick="closePlaylistEditor()" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="track-list" id="modalTrackList"></div>
+
+            <div class="add-tracks-section" id="modalAddTracks">
+                <h3 data-i18n="addTracksTitle">Добавить треки</h3>
+                <input type="file" id="addTracksInput" accept=".mp3,.flac,.wav,.ogg,.m4a,.aac,audio/*" multiple>
+                <button class="btn btn-primary" id="addTracksBtn" style="margin-top: 10px;" onclick="addTracksToPlaylist()" data-i18n="addSelectedBtn">Добавить выбранные</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ========= TRANSLATIONS (Global) =========
+        // ========= TRANSLATIONS =========
         const translations = {
             ru: {
+                nav: {
+                    home: '⏰ Будильники',
+                    timer: '⏲️ Таймер',
+                    stopwatch: '⏱️ Секундомер',
+                    stations: '🎵 Станции',
+                    calculator: '🧮 Калькулятор сна'
+                },
+                documentTitle: 'Пользовательские станции - IskrCLOCK',
                 pageTitle: '🎵 Пользовательские станции',
                 pageSubtitle: 'Добавьте свои радиостанции, треки и плейлисты',
-                navHome: '⏰ Будильники',
-                navTimer: '⏲️ Таймер',
-                navStopwatch: '⏱️ Секундомер',
-                navStations: '🎵 Станции',
-                navCalculator: '🧮 Калькулятор сна',
                 previousBtn: '⏮️ Предыдущий',
                 stopBtn: '⏹️ Стоп',
                 nextBtn: '⏭️ Следующий',
@@ -632,56 +699,88 @@
                 stationName: 'Название',
                 stationNamePlaceholder: 'Например: Моя станция',
                 stationType: 'Тип',
-                typeHelp: 'URL прямого потока радиостанции. HTTP потоки работают через CORS прокси.',
                 typeRadio: '📻 Радио-поток (MP3/AAC/HLS/.m3u/.m3u8)',
                 typeLocal: '🎵 Локальные файлы (MP3/FLAC/WAV)',
                 typeYoutube: '📺 YouTube видео',
                 urlLabel: 'URL потока',
+                urlPlaceholder: 'https://example.com/stream.mp3 или .../stream.m3u8',
+                urlHelp: 'URL радио-потока (MP3/AAC/HLS/.m3u/.m3u8). Формат определяется автоматически. HTTP потоки работают через CORS прокси.',
                 orDivider: 'ИЛИ',
                 radioFileLabel: 'Выберите .m3u или .m3u8 плейлист',
                 radioFileHelp: 'Загрузите локальный плейлист-файл (.m3u или .m3u8) с радиостанцией или HLS потоком.',
                 localFilesLabel: 'Выберите аудио файлы',
-                localFilesHelp: 'Выберите один или несколько файлов (MP3, FLAC, WAV). Для плейлиста выберите несколько.',
+                localFilesHelp: 'Выберите один или несколько файлов (MP3, FLAC, WAV, OGG, M4A). Для плейлиста выберите несколько.',
                 youtubePlaylistTitle: '🎵 YouTube видео/плейлист',
                 youtubePlaylistHelp: 'Добавьте одно видео или несколько для плейлиста. Можно вставить одну ссылку или несколько через запятую',
                 youtubeTrackPlaceholder: 'Вставьте YouTube URL или ID',
                 addToPlaylistBtn: '➕ Добавить видео',
                 submitBtn: 'Добавить',
+                saving: '⏳ Сохранение…',
                 myStationsTitle: '📻 Мои станции',
                 emptyStateText: 'Станции ещё не добавлены',
                 emptyStateHelp: 'Добавьте свою первую станцию выше ⬆️',
-                editPlaylistTitle: 'Редактировать плейлист',
-                addTracksTitle: 'Добавить треки',
-                addSelectedBtn: 'Добавить выбранные',
-                // Alerts and messages
-                enterName: 'Пожалуйста, введите название',
-                selectFiles: 'Выберите хотя бы один MP3 файл',
-                selectRadioUrl: 'Пожалуйста, укажите URL или загрузите .m3u/.m3u8 файл',
-                selectFilesToAdd: 'Выберите файлы для добавления',
-                tracksAdded: 'Добавлено треков:',
-                errorAddingTracks: 'Ошибка добавления треков:',
-                enterYoutubeUrl: 'Введите YouTube URL или ID',
-                couldNotExtractId: 'Не удалось извлечь YouTube ID из:',
-                videoAlreadyAdded: 'Видео уже добавлено',
-                noTracksYet: 'Треков пока нет. Добавьте первый трек выше.',
+                typeLabels: { radio: '📻 Радио', youtube: '📺 YouTube', local: '🎵 Локально' },
                 playlistLabel: 'Плейлист',
                 tracksLabel: 'треков',
                 videosLabel: 'видео',
                 filesLabel: 'файл(ов)',
-                noStationsYet: 'Станции ещё не добавлены',
-                addFirstStation: 'Добавьте свою первую станцию выше ⬆️',
+                playBtn: '▶ Слушать',
+                stopPlayBtn: '⏹ Стоп',
                 editButton: '✏️ Редактировать',
-                provideUrl: 'Пожалуйста, укажите URL',
-                addOneVideo: 'Добавьте хотя бы одно видео с помощью кнопки "Добавить видео"'
+                useForAlarm: '⏰ На будильник',
+                alarmBadge: '⏰ Сигнал будильника',
+                deleteLabel: 'Удалить',
+                // Alerts and messages
+                enterName: 'Пожалуйста, введите название',
+                selectFiles: 'Выберите хотя бы один аудиофайл',
+                selectRadioUrl: 'Пожалуйста, укажите URL или загрузите .m3u/.m3u8 файл',
+                invalidUrl: 'Укажите корректный URL, начинающийся с http:// или https://',
+                addOneVideo: 'Добавьте хотя бы одно видео с помощью кнопки "Добавить видео"',
+                fileTooLarge: 'Файл "{name}" слишком большой ({size}). Максимум: {max}',
+                fileSaveError: 'Ошибка сохранения файлов: {error}',
+                fileReadError: 'Ошибка чтения файла: {error}',
+                dbInitError: 'Ошибка инициализации базы данных. Локальные файлы могут не работать.',
+                confirmDelete: 'Удалить станцию «{name}»?',
+                filesNotFound: 'Файлы не найдены. Возможно, станция была создана в старой версии.',
+                fileLoadError: 'Ошибка загрузки файлов: {error}',
+                enterYoutubeUrl: 'Введите YouTube URL или ID',
+                couldNotExtractId: 'Не удалось извлечь YouTube ID из: {url}',
+                videoAlreadyAdded: 'Видео уже добавлено: {id}',
+                noTracksYet: 'Видео пока нет. Добавьте первое выше.',
+                // Player
+                infoRadio: 'Радио-поток',
+                infoYoutube: 'YouTube',
+                trackOf: 'Трек {n} из {total}',
+                videoOf: 'Видео {n} из {total}',
+                statusConnecting: '📡 Подключение…',
+                statusReconnecting: '📡 Нет связи, переподключаюсь… (попытка {n})',
+                playbackFailed: 'Не удалось воспроизвести «{name}». Проверьте URL или попробуйте другой поток.',
+                playlistFailed: 'Не удалось воспроизвести ни один трек плейлиста «{name}».',
+                // Playlist editor
+                editPlaylistTitle: 'Редактировать: {name}',
+                addTracksTitle: 'Добавить треки',
+                addSelectedBtn: 'Добавить выбранные',
+                noTracks: 'Треков нет',
+                confirmDeleteTrack: 'Удалить этот трек из плейлиста?',
+                cannotDeleteLast: 'Нельзя удалить последний трек. Удалите весь плейлист вместо этого.',
+                playlistLoadError: 'Ошибка загрузки плейлиста',
+                trackMoveError: 'Ошибка перемещения трека',
+                trackDeleteError: 'Ошибка удаления трека',
+                selectFilesToAdd: 'Выберите файлы для добавления',
+                tracksAdded: 'Добавлено треков: {n}',
+                errorAddingTracks: 'Ошибка добавления треков: {error}'
             },
             en: {
+                nav: {
+                    home: '⏰ Alarms',
+                    timer: '⏲️ Timer',
+                    stopwatch: '⏱️ Stopwatch',
+                    stations: '🎵 Stations',
+                    calculator: '🧮 Sleep Calculator'
+                },
+                documentTitle: 'Custom Stations - IskrCLOCK',
                 pageTitle: '🎵 Custom Stations',
                 pageSubtitle: 'Add your radio stations, tracks and playlists',
-                navHome: '⏰ Alarms',
-                navTimer: '⏲️ Timer',
-                navStopwatch: '⏱️ Stopwatch',
-                navStations: '🎵 Stations',
-                navCalculator: '🧮 Sleep Calculator',
                 previousBtn: '⏮️ Previous',
                 stopBtn: '⏹️ Stop',
                 nextBtn: '⏭️ Next',
@@ -689,219 +788,108 @@
                 stationName: 'Name',
                 stationNamePlaceholder: 'For example: My Station',
                 stationType: 'Type',
-                typeHelp: 'Direct radio stream URL. HTTP streams work via CORS proxy.',
                 typeRadio: '📻 Radio Stream (MP3/AAC/HLS/.m3u/.m3u8)',
                 typeLocal: '🎵 Local Files (MP3/FLAC/WAV)',
                 typeYoutube: '📺 YouTube Video',
                 urlLabel: 'Stream URL',
+                urlPlaceholder: 'https://example.com/stream.mp3 or .../stream.m3u8',
+                urlHelp: 'Radio stream URL (MP3/AAC/HLS/.m3u/.m3u8). Format is detected automatically. HTTP streams work via CORS proxy.',
                 orDivider: 'OR',
                 radioFileLabel: 'Select .m3u or .m3u8 playlist',
-                radioFileHelp: 'Upload a local playlist file (.m3u or .m3u8) with radio station or HLS stream.',
+                radioFileHelp: 'Upload a local playlist file (.m3u or .m3u8) with a radio station or HLS stream.',
                 localFilesLabel: 'Select audio files',
-                localFilesHelp: 'Select one or more files (MP3, FLAC, WAV). Select multiple for a playlist.',
+                localFilesHelp: 'Select one or more files (MP3, FLAC, WAV, OGG, M4A). Select multiple for a playlist.',
                 youtubePlaylistTitle: '🎵 YouTube Video/Playlist',
                 youtubePlaylistHelp: 'Add one video or multiple for a playlist. Paste one link or multiple separated by commas',
                 youtubeTrackPlaceholder: 'Paste YouTube URL or ID',
                 addToPlaylistBtn: '➕ Add Video',
                 submitBtn: 'Add',
+                saving: '⏳ Saving…',
                 myStationsTitle: '📻 My Stations',
                 emptyStateText: 'No stations added yet',
                 emptyStateHelp: 'Add your first station above ⬆️',
-                editPlaylistTitle: 'Edit Playlist',
-                addTracksTitle: 'Add Tracks',
-                addSelectedBtn: 'Add Selected',
-                // Alerts and messages
-                enterName: 'Please enter a name',
-                selectFiles: 'Please select at least one MP3 file',
-                selectRadioUrl: 'Please provide URL or upload .m3u/.m3u8 file',
-                selectFilesToAdd: 'Select files to add',
-                tracksAdded: 'Tracks added:',
-                errorAddingTracks: 'Error adding tracks:',
-                enterYoutubeUrl: 'Enter YouTube URL or ID',
-                couldNotExtractId: 'Could not extract YouTube ID from:',
-                videoAlreadyAdded: 'Video already added',
-                noTracksYet: 'No tracks yet. Add your first track above.',
+                typeLabels: { radio: '📻 Radio', youtube: '📺 YouTube', local: '🎵 Local' },
                 playlistLabel: 'Playlist',
                 tracksLabel: 'tracks',
                 videosLabel: 'videos',
                 filesLabel: 'file(s)',
-                noStationsYet: 'No stations added yet',
-                addFirstStation: 'Add your first station above ⬆️',
+                playBtn: '▶ Play',
+                stopPlayBtn: '⏹ Stop',
                 editButton: '✏️ Edit',
-                provideUrl: 'Please provide a URL',
-                addOneVideo: 'Please add at least one video using the "Add Video" button'
+                useForAlarm: '⏰ Use for alarm',
+                alarmBadge: '⏰ Alarm sound',
+                deleteLabel: 'Delete',
+                // Alerts and messages
+                enterName: 'Please enter a name',
+                selectFiles: 'Please select at least one audio file',
+                selectRadioUrl: 'Please provide a URL or upload a .m3u/.m3u8 file',
+                invalidUrl: 'Please enter a valid URL starting with http:// or https://',
+                addOneVideo: 'Please add at least one video using the "Add Video" button',
+                fileTooLarge: 'File "{name}" is too large ({size}). Maximum: {max}',
+                fileSaveError: 'Error saving files: {error}',
+                fileReadError: 'Error reading file: {error}',
+                dbInitError: 'Database initialization error. Local files may not work.',
+                confirmDelete: 'Delete station "{name}"?',
+                filesNotFound: 'Files not found. The station may have been created in an older version.',
+                fileLoadError: 'Error loading files: {error}',
+                enterYoutubeUrl: 'Enter a YouTube URL or ID',
+                couldNotExtractId: 'Could not extract a YouTube ID from: {url}',
+                videoAlreadyAdded: 'Video already added: {id}',
+                noTracksYet: 'No videos yet. Add the first one above.',
+                // Player
+                infoRadio: 'Radio stream',
+                infoYoutube: 'YouTube',
+                trackOf: 'Track {n} of {total}',
+                videoOf: 'Video {n} of {total}',
+                statusConnecting: '📡 Connecting…',
+                statusReconnecting: '📡 Connection lost, reconnecting… (attempt {n})',
+                playbackFailed: 'Could not play "{name}". Check the URL or try another stream.',
+                playlistFailed: 'None of the tracks in "{name}" could be played.',
+                // Playlist editor
+                editPlaylistTitle: 'Edit: {name}',
+                addTracksTitle: 'Add Tracks',
+                addSelectedBtn: 'Add Selected',
+                noTracks: 'No tracks',
+                confirmDeleteTrack: 'Delete this track from the playlist?',
+                cannotDeleteLast: 'Cannot delete the last track. Delete the entire playlist instead.',
+                playlistLoadError: 'Error loading playlist',
+                trackMoveError: 'Error moving track',
+                trackDeleteError: 'Error deleting track',
+                selectFilesToAdd: 'Select files to add',
+                tracksAdded: 'Tracks added: {n}',
+                errorAddingTracks: 'Error adding tracks: {error}'
             }
         };
 
-        // YouTube Player
-        let youtubePlayer = null;
-        let youtubePlayerReady = false;
+        let currentLang = localStorage.getItem('language') === 'en' ? 'en' : 'ru';
 
-        // Current playing audio
-        let currentAudio = null;
-        let hlsInstance = null;
-        let currentPlayingId = null;
-        let currentPlaylist = null;
-        let currentTrackIndex = 0;
-        let currentStationUrl = null; // Для retry с разными CORS прокси
-        let currentStationType = null;
+        function t() {
+            return translations[currentLang];
+        }
 
-        // Selected files for upload
+        // Fills {placeholders} in a translation string
+        function fmt(text, vars = {}) {
+            return text.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match));
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        // ========= SETTINGS =========
+        const MAX_FILE_SIZE = 350 * 1024 * 1024; // 350 MB — enough for FLAC albums and long mixes
+        const PREVIEW_VOLUME = 0.5;
+        const RECONNECT_WINDOW_MS = 15000;   // a broken stream is retried this long before giving up
+        const RETRY_DELAYS_MS = [1000, 2000, 3000, 4000];
+        const CONNECT_TIMEOUT_MS = 10000;
+        const STALL_TIMEOUT_MS = 8000;
+
+        // Selected files / videos for the "add station" form
         let selectedFiles = [];
-        let selectedYouTubeTracks = []; // For YouTube playlists
+        let selectedYouTubeTracks = [];
 
-        // IndexedDB for storing large files
-        let db = null;
-        const DB_NAME = 'IskrClockDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'audioFiles';
-
-        // File size limit (350MB per file - enough for FLAC albums and long mixes)
-        const MAX_FILE_SIZE = 350 * 1024 * 1024; // 350 MB
-
-        // CORS Proxy система с fallback (для HTTP стримов на HTTPS странице)
-        const corsProxies = [
-            'https://corsproxy.io/?',                       // #0 - САМЫЙ СТАБИЛЬНЫЙ
-            'https://proxy.cors.sh/',                       // #1 - быстрый, без лимитов
-            'https://thingproxy.freeboard.io/fetch/',       // #2 - резервный
-            'https://api.allorigins.win/raw?url='           // #3 - иногда падает
-        ];
-        let currentProxyIndex = 0;
-
-        // YouTube Player API callback
-        function onYouTubeIframeAPIReady() {
-            youtubePlayer = new YT.Player('youtube-player', {
-                height: '1',
-                width: '1',
-                videoId: '',
-                playerVars: {
-                    autoplay: 0,
-                    controls: 0,
-                    disablekb: 1,
-                    fs: 0,
-                    modestbranding: 1,
-                    rel: 0,
-                    showinfo: 0
-                },
-                events: {
-                    'onReady': function(event) {
-                        youtubePlayerReady = true;
-                        console.log('✅ YouTube Player ready');
-                    },
-                    'onError': function(event) {
-                        console.error('❌ YouTube Player error:', event.data);
-                    }
-                }
-            });
-        }
-
-        // Initialize IndexedDB
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-                request.onerror = () => {
-                    console.error('❌ IndexedDB error:', request.error);
-                    reject(request.error);
-                };
-
-                request.onsuccess = () => {
-                    db = request.result;
-                    console.log('✅ IndexedDB initialized');
-                    resolve(db);
-                };
-
-                request.onupgradeneeded = (event) => {
-                    db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                        objectStore.createIndex('stationId', 'stationId', { unique: false });
-                        console.log('✅ IndexedDB object store created');
-                    }
-                };
-            });
-        }
-
-        // Save file to IndexedDB
-        function saveFileToDB(stationId, fileIndex, fileName, fileData) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-
-                const data = {
-                    stationId: stationId,
-                    fileIndex: fileIndex,
-                    name: fileName,
-                    data: fileData
-                };
-
-                const request = objectStore.add(data);
-
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        // Load files from IndexedDB for a station
-        function loadFilesFromDB(stationId) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                const index = objectStore.index('stationId');
-                const request = index.getAll(stationId);
-
-                request.onsuccess = () => {
-                    const files = request.result.sort((a, b) => a.fileIndex - b.fileIndex);
-                    resolve(files);
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        // Delete files from IndexedDB for a station
-        function deleteFilesFromDB(stationId) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                const index = objectStore.index('stationId');
-                const request = index.getAllKeys(stationId);
-
-                request.onsuccess = () => {
-                    const keys = request.result;
-                    keys.forEach(key => objectStore.delete(key));
-                    resolve();
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        // Получить URL с CORS proxy
-        function getProxiedURL(url, proxyIndex = currentProxyIndex) {
-            const proxy = corsProxies[proxyIndex];
-            const proxiedUrl = proxy + encodeURIComponent(url);
-            console.log(`🔄 Using CORS proxy #${proxyIndex}: ${proxy}`);
-            return proxiedUrl;
-        }
-
-        // Переключение на следующий proxy при ошибке
-        function switchToNextProxy() {
-            currentProxyIndex = (currentProxyIndex + 1) % corsProxies.length;
-            console.log(`⏭️ Switching to next proxy: #${currentProxyIndex}`);
-        }
-
-        // Проверка, нужен ли CORS proxy (для HTTP стримов)
-        function needsCorsProxy(url) {
-            try {
-                const urlObj = new URL(url);
-                // Если это HTTP (не HTTPS), нужен прокси для работы на HTTPS странице
-                return urlObj.protocol === 'http:';
-            } catch (e) {
-                console.error('Invalid URL:', url);
-                return false;
-            }
-        }
-
-        // Format file size
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -910,184 +898,271 @@
             return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         }
 
-        // Check file size
         function checkFileSize(file) {
             if (file.size > MAX_FILE_SIZE) {
                 return {
                     ok: false,
-                    message: `Файл "${file.name}" слишком большой (${formatFileSize(file.size)}). Максимум: ${formatFileSize(MAX_FILE_SIZE)}`
+                    message: fmt(t().fileTooLarge, { name: file.name, size: formatFileSize(file.size), max: formatFileSize(MAX_FILE_SIZE) })
                 };
             }
             return { ok: true };
         }
 
-        // Load custom stations from localStorage
-        function loadCustomStations() {
-            const saved = localStorage.getItem('customStations');
-            return saved ? JSON.parse(saved) : [];
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
         }
 
-        // Save custom stations to localStorage
-        function saveCustomStations(stations) {
-            localStorage.setItem('customStations', JSON.stringify(stations));
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(blob);
+            });
         }
 
-        // Render stations list
+        function isPlaylistStation(station) {
+            return (station.type === 'local' && station.fileCount > 1) ||
+                (station.type === 'youtube' && station.isPlaylist && station.videoIds && station.videoIds.length > 0);
+        }
+
+        // ========= STATIONS LIST =========
         function renderStations() {
             const stations = loadCustomStations();
             const listContainer = document.getElementById('stationsList');
-            const countElement = document.getElementById('stationCount');
-
-            countElement.textContent = stations.length;
+            document.getElementById('stationCount').textContent = stations.length;
 
             if (stations.length === 0) {
                 listContainer.innerHTML = `
                     <div class="empty-state">
-                        <p>Станции ещё не добавлены</p>
-                        <p style="font-size: 12px; margin-top: 10px;">Добавьте свою первую станцию выше ⬆️</p>
+                        <p>${escapeHtml(t().emptyStateText)}</p>
+                        <p style="font-size: 12px; margin-top: 10px;">${escapeHtml(t().emptyStateHelp)}</p>
                     </div>
                 `;
                 return;
             }
 
-            listContainer.innerHTML = stations.map((station, index) => {
-                const typeLabels = {
-                    'radio': '📻 Radio',
-                    'youtube': '📺 YouTube',
-                    'local': '🎵 Локально'
-                };
+            const alarmStation = localStorage.getItem('selectedStation');
 
+            listContainer.innerHTML = stations.map((station, index) => {
                 const fileCount = station.fileCount || 0;
                 const videoCount = station.videoIds ? station.videoIds.length : 0;
-                const isPlaylist = (station.type === 'local' && fileCount > 1) || (station.type === 'youtube' && station.isPlaylist);
-                const playlistClass = isPlaylist ? 'playlist' : '';
-
-                const lang = localStorage.getItem('language') || 'ru';
-                const t = translations[lang];
+                const isPlaylist = isPlaylistStation(station);
+                const isPlaying = preview && preview.index === index;
+                const isAlarm = alarmStation === customStationValue(station, index);
 
                 let playlistBadge = '';
                 if (station.type === 'local' && fileCount > 1) {
-                    playlistBadge = `<span class="station-type">📀 ${t.playlistLabel} (${fileCount} ${t.tracksLabel})</span>`;
+                    playlistBadge = `<span class="station-type">📀 ${escapeHtml(t().playlistLabel)} (${fileCount} ${escapeHtml(t().tracksLabel)})</span>`;
                 } else if (station.type === 'youtube' && station.isPlaylist) {
-                    playlistBadge = `<span class="station-type">📀 ${t.playlistLabel} (${videoCount} ${t.videosLabel})</span>`;
+                    playlistBadge = `<span class="station-type">📀 ${escapeHtml(t().playlistLabel)} (${videoCount} ${escapeHtml(t().videosLabel)})</span>`;
                 }
 
-                const urlDisplay = station.type === 'local'
-                    ? `${fileCount} ${t.filesLabel}`
-                    : escapeHtml(station.url || '');
+                let urlDisplay = '';
+                if (station.type === 'local') {
+                    urlDisplay = `${fileCount} ${t().filesLabel}`;
+                } else if (station.url && station.url.startsWith('data:')) {
+                    urlDisplay = '📄 .m3u';
+                } else {
+                    urlDisplay = station.url || '';
+                }
 
                 return `
-                    <div class="station-item ${playlistClass}">
+                    <div class="station-item ${isPlaylist ? 'playlist' : ''}">
                         <div class="station-info">
                             <div class="station-name">${escapeHtml(station.name)}</div>
-                            <div class="station-url">${urlDisplay}</div>
-                            <span class="station-type">${typeLabels[station.type]}</span>
+                            <div class="station-url">${escapeHtml(urlDisplay)}</div>
+                            <span class="station-type">${escapeHtml(t().typeLabels[station.type] || station.type)}</span>
                             ${playlistBadge}
+                            ${isAlarm ? `<span class="station-type alarm-badge">${escapeHtml(t().alarmBadge)}</span>` : ''}
                         </div>
                         <div class="station-actions">
-                            <button class="btn btn-play" onclick="togglePlay('${index}')">
-                                <span id="play-btn-${index}">▶ Play</span>
+                            <button class="btn btn-play ${isPlaying ? 'playing' : ''}" onclick="togglePlay(${index})">
+                                <span id="play-btn-${index}">${escapeHtml(isPlaying ? t().stopPlayBtn : t().playBtn)}</span>
                             </button>
-                            ${isPlaylist ? `<button class="btn btn-secondary" onclick="openPlaylistEditor(${index})">${t.editButton}</button>` : ''}
-                            <button class="btn btn-danger" onclick="deleteStation(${index})">🗑️</button>
+                            ${isAlarm ? '' : `<button class="btn btn-alarm" onclick="useForAlarm(${index})">${escapeHtml(t().useForAlarm)}</button>`}
+                            ${isPlaylist ? `<button class="btn btn-secondary" onclick="openPlaylistEditor(${index})">${escapeHtml(t().editButton)}</button>` : ''}
+                            <button class="btn btn-danger" onclick="deleteStation(${index})" title="${escapeHtml(t().deleteLabel)}" aria-label="${escapeHtml(t().deleteLabel)}">🗑️</button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        // Selects the station as the alarm sound and opens the alarm page
+        function useForAlarm(index) {
+            const stations = loadCustomStations();
+            if (!stations[index]) return;
+            localStorage.setItem('selectedStation', customStationValue(stations[index], index));
+            window.location.href = 'index.html';
         }
 
-        // Handle file selection
+        async function deleteStation(index) {
+            const stations = loadCustomStations();
+            const station = stations[index];
+            if (!station || !confirm(fmt(t().confirmDelete, { name: station.name }))) {
+                return;
+            }
+
+            if (preview) {
+                if (preview.index === index) {
+                    stopPreview();
+                } else if (preview.index > index) {
+                    preview.index--; // list positions shift after deletion
+                }
+            }
+
+            if (station.type === 'local' && station.id) {
+                try {
+                    await deleteFilesFromDB(station.id);
+                } catch (error) {
+                    console.error('❌ Error deleting files from IndexedDB:', error);
+                }
+            }
+
+            if (localStorage.getItem('selectedStation') === customStationValue(station, index)) {
+                localStorage.removeItem('selectedStation');
+            }
+
+            stations.splice(index, 1);
+            saveCustomStations(stations);
+            renderStations();
+        }
+
+        // ========= ADD STATION FORM =========
         document.getElementById('localFiles').addEventListener('change', function(e) {
             selectedFiles = Array.from(e.target.files);
             renderFileList();
         });
 
-        // Render selected files list
         function renderFileList() {
             const container = document.getElementById('fileList');
-
-            if (selectedFiles.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-
             container.innerHTML = selectedFiles.map((file, index) => `
                 <div class="file-item">
-                    <span>🎵 ${escapeHtml(file.name)}</span>
-                    <button class="file-remove" onclick="removeFile(${index})">✕</button>
+                    <span>🎵 ${escapeHtml(file.name)} <small style="opacity: 0.7;">(${formatFileSize(file.size)})</small></span>
+                    <button type="button" class="file-remove" onclick="removeFile(${index})" aria-label="${escapeHtml(t().deleteLabel)}">✕</button>
                 </div>
             `).join('');
         }
 
-        // Remove file from selection
         function removeFile(index) {
             selectedFiles.splice(index, 1);
             renderFileList();
 
-            // Update file input
             const input = document.getElementById('localFiles');
-            const dt = new DataTransfer();
-            selectedFiles.forEach(file => dt.items.add(file));
-            input.files = dt.files;
+            try {
+                const dt = new DataTransfer();
+                selectedFiles.forEach(file => dt.items.add(file));
+                input.files = dt.files;
+            } catch (e) {
+                // Older browsers can't rebuild a FileList — selectedFiles is the source of truth anyway
+            }
         }
 
-        // Extract YouTube ID from URL
-        function extractYouTubeId(urlOrId) {
-            // If it's already just an ID (no slashes or special chars), return as is
-            if (!/[\/\.\?=]/.test(urlOrId)) {
-                return urlOrId;
+        function updateFormFields() {
+            const type = document.getElementById('stationType').value;
+            document.getElementById('urlGroup').style.display = type === 'radio' ? 'block' : 'none';
+            document.getElementById('radioOrDivider').style.display = type === 'radio' ? 'block' : 'none';
+            document.getElementById('radioFileGroup').style.display = type === 'radio' ? 'block' : 'none';
+            document.getElementById('fileGroup').style.display = type === 'local' ? 'block' : 'none';
+            document.getElementById('youtubePlaylistSection').style.display = type === 'youtube' ? 'block' : 'none';
+        }
+
+        document.getElementById('stationType').addEventListener('change', updateFormFields);
+
+        function addYouTubeTrack() {
+            const input = document.getElementById('youtubeTrackUrl');
+            const urlsInput = input.value.trim();
+
+            if (!urlsInput) {
+                alert(t().enterYoutubeUrl);
+                return;
             }
 
-            // Try to extract from various YouTube URL formats
-            const patterns = [
-                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&\?\/\s]{11})/,
-                /^([^&\?\/\s]{11})$/  // Just the ID itself
-            ];
+            const urls = urlsInput.split(/[,\s]+/).map(u => u.trim()).filter(u => u);
+            const problems = [];
 
-            for (const pattern of patterns) {
-                const match = urlOrId.match(pattern);
-                if (match && match[1]) {
-                    return match[1];
+            for (const url of urls) {
+                const videoId = extractYouTubeId(url);
+                if (!videoId) {
+                    problems.push(fmt(t().couldNotExtractId, { url }));
+                    continue;
                 }
+                if (selectedYouTubeTracks.some(track => track.id === videoId)) {
+                    problems.push(fmt(t().videoAlreadyAdded, { id: videoId }));
+                    continue;
+                }
+                selectedYouTubeTracks.push({ id: videoId });
             }
 
-            return null;
+            if (problems.length) alert(problems.join('\n'));
+            input.value = '';
+            renderYouTubeTrackList();
         }
 
-        // Add new station
+        document.getElementById('youtubeTrackUrl').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // don't submit the whole form
+                addYouTubeTrack();
+            }
+        });
+
+        function renderYouTubeTrackList() {
+            const list = document.getElementById('youtubeTrackList');
+
+            if (selectedYouTubeTracks.length === 0) {
+                list.innerHTML = `<p style="opacity: 0.6; font-size: 14px;">${escapeHtml(t().noTracksYet)}</p>`;
+                return;
+            }
+
+            list.innerHTML = selectedYouTubeTracks.map((track, index) => `
+                <div class="file-item">
+                    <span>📺 YouTube: ${escapeHtml(track.id)}</span>
+                    <button type="button" class="file-remove" onclick="removeYouTubeTrack(${index})" aria-label="${escapeHtml(t().deleteLabel)}">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeYouTubeTrack(index) {
+            selectedYouTubeTracks.splice(index, 1);
+            renderYouTubeTrackList();
+        }
+
+        function resetForm() {
+            document.getElementById('addStationForm').reset();
+            updateFormFields();
+            selectedFiles = [];
+            selectedYouTubeTracks = [];
+            renderFileList();
+            renderYouTubeTrackList();
+        }
+
         document.getElementById('addStationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            const lang = localStorage.getItem('language') || 'ru';
-            const t = translations[lang];
 
             const name = document.getElementById('stationName').value.trim();
             const type = document.getElementById('stationType').value;
 
             if (!name) {
-                alert(t.enterName);
+                alert(t().enterName);
                 return;
             }
 
-            // Generate unique station ID
-            const stationId = 'station_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            let stationData = { name, type, id: stationId };
+            const stationId = 'station_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
+            const stationData = { name, type, id: stationId };
+            const submitBtn = document.getElementById('submitBtn');
 
             if (type === 'local') {
-                // Handle local files
                 if (selectedFiles.length === 0) {
-                    alert(t.selectFiles);
+                    alert(t().selectFiles);
                     return;
                 }
 
-                // Check file sizes
                 for (const file of selectedFiles) {
                     const sizeCheck = checkFileSize(file);
                     if (!sizeCheck.ok) {
@@ -1096,90 +1171,60 @@
                     }
                 }
 
+                submitBtn.disabled = true;
+                submitBtn.textContent = t().saving;
                 try {
-                    console.log(`📦 Processing ${selectedFiles.length} file(s)...`);
-
-                    // Read and save files to IndexedDB
+                    // Files go to IndexedDB as Blobs — no base64 copy in memory
                     for (let i = 0; i < selectedFiles.length; i++) {
-                        const file = selectedFiles[i];
-                        console.log(`📄 Reading file ${i + 1}/${selectedFiles.length}: ${file.name} (${formatFileSize(file.size)})`);
-
-                        const fileData = await readFileAsBase64(file);
-                        await saveFileToDB(stationId, i, file.name, fileData);
-
-                        console.log(`✅ Saved to IndexedDB: ${file.name}`);
+                        await saveFileToDB(stationId, i, selectedFiles[i].name, selectedFiles[i]);
                     }
-
-                    // Store only file count in station metadata
                     stationData.fileCount = selectedFiles.length;
-
-                    console.log(`✅ All ${selectedFiles.length} file(s) saved to IndexedDB`);
                 } catch (error) {
                     console.error('❌ Error saving files:', error);
-                    alert('Ошибка сохранения файлов: ' + error.message);
+                    deleteFilesFromDB(stationId).catch(() => {});
+                    alert(fmt(t().fileSaveError, { error: error.message }));
                     return;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = t().submitBtn;
                 }
             } else if (type === 'radio') {
-                // Handle radio - can be URL or file (supports MP3/AAC/HLS/.m3u/.m3u8)
                 const url = document.getElementById('stationUrl').value.trim();
-                const radioFileInput = document.getElementById('radioFile');
-                const radioFile = radioFileInput.files[0];
-
-                if (!url && !radioFile) {
-                    alert(t.selectRadioUrl);
-                    return;
-                }
+                const radioFile = document.getElementById('radioFile').files[0];
 
                 if (radioFile) {
-                    // Handle local M3U/M3U8 file for radio
-                    console.log(`📄 Processing playlist file: ${radioFile.name}`);
-
                     try {
-                        // Read file as text
                         const fileContent = await readFileAsText(radioFile);
-                        console.log(`✅ Playlist file read: ${fileContent.length} bytes`);
-
-                        // Store file content as data URL
-                        const blob = new Blob([fileContent], { type: 'application/vnd.apple.mpegurl' });
-                        const dataUrl = await blobToDataURL(blob);
-
-                        stationData.url = dataUrl;
+                        stationData.url = await blobToDataURL(new Blob([fileContent], { type: 'audio/x-mpegurl' }));
                         stationData.isLocalFile = true;
-                        console.log(`✅ Playlist file converted to data URL`);
                     } catch (error) {
                         console.error('❌ Error reading playlist file:', error);
-                        alert('Ошибка чтения файла: ' + error.message);
+                        alert(fmt(t().fileReadError, { error: error.message }));
                         return;
                     }
+                } else if (!url) {
+                    alert(t().selectRadioUrl);
+                    return;
+                } else if (!/^https?:\/\/\S+$/i.test(url)) {
+                    alert(t().invalidUrl);
+                    return;
                 } else {
-                    // Handle URL
                     stationData.url = url;
                 }
-            } else {
-                // Handle other URL-based stations (youtube)
-                const url = document.getElementById('stationUrl').value.trim();
+            } else if (type === 'youtube') {
+                // Pick up a link that was pasted but not added with the button
+                if (document.getElementById('youtubeTrackUrl').value.trim()) {
+                    addYouTubeTrack();
+                }
 
-                if (type === 'youtube') {
-                    // Check if we have playlist tracks
-                    if (selectedYouTubeTracks.length > 1) {
-                        // Playlist mode (2+ videos) - save all tracks
-                        stationData.videoIds = selectedYouTubeTracks.map(t => t.id);
-                        stationData.isPlaylist = true;
-                        console.log(`✅ YouTube playlist created with ${selectedYouTubeTracks.length} tracks`);
-                    } else if (selectedYouTubeTracks.length === 1) {
-                        // Single video - save as regular YouTube station
-                        stationData.url = `https://www.youtube.com/watch?v=${selectedYouTubeTracks[0].id}`;
-                        console.log(`✅ Single YouTube video added: ${selectedYouTubeTracks[0].id}`);
-                    } else {
-                        alert(t.addOneVideo);
-                        return;
-                    }
+                if (selectedYouTubeTracks.length > 1) {
+                    stationData.videoIds = selectedYouTubeTracks.map(track => track.id);
+                    stationData.isPlaylist = true;
+                } else if (selectedYouTubeTracks.length === 1) {
+                    stationData.url = `https://www.youtube.com/watch?v=${selectedYouTubeTracks[0].id}`;
                 } else {
-                    if (!url) {
-                        alert(t.provideUrl);
-                        return;
-                    }
-                    stationData.url = url;
+                    alert(t().addOneVideo);
+                    return;
                 }
             }
 
@@ -1187,858 +1232,302 @@
             stations.push(stationData);
             saveCustomStations(stations);
 
-            // Reset form
-            document.getElementById('stationName').value = '';
-            document.getElementById('stationUrl').value = '';
-            document.getElementById('localFiles').value = '';
-            document.getElementById('radioFile').value = '';
-            document.getElementById('youtubeTrackUrl').value = '';
-            selectedFiles = [];
-            selectedYouTubeTracks = [];
-            renderFileList();
-            renderYouTubeTrackList();
-
+            resetForm();
             renderStations();
             console.log('✅ Station added:', name);
         });
 
-        // Read file as base64
-        function readFileAsBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
+        // ========= PREVIEW PLAYER =========
+        // Same media adapters as on the alarm page (media.js). A broken radio stream is
+        // retried for RECONNECT_WINDOW_MS before giving up; playlists skip broken tracks.
+        let preview = null;
 
-        // Read file as text
-        function readFileAsText(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsText(file);
-            });
-        }
-
-        // Convert Blob to Data URL
-        function blobToDataURL(blob) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        }
-
-        // Delete station
-        async function deleteStation(index) {
-            if (!confirm('Удалить эту станцию?')) {
-                return;
-            }
-
-            // Stop if currently playing this station
-            if (currentPlayingId === String(index)) {
-                stopAllAudio();
-            }
-
-            const stations = loadCustomStations();
-            const station = stations[index];
-
-            // Clean up IndexedDB if this is a local station
-            if (station && station.type === 'local' && station.id) {
-                try {
-                    console.log(`🗑️ Deleting files from IndexedDB for station: ${station.id}`);
-                    await deleteFilesFromDB(station.id);
-                    console.log('✅ Files deleted from IndexedDB');
-                } catch (error) {
-                    console.error('❌ Error deleting files from IndexedDB:', error);
-                }
-            }
-
-            stations.splice(index, 1);
-            saveCustomStations(stations);
-            renderStations();
-            console.log('✅ Station deleted');
-        }
-
-        // Toggle play/stop
         async function togglePlay(index) {
-            const indexStr = String(index);
-            const btnElement = document.getElementById(`play-btn-${index}`);
-
-            if (currentPlayingId === indexStr) {
-                // Stop current
-                stopAllAudio();
-                btnElement.textContent = '▶ Play';
-                btnElement.parentElement.classList.remove('playing');
-                currentPlayingId = null;
-                hidePlayerControls();
-            } else {
-                // Stop previous if playing
-                if (currentPlayingId !== null) {
-                    stopAllAudio();
-                    const prevBtn = document.getElementById(`play-btn-${currentPlayingId}`);
-                    if (prevBtn) {
-                        prevBtn.textContent = '▶ Play';
-                        prevBtn.parentElement.classList.remove('playing');
-                    }
-                }
-
-                // Start new
-                const stations = loadCustomStations();
-                const station = stations[parseInt(index)];
-
-                if (station) {
-                    currentPlayingId = indexStr;
-                    currentTrackIndex = 0;
-
-                    if (station.type === 'local') {
-                        // Load files from IndexedDB
-                        try {
-                            console.log(`📂 Loading files from IndexedDB for station: ${station.id}`);
-                            const files = await loadFilesFromDB(station.id);
-
-                            if (files.length === 0) {
-                                alert('Файлы не найдены. Возможно, станция была создана в старой версии.');
-                                btnElement.textContent = '▶ Play';
-                                currentPlayingId = null;
-                                return;
-                            }
-
-                            console.log(`✅ Loaded ${files.length} file(s) from IndexedDB`);
-                            currentPlaylist = files;
-                            playLocalTrack(0, station.name);
-                        } catch (error) {
-                            console.error('❌ Error loading files:', error);
-                            alert('Ошибка загрузки файлов: ' + error.message);
-                            btnElement.textContent = '▶ Play';
-                            currentPlayingId = null;
-                            return;
-                        }
-                    } else {
-                        currentPlaylist = null;
-                        playStation(station, indexStr);
-                    }
-
-                    btnElement.textContent = '⏸ Stop';
-                    btnElement.parentElement.classList.add('playing');
-                    showPlayerControls(station.name, getStationInfo(station));
-                }
+            if (preview && preview.index === index) {
+                stopPreview();
+                return;
             }
+            await startPreview(index);
         }
 
-        // Get station info for display
-        function getStationInfo(station) {
-            const types = {
-                'radio': 'Радио поток',
-                'youtube': 'YouTube',
-                'local': `Локально (${station.fileCount || 0} треков)`
+        async function startPreview(index) {
+            stopPreview();
+
+            const station = loadCustomStations()[index];
+            if (!station) return;
+
+            const p = {
+                index,
+                station,
+                playlist: null,     // local tracks or YouTube video ids
+                trackIndex: 0,
+                attempt: 0,
+                failures: 0,
+                consecutiveErrors: 0,
+                unhealthySince: Date.now(),
+                phase: 'idle',
+                phaseSince: Date.now(),
+                lastTime: -1,
+                lastProgressAt: 0,
+                media: null,
+                ctx: null,
+                retryTimer: null,
+                ticker: null,
+                stopped: false
             };
-            return types[station.type] || station.type;
-        }
 
-        // Play station based on type
-        function playStation(station, id) {
-            console.log('🎵 Playing:', station.name, '(' + station.type + ')');
-
-            switch (station.type) {
-                case 'youtube':
-                    if (station.isPlaylist && station.videoIds && station.videoIds.length > 0) {
-                        // YouTube playlist mode
-                        currentPlayingId = id;
-                        currentPlaylist = station.videoIds.map((id, index) => ({
-                            id: id,
-                            name: `Video ${index + 1}`,
-                            type: 'youtube'
-                        }));
-                        currentTrackIndex = 0;
-                        playYouTubeTrack(0, station.name);
-                    } else {
-                        // Single YouTube video - extract videoId from URL
-                        currentPlaylist = null;
-                        const videoId = extractYouTubeId(station.url);
-                        if (videoId) {
-                            playYouTubeStation(videoId);
-                        } else {
-                            console.error('❌ Could not extract YouTube ID from:', station.url);
-                            alert('Ошибка: не удалось извлечь ID видео');
-                        }
-                    }
-                    break;
-                case 'hls':
-                    // Legacy HLS type - now handled as radio with auto-detection
-                    console.log('⚠️ Legacy HLS type detected, treating as radio...');
-                    playRadioStation(station.url, station.isLocalFile);
-                    break;
-                case 'radio':
-                default:
-                    // Auto-detect format (MP3/AAC/HLS) and play appropriately
-                    playRadioStation(station.url, station.isLocalFile);
-                    break;
-            }
-        }
-
-        // Play YouTube track from playlist
-        function playYouTubeTrack(trackIndex, playlistName) {
-            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
-                console.error('Invalid track index');
-                return;
-            }
-
-            const track = currentPlaylist[trackIndex];
-            currentTrackIndex = trackIndex;
-
-            console.log(`🎵 Playing YouTube track ${trackIndex + 1}/${currentPlaylist.length}: ${track.id}`);
-
-            if (!youtubePlayerReady) {
-                alert('YouTube Player ещё не готов. Попробуйте снова.');
-                return;
-            }
-
-            try {
-                youtubePlayer.loadVideoById(track.id);
-                youtubePlayer.setVolume(50);
-                updateNowPlaying(`YouTube: ${track.id}`, `Видео ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
-                console.log('✅ YouTube playlist track started');
-            } catch (error) {
-                console.error('❌ YouTube error:', error);
-                alert('Ошибка воспроизведения YouTube.');
-            }
-        }
-
-        // Play local track from playlist
-        function playLocalTrack(trackIndex, playlistName) {
-            if (!currentPlaylist || trackIndex < 0 || trackIndex >= currentPlaylist.length) {
-                console.error('Invalid track index');
-                return;
-            }
-
-            const track = currentPlaylist[trackIndex];
-            currentTrackIndex = trackIndex;
-
-            console.log(`🎵 Playing track ${trackIndex + 1}/${currentPlaylist.length}: ${track.name}`);
-
-            try {
-                const audio = new Audio();
-                audio.src = track.data;
-                audio.volume = 0.5;
-
-                audio.addEventListener('canplay', () => {
-                    console.log('✅ Track ready');
-                });
-
-                audio.addEventListener('error', (e) => {
-                    console.error('❌ Track error:', e);
-                    alert('Ошибка воспроизведения трека.');
-                    nextTrack();
-                });
-
-                audio.addEventListener('ended', () => {
-                    console.log('✅ Track ended, playing next...');
-                    nextTrack();
-                });
-
-                audio.play()
-                    .then(() => {
-                        console.log('✅ Playback started');
-                        currentAudio = audio;
-                        updateNowPlaying(track.name, `Трек ${trackIndex + 1}/${currentPlaylist.length} из "${playlistName}"`);
-                    })
-                    .catch(err => {
-                        console.error('❌ Play error:', err);
-                        alert('Не удалось воспроизвести трек.');
-                    });
-
-            } catch (error) {
-                console.error('❌ Error:', error);
-                alert('Ошибка создания аудио.');
-            }
-        }
-
-        // Play regular radio stream (or parse M3U if local file)
-        async function playRadioStation(url, isLocalFile = false) {
-            try {
-                const originalUrl = url;
-
-                // Сохраняем для retry
-                currentStationUrl = originalUrl;
-                currentStationType = 'radio';
-
-                // Check if this is a local M3U file (data URL)
-                const isDataURL = url.startsWith('data:');
-
-                // Auto-detect HLS format (.m3u8) and delegate to HLS player
-                if (url.includes('.m3u8') || (isDataURL && url.includes('application/vnd.apple.mpegurl'))) {
-                    console.log('🎶 Detected HLS format (.m3u8), using HLS player...');
-                    playHLSStation(url, isLocalFile);
+            if (station.type === 'local') {
+                try {
+                    p.playlist = await loadFilesFromDB(station.id);
+                } catch (error) {
+                    alert(fmt(t().fileLoadError, { error: error.message }));
                     return;
                 }
-
-                // Check if this is a plain M3U playlist file (.m3u but not .m3u8)
-                const isPlainM3U = url.endsWith('.m3u') && !url.endsWith('.m3u8');
-                if (isPlainM3U || (isLocalFile && isDataURL)) {
-                    console.log('📄 Detected M3U playlist file, parsing...');
-                    const result = await parseM3UPlaylist(url);
-
-                    if (result.success) {
-                        console.log(`🎵 Playing extracted stream: ${result.streamUrl}`);
-                        // Recursively call playRadioStation with extracted URL
-                        playRadioStation(result.streamUrl, false);
-                        return;
-                    } else {
-                        console.log('⚠️ M3U parsing failed');
-                        alert('Не удалось извлечь URL из M3U файла');
-                        return;
-                    }
+                if (p.playlist.length === 0) {
+                    alert(t().filesNotFound);
+                    return;
                 }
+            } else if (station.type === 'youtube' && station.isPlaylist && station.videoIds && station.videoIds.length) {
+                p.playlist = station.videoIds.slice();
+            }
 
-                const audio = new Audio();
+            stopPreview(); // another start may have happened while files were loading
+            preview = p;
+            p.ticker = setInterval(() => superviseInPreview(p), 1000);
+            renderStations();
+            document.getElementById('playerControls').classList.add('active');
+            const hasPlaylist = !!(p.playlist && p.playlist.length > 1);
+            document.getElementById('prevTrackBtn').style.display = hasPlaylist ? '' : 'none';
+            document.getElementById('nextTrackBtn').style.display = hasPlaylist ? '' : 'none';
+            setPreviewStatus('statusConnecting');
+            updateNowPlaying();
+            connectPreview(p);
+        }
 
-                // Проверяем нужен ли CORS proxy (для HTTP стримов)
-                if (needsCorsProxy(originalUrl)) {
-                    audio.src = getProxiedURL(originalUrl);
-                    console.log(`🔐 HTTP stream detected, using CORS proxy for: ${originalUrl}`);
-                } else {
-                    audio.src = originalUrl;
+        function stopPreview() {
+            const p = preview;
+            preview = null;
+            if (p) {
+                p.stopped = true;
+                clearTimeout(p.retryTimer);
+                clearInterval(p.ticker);
+                disposePreviewMedia(p);
+                renderStations();
+            }
+            document.getElementById('playerControls').classList.remove('active');
+        }
+
+        function disposePreviewMedia(p) {
+            if (p.media) {
+                try {
+                    p.media.destroy();
+                } catch (e) {
+                    console.warn('⚠️ Error releasing media:', e);
                 }
-
-                audio.volume = 0.5;
-                audio.crossOrigin = 'anonymous';
-
-                let errorHandled = false;
-
-                audio.addEventListener('loadstart', () => {
-                    console.log('📡 Loading stream...');
-                });
-
-                audio.addEventListener('canplay', () => {
-                    console.log('✅ Stream ready');
-                });
-
-                audio.addEventListener('error', (e) => {
-                    if (errorHandled) return;
-                    errorHandled = true;
-
-                    console.error('❌ Stream error:', e);
-
-                    // Очищаем проблемный audio
-                    try {
-                        audio.pause();
-                        audio.onloadstart = null;
-                        audio.oncanplay = null;
-                        audio.onerror = null;
-                    } catch (err) {
-                        console.log('⚠️ Error cleaning up audio:', err);
-                    }
-
-                    // Если это HTTP стрим с прокси, пробуем следующий прокси
-                    if (needsCorsProxy(originalUrl) && currentProxyIndex < corsProxies.length - 1) {
-                        console.log('🔄 Пробуем следующий CORS proxy...');
-                        switchToNextProxy();
-                        // Рекурсивно пробуем снова с новым прокси
-                        setTimeout(() => playRadioStation(originalUrl), 500);
-                    } else {
-                        // Все прокси перепробованы или это не HTTP стрим
-                        if (needsCorsProxy(originalUrl)) {
-                            console.log('❌ Все CORS прокси не сработали');
-                            currentProxyIndex = 0; // Сбрасываем индекс для следующей попытки
-                        }
-                        alert('Ошибка воспроизведения. Проверьте URL или попробуйте другой поток.');
-                        stopAllAudio();
-                    }
-                });
-
-                audio.play()
-                    .then(() => {
-                        console.log('✅ Playback started');
-                        currentAudio = audio;
-                    })
-                    .catch(err => {
-                        if (!errorHandled) {
-                            console.error('❌ Play error:', err);
-                            alert('Не удалось воспроизвести поток.');
-                        }
-                    });
-
-            } catch (error) {
-                console.error('❌ Error:', error);
-                alert('Ошибка создания аудио.');
+                p.media = null;
             }
         }
 
-        // Parse plain M3U playlist and extract stream URL
-        async function parseM3UPlaylist(url) {
-            console.log(`📄 Parsing .m3u playlist: ${url.substring(0, 100)}...`);
+        function createPreviewMedia(p, ctx) {
+            const station = p.station;
+            if (station.type === 'local') {
+                const source = trackSource(p.playlist[p.trackIndex]);
+                return createAudioAdapter(source.url, ctx, source.release);
+            }
+            if (station.type === 'youtube') {
+                if (p.playlist) {
+                    return createYouTubeAdapter(p.playlist[p.trackIndex], ctx, false);
+                }
+                const videoId = extractYouTubeId(station.url);
+                if (!videoId) {
+                    const error = new Error('Could not extract YouTube ID');
+                    error.permanent = true;
+                    throw error;
+                }
+                return createYouTubeAdapter(videoId, ctx, true);
+            }
+            return createCustomRadioAdapter(station.url, ctx, p.attempt);
+        }
+
+        async function connectPreview(p) {
+            if (p.stopped) return;
+            p.attempt++;
+            disposePreviewMedia(p);
+
+            const attempt = p.attempt;
+            const ctx = {
+                dead: false,
+                isCurrent: () => !ctx.dead && !p.stopped && p.attempt === attempt,
+                playing: () => {
+                    if (!ctx.isCurrent() || p.phase === 'playing') return;
+                    p.phase = 'playing';
+                    p.lastTime = -1;
+                    p.lastProgressAt = Date.now();
+                    p.unhealthySince = null;
+                    p.failures = 0;
+                    p.consecutiveErrors = 0;
+                    setPreviewStatus('');
+                },
+                fail: (reason, permanent) => {
+                    if (!ctx.isCurrent()) return;
+                    ctx.dead = true;
+                    onPreviewFailure(p, reason, permanent);
+                },
+                ended: () => {
+                    if (!ctx.isCurrent()) return;
+                    ctx.dead = true;
+                    if (p.playlist) {
+                        p.trackIndex = (p.trackIndex + 1) % p.playlist.length;
+                        connectPreview(p);
+                    } else if (p.station.type === 'youtube') {
+                        stopPreview(); // a single video just finishes
+                    } else {
+                        connectPreview(p); // a live stream "ended" — reconnect
+                    }
+                },
+                volume: () => PREVIEW_VOLUME
+            };
+            p.ctx = ctx;
+            p.phase = 'connecting';
+            p.phaseSince = Date.now();
+            updateNowPlaying();
 
             try {
-                let text;
-
-                // Check if this is a data URL (local file)
-                if (url.startsWith('data:')) {
-                    console.log('📄 Parsing local M3U file from data URL');
-                    // Extract the base64 content from data URL
-                    const base64Content = url.split(',')[1];
-                    text = atob(base64Content);
-                } else {
-                    // Use CORS proxy if needed
-                    const fetchUrl = needsCorsProxy(url) ? getProxiedURL(url) : url;
-
-                    const response = await fetch(fetchUrl);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-
-                    text = await response.text();
+                const media = await createPreviewMedia(p, ctx);
+                if (!ctx.isCurrent()) {
+                    if (media) media.destroy();
+                    return;
                 }
-
-                console.log(`📄 .m3u content length: ${text.length} bytes`);
-
-                // Parse M3U: extract first HTTP(S) URL
-                const lines = text.split('\n');
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-                        console.log(`✅ Found stream URL in .m3u: ${trimmed}`);
-                        return { success: true, streamUrl: trimmed };
-                    }
-                }
-
-                console.log('❌ No valid stream URL found in .m3u');
-                return { success: false, error: 'No stream URL found in playlist' };
+                p.media = media;
             } catch (error) {
-                console.error('❌ Failed to parse .m3u:', error);
-                return { success: false, error: error.message };
+                ctx.fail(error && error.message ? error.message : String(error), error && error.permanent);
             }
         }
 
-        // Custom HLS loader that uses CORS proxy for all HTTP requests
-        class CorsProxyLoader extends Hls.DefaultConfig.loader {
-            constructor(config) {
-                super(config);
-                this.proxyIndex = currentProxyIndex;
-            }
+        function onPreviewFailure(p, reason, permanent) {
+            console.warn(`⚠️ Preview playback problem (${reason})`);
+            disposePreviewMedia(p);
+            p.phase = 'waiting';
+            p.phaseSince = Date.now();
+            const name = p.station.name;
 
-            load(context, config, callbacks) {
-                // Check if URL needs CORS proxy (HTTP)
-                if (needsCorsProxy(context.url)) {
-                    console.log(`🔐 [HLS Loader] Proxying segment/manifest: ${context.url}`);
-                    context.url = getProxiedURL(context.url, this.proxyIndex);
+            if (p.playlist && p.playlist.length > 1) {
+                // Playlist: skip the broken track, give up only if every track fails
+                p.consecutiveErrors++;
+                if (p.consecutiveErrors >= p.playlist.length) {
+                    stopPreview();
+                    alert(fmt(t().playlistFailed, { name }));
+                    return;
                 }
-                super.load(context, config, callbacks);
-            }
-        }
-
-        // Play HLS stream (or parse plain M3U playlist)
-        async function playHLSStation(url, isLocalFile = false) {
-            if (!Hls.isSupported()) {
-                alert('HLS не поддерживается в этом браузере');
+                p.trackIndex = (p.trackIndex + 1) % p.playlist.length;
+                p.retryTimer = setTimeout(() => connectPreview(p), 300);
                 return;
             }
 
-            try {
-                const originalUrl = url;
-
-                // Сохраняем для retry
-                currentStationUrl = originalUrl;
-                currentStationType = 'hls';
-
-                // Check if this is a plain .m3u playlist (not HLS .m3u8)
-                // For local files (data URLs), we need to parse and check
-                const shouldParsePlainM3U = url.endsWith('.m3u') && !url.endsWith('.m3u8');
-                const isDataURL = url.startsWith('data:');
-
-                if (shouldParsePlainM3U || (isLocalFile && isDataURL)) {
-                    console.log('📄 Detected plain .m3u playlist, parsing...');
-                    const result = await parseM3UPlaylist(url);
-
-                    if (result.success) {
-                        console.log(`🎵 Playing extracted stream: ${result.streamUrl}`);
-                        // Play as regular radio stream
-                        playRadioStation(result.streamUrl);
-                        return;
-                    } else {
-                        console.log('⚠️ .m3u parsing failed, trying as HLS anyway...');
-                        // Fall through to try HLS
-                    }
-                }
-
-                const audio = new Audio();
-
-                // Check if needs CORS proxy
-                const needsProxy = needsCorsProxy(originalUrl);
-                if (needsProxy) {
-                    console.log(`🔐 HTTP HLS stream detected, using CORS proxy for: ${originalUrl}`);
-                }
-
-                // Create HLS instance with custom loader for HTTP streams
-                const hlsConfig = {
-                    debug: false,
-                    enableWorker: true,
-                    lowLatencyMode: true
-                };
-
-                // Use custom loader if HTTP stream
-                if (needsProxy) {
-                    hlsConfig.loader = CorsProxyLoader;
-                }
-
-                hlsInstance = new Hls(hlsConfig);
-
-                hlsInstance.loadSource(originalUrl);
-                hlsInstance.attachMedia(audio);
-
-                let errorHandled = false;
-
-                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
-                    console.log('✅ [HLS] Manifest parsed');
-                    audio.volume = 0.5;
-                    audio.play()
-                        .then(() => {
-                            console.log('✅ [HLS] Playback started');
-                            currentAudio = audio;
-                        })
-                        .catch(err => {
-                            console.error('❌ [HLS] Play error:', err);
-                            alert('Не удалось воспроизвести HLS поток.');
-                        });
-                });
-
-                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
-                    if (errorHandled) return;
-
-                    console.error('❌ [HLS] Error:', data.type, data.details);
-
-                    if (data.fatal) {
-                        switch (data.type) {
-                            case Hls.ErrorTypes.NETWORK_ERROR:
-                                // Если это HTTP стрим с прокси, пробуем следующий прокси
-                                if (needsCorsProxy(originalUrl) && currentProxyIndex < corsProxies.length - 1) {
-                                    errorHandled = true;
-                                    console.log('🔄 [HLS] Пробуем следующий CORS proxy...');
-
-                                    // Очищаем старый HLS instance
-                                    try {
-                                        hlsInstance.destroy();
-                                        hlsInstance = null;
-                                    } catch (e) {
-                                        console.log('⚠️ Error destroying HLS:', e);
-                                    }
-
-                                    switchToNextProxy();
-                                    // Рекурсивно пробуем снова с новым прокси
-                                    setTimeout(() => playHLSStation(originalUrl), 500);
-                                } else {
-                                    // Все прокси перепробованы
-                                    if (needsCorsProxy(originalUrl)) {
-                                        console.log('❌ [HLS] Все CORS прокси не сработали');
-                                        currentProxyIndex = 0;
-                                    }
-                                    alert('Критическая ошибка HLS: ' + data.details);
-                                    stopAllAudio();
-                                }
-                                break;
-
-                            case Hls.ErrorTypes.MEDIA_ERROR:
-                                console.log('⚠️ [HLS] Trying to recover from media error...');
-                                hlsInstance.recoverMediaError();
-                                break;
-
-                            default:
-                                alert('Критическая ошибка HLS: ' + data.details);
-                                stopAllAudio();
-                                break;
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error('❌ [HLS] Error:', error);
-                alert('Ошибка создания HLS плеера.');
-            }
-        }
-
-        // Play YouTube station
-        function playYouTubeStation(videoId) {
-            if (!youtubePlayerReady) {
-                alert('YouTube Player ещё не готов. Попробуйте снова.');
+            // Single source: keep reconnecting for a while before giving up
+            p.failures++;
+            if (!p.unhealthySince) p.unhealthySince = Date.now();
+            if (permanent || Date.now() - p.unhealthySince >= RECONNECT_WINDOW_MS) {
+                stopPreview();
+                alert(fmt(t().playbackFailed, { name }));
                 return;
             }
 
-            try {
-                youtubePlayer.loadVideoById(videoId);
-                youtubePlayer.setVolume(50);
-                console.log('✅ YouTube playback started');
-            } catch (error) {
-                console.error('❌ YouTube error:', error);
-                alert('Ошибка воспроизведения YouTube.');
+            setPreviewStatus('statusReconnecting', p.failures);
+            const delay = RETRY_DELAYS_MS[Math.min(p.failures - 1, RETRY_DELAYS_MS.length - 1)];
+            p.retryTimer = setTimeout(() => connectPreview(p), delay);
+        }
+
+        function superviseInPreview(p) {
+            if (p.stopped) return;
+            const now = Date.now();
+            if (p.phase === 'connecting' && now - p.phaseSince > CONNECT_TIMEOUT_MS) {
+                p.ctx.fail('connection timeout');
+            } else if (p.phase === 'playing' && p.media) {
+                const time = p.media.getTime();
+                if (time !== p.lastTime) {
+                    p.lastTime = time;
+                    p.lastProgressAt = now;
+                } else if (now - p.lastProgressAt > STALL_TIMEOUT_MS) {
+                    p.ctx.fail('playback stalled');
+                }
             }
         }
 
-        // Next track
         function nextTrack() {
-            if (!currentPlaylist || currentPlaylist.length === 0) {
-                console.log('No playlist active');
-                return;
-            }
-
-            const nextIndex = (currentTrackIndex + 1) % currentPlaylist.length;
-
-            const stations = loadCustomStations();
-            const station = stations[parseInt(currentPlayingId)];
-
-            if (currentPlaylist[0].type === 'youtube') {
-                // YouTube playlist
-                playYouTubeTrack(nextIndex, station.name);
-            } else {
-                // Local files playlist
-                stopAllAudio();
-                playLocalTrack(nextIndex, station.name);
-            }
+            const p = preview;
+            if (!p || !p.playlist) return;
+            p.trackIndex = (p.trackIndex + 1) % p.playlist.length;
+            p.consecutiveErrors = 0;
+            clearTimeout(p.retryTimer);
+            connectPreview(p);
         }
 
-        // Previous track
         function previousTrack() {
-            if (!currentPlaylist || currentPlaylist.length === 0) {
-                console.log('No playlist active');
-                return;
-            }
+            const p = preview;
+            if (!p || !p.playlist) return;
+            p.trackIndex = (p.trackIndex - 1 + p.playlist.length) % p.playlist.length;
+            p.consecutiveErrors = 0;
+            clearTimeout(p.retryTimer);
+            connectPreview(p);
+        }
 
-            const prevIndex = currentTrackIndex - 1 >= 0 ? currentTrackIndex - 1 : currentPlaylist.length - 1;
+        let previewStatus = { key: '', n: 0 };
 
-            const stations = loadCustomStations();
-            const station = stations[parseInt(currentPlayingId)];
+        function setPreviewStatus(key, n = 0) {
+            previewStatus = { key, n };
+            document.getElementById('nowPlayingStatus').textContent = key ? fmt(t()[key], { n }) : '';
+        }
 
-            if (currentPlaylist[0].type === 'youtube') {
-                // YouTube playlist
-                playYouTubeTrack(prevIndex, station.name);
+        function updateNowPlaying() {
+            const p = preview;
+            if (!p) return;
+            let title = p.station.name;
+            let info;
+            if (p.station.type === 'local') {
+                title = p.playlist[p.trackIndex].name;
+                info = `${fmt(t().trackOf, { n: p.trackIndex + 1, total: p.playlist.length })} — ${p.station.name}`;
+            } else if (p.station.type === 'youtube') {
+                info = p.playlist
+                    ? `${fmt(t().videoOf, { n: p.trackIndex + 1, total: p.playlist.length })} (${p.playlist[p.trackIndex]})`
+                    : t().infoYoutube;
             } else {
-                // Local files playlist
-                stopAllAudio();
-                playLocalTrack(prevIndex, station.name);
+                info = t().infoRadio;
             }
-        }
-
-        // Stop all audio
-        function stopAllAudio() {
-            // Stop YouTube
-            if (youtubePlayer && youtubePlayerReady) {
-                try {
-                    youtubePlayer.stopVideo();
-                } catch (e) {
-                    console.log('⚠️ Error stopping YouTube:', e);
-                }
-            }
-
-            // Stop HLS
-            if (hlsInstance) {
-                try {
-                    hlsInstance.destroy();
-                    hlsInstance = null;
-                } catch (e) {
-                    console.log('⚠️ Error destroying HLS:', e);
-                }
-            }
-
-            // Stop HTML5 Audio
-            if (currentAudio) {
-                try {
-                    currentAudio.pause();
-                    currentAudio = null;
-                } catch (e) {
-                    console.log('⚠️ Error stopping audio:', e);
-                }
-            }
-
-            console.log('✅ All audio stopped');
-
-            // Reset UI
-            if (currentPlayingId !== null) {
-                const btnElement = document.getElementById(`play-btn-${currentPlayingId}`);
-                if (btnElement) {
-                    btnElement.textContent = '▶ Play';
-                    btnElement.parentElement.classList.remove('playing');
-                }
-                currentPlayingId = null;
-            }
-
-            hidePlayerControls();
-        }
-
-        // Show player controls
-        function showPlayerControls(title, info) {
-            const controls = document.getElementById('playerControls');
-            controls.classList.add('active');
-            updateNowPlaying(title, info);
-        }
-
-        // Hide player controls
-        function hidePlayerControls() {
-            const controls = document.getElementById('playerControls');
-            controls.classList.remove('active');
-        }
-
-        // Update now playing info
-        function updateNowPlaying(title, info) {
             document.getElementById('nowPlayingTitle').textContent = title;
             document.getElementById('nowPlayingInfo').textContent = info;
         }
 
-        // Update help text based on selected type
-        function updateFormFields() {
-            const type = document.getElementById('stationType').value;
-            const urlHelp = document.getElementById('urlHelp');
-            const urlInput = document.getElementById('stationUrl');
-            const urlLabel = document.getElementById('urlLabel');
-            const urlGroup = document.getElementById('urlGroup');
-            const fileGroup = document.getElementById('fileGroup');
-            const radioFileGroup = document.getElementById('radioFileGroup');
-            const radioOrDivider = document.getElementById('radioOrDivider');
-            const youtubePlaylistSection = document.getElementById('youtubePlaylistSection');
-
-            // Hide all first
-            urlGroup.style.display = 'none';
-            fileGroup.style.display = 'none';
-            radioFileGroup.style.display = 'none';
-            radioOrDivider.style.display = 'none';
-            youtubePlaylistSection.style.display = 'none';
-
-            const lang = localStorage.getItem('language') || 'ru';
-
-            if (type === 'local') {
-                fileGroup.style.display = 'block';
-            } else if (type === 'radio') {
-                // For Radio, show both URL and File options with OR divider
-                urlGroup.style.display = 'block';
-                radioOrDivider.style.display = 'block';
-                radioFileGroup.style.display = 'block';
-
-                if (lang === 'en') {
-                    urlHelp.textContent = 'Radio stream URL (MP3/AAC/HLS/.m3u8). Format detected automatically. HTTP streams work via CORS proxy.';
-                    urlInput.placeholder = 'http://example.com/stream.mp3 or http://example.com/stream.m3u8';
-                    urlLabel.textContent = 'Stream URL';
-                } else {
-                    urlHelp.textContent = 'URL радио-потока (MP3/AAC/HLS/.m3u8). Формат определяется автоматически. HTTP потоки работают через CORS прокси.';
-                    urlInput.placeholder = 'http://example.com/stream.mp3 или http://example.com/stream.m3u8';
-                    urlLabel.textContent = 'URL потока';
-                }
-            } else if (type === 'youtube') {
-                youtubePlaylistSection.style.display = 'block';
-                urlGroup.style.display = 'none'; // Hide single URL field, only show playlist section
-
-                if (lang === 'en') {
-                    // Already set by translation
-                } else {
-                    // Already set by default
-                }
-            }
-        }
-
-        // Add YouTube track to playlist
-        function addYouTubeTrack() {
-            const input = document.getElementById('youtubeTrackUrl');
-            const urlsInput = input.value.trim();
-            const lang = localStorage.getItem('language') || 'ru';
-            const t = translations[lang];
-
-            if (!urlsInput) {
-                alert(t.enterYoutubeUrl);
-                return;
-            }
-
-            // Split by comma for multiple URLs
-            const urls = urlsInput.split(',').map(u => u.trim()).filter(u => u);
-
-            for (const url of urls) {
-                const videoId = extractYouTubeId(url);
-                if (!videoId) {
-                    alert(`${t.couldNotExtractId} ${url}`);
-                    continue;
-                }
-
-                // Check if already added
-                if (selectedYouTubeTracks.some(t => t.id === videoId)) {
-                    alert(`${t.videoAlreadyAdded}: ${videoId}`);
-                    continue;
-                }
-
-                selectedYouTubeTracks.push({
-                    id: videoId,
-                    title: `YouTube: ${videoId}`
-                });
-            }
-
-            input.value = '';
-            renderYouTubeTrackList();
-        }
-
-        // Render YouTube track list
-        function renderYouTubeTrackList() {
-            const list = document.getElementById('youtubeTrackList');
-            const lang = localStorage.getItem('language') || 'ru';
-            const t = translations[lang];
-
-            if (selectedYouTubeTracks.length === 0) {
-                list.innerHTML = `<p style="opacity: 0.6; font-size: 14px;">${t.noTracksYet}</p>`;
-                return;
-            }
-
-            list.innerHTML = selectedYouTubeTracks.map((track, index) => `
-                <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px; margin-bottom: 5px;">
-                    <div>
-                        <div style="font-weight: bold;">📺 ${track.title}</div>
-                        <div style="font-size: 12px; opacity: 0.7;">ID: ${track.id}</div>
-                    </div>
-                    <button type="button" class="btn btn-danger btn-small" onclick="removeYouTubeTrack(${index})">❌</button>
-                </div>
-            `).join('');
-        }
-
-        // Remove YouTube track from list
-        function removeYouTubeTrack(index) {
-            selectedYouTubeTracks.splice(index, 1);
-            renderYouTubeTrackList();
-        }
-
-        document.getElementById('stationType').addEventListener('change', updateFormFields);
-
-        // Playlist Editor Functions
+        // ========= PLAYLIST EDITOR =========
         let currentEditingPlaylistIndex = null;
+
+        function getEditingStation() {
+            const stations = loadCustomStations();
+            return { stations, station: stations[currentEditingPlaylistIndex] };
+        }
+
+        function youtubeTracks(station) {
+            return station.videoIds.map(id => ({ name: id, videoId: id }));
+        }
 
         async function openPlaylistEditor(index) {
             currentEditingPlaylistIndex = index;
-            const stations = loadCustomStations();
-            const station = stations[index];
+            const { station } = getEditingStation();
+            if (!station || !isPlaylistStation(station)) return;
 
-            const lang = localStorage.getItem('language') || 'ru';
-            const isPlaylist = (station.type === 'local' && station.fileCount > 1) || (station.type === 'youtube' && station.isPlaylist);
-
-            if (!station || !isPlaylist) {
-                alert(lang === 'en' ? 'This station is not a playlist' : 'Эта станция не является плейлистом');
-                return;
-            }
-
-            document.getElementById('modalPlaylistName').textContent = `${lang === 'en' ? 'Edit' : 'Редактировать'}: ${station.name}`;
+            document.getElementById('modalPlaylistName').textContent = fmt(t().editPlaylistTitle, { name: station.name });
+            document.getElementById('modalAddTracks').style.display = station.type === 'local' ? '' : 'none';
 
             try {
                 if (station.type === 'local') {
-                    // Load tracks from IndexedDB
-                    const files = await loadFilesFromDB(station.id);
-                    renderModalTrackList(files);
-                } else if (station.type === 'youtube' && station.isPlaylist) {
-                    // Load YouTube playlist tracks
-                    const videoTracks = station.videoIds.map((id, index) => ({
-                        id: id,
-                        name: `Video ${index + 1}`,
-                        videoId: id
-                    }));
-                    renderModalTrackList(videoTracks, true);
+                    renderModalTrackList(await loadFilesFromDB(station.id));
+                } else {
+                    renderModalTrackList(youtubeTracks(station), true);
                 }
                 document.getElementById('playlistEditorModal').classList.add('active');
             } catch (error) {
                 console.error('❌ Error loading playlist:', error);
-                alert(lang === 'en' ? 'Error loading playlist' : 'Ошибка загрузки плейлиста');
+                alert(t().playlistLoadError);
             }
         }
 
@@ -2048,422 +1537,197 @@
             document.getElementById('addTracksInput').value = '';
         }
 
+        // Close the editor with Escape or a click outside the dialog
+        document.getElementById('playlistEditorModal').addEventListener('click', (e) => {
+            if (e.target.id === 'playlistEditorModal') closePlaylistEditor();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentEditingPlaylistIndex !== null) closePlaylistEditor();
+        });
+
         function renderModalTrackList(files, isYouTube = false) {
             const container = document.getElementById('modalTrackList');
-            const lang = localStorage.getItem('language') || 'ru';
 
             if (files.length === 0) {
-                container.innerHTML = `<p>${lang === 'en' ? 'No tracks' : 'Треков нет'}</p>`;
+                container.innerHTML = `<p>${escapeHtml(t().noTracks)}</p>`;
                 return;
             }
 
-            container.innerHTML = files.map((file, index) => {
-                const displayName = isYouTube
-                    ? `📺 ${file.videoId || file.id}`
-                    : `🎵 ${escapeHtml(file.name)}`;
-                const trackLabel = lang === 'en'
-                    ? `Track ${index + 1} of ${files.length}`
-                    : `Трек ${index + 1} из ${files.length}`;
-
-                return `
-                    <div class="track-item">
-                        <div class="track-info">
-                            <div class="track-name">${displayName}</div>
-                            <div class="track-size">${trackLabel}</div>
-                        </div>
-                        <div class="track-actions">
-                            ${index > 0 ? `<button class="btn btn-small btn-secondary" onclick="moveTrackUp(${index})">⬆</button>` : ''}
-                            ${index < files.length - 1 ? `<button class="btn btn-small btn-secondary" onclick="moveTrackDown(${index})">⬇</button>` : ''}
-                            <button class="btn btn-small btn-danger" onclick="deleteTrack(${index})">🗑️</button>
-                        </div>
+            container.innerHTML = files.map((file, index) => `
+                <div class="track-item">
+                    <div class="track-info">
+                        <div class="track-name">${isYouTube ? '📺' : '🎵'} ${escapeHtml(file.videoId || file.name)}</div>
+                        <div class="track-size">${escapeHtml(fmt(t().trackOf, { n: index + 1, total: files.length }))}</div>
                     </div>
-                `;
-            }).join('');
+                    <div class="track-actions">
+                        ${index > 0 ? `<button class="btn btn-small btn-secondary" onclick="moveTrack(${index}, -1)" aria-label="Up">⬆</button>` : ''}
+                        ${index < files.length - 1 ? `<button class="btn btn-small btn-secondary" onclick="moveTrack(${index}, 1)" aria-label="Down">⬇</button>` : ''}
+                        <button class="btn btn-small btn-danger" onclick="deleteTrack(${index})" aria-label="${escapeHtml(t().deleteLabel)}">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        async function moveTrackUp(trackIndex) {
-            if (trackIndex === 0) return;
-
-            const stations = loadCustomStations();
-            const station = stations[currentEditingPlaylistIndex];
-
-            try {
-                if (station.type === 'youtube' && station.isPlaylist) {
-                    // YouTube playlist
-                    [station.videoIds[trackIndex - 1], station.videoIds[trackIndex]] =
-                        [station.videoIds[trackIndex], station.videoIds[trackIndex - 1]];
-                    saveCustomStations(stations);
-
-                    const videoTracks = station.videoIds.map((id, index) => ({
-                        id: id,
-                        name: `Video ${index + 1}`,
-                        videoId: id
-                    }));
-                    renderModalTrackList(videoTracks, true);
-                } else {
-                    // Local playlist
-                    const files = await loadFilesFromDB(station.id);
-                    // Swap with previous
-                    [files[trackIndex - 1], files[trackIndex]] = [files[trackIndex], files[trackIndex - 1]];
-
-                    // Re-save to IndexedDB
-                    await resavePlaylistTracks(station.id, files);
-                    renderModalTrackList(files);
-                }
-
-                console.log(`✅ Moved track up: ${trackIndex} -> ${trackIndex - 1}`);
-            } catch (error) {
-                console.error('❌ Error moving track:', error);
-                const lang = localStorage.getItem('language') || 'ru';
-                alert(lang === 'en' ? 'Error moving track' : 'Ошибка перемещения трека');
+        async function resavePlaylistTracks(stationId, files) {
+            await deleteFilesFromDB(stationId);
+            for (let i = 0; i < files.length; i++) {
+                await saveFileToDB(stationId, i, files[i].name, files[i].data);
             }
         }
 
-        async function moveTrackDown(trackIndex) {
-            const stations = loadCustomStations();
-            const station = stations[currentEditingPlaylistIndex];
+        async function moveTrack(trackIndex, direction) {
+            const { stations, station } = getEditingStation();
+            const target = trackIndex + direction;
 
             try {
-                if (station.type === 'youtube' && station.isPlaylist) {
-                    // YouTube playlist
-                    if (trackIndex >= station.videoIds.length - 1) return;
-
-                    [station.videoIds[trackIndex], station.videoIds[trackIndex + 1]] =
-                        [station.videoIds[trackIndex + 1], station.videoIds[trackIndex]];
+                if (station.type === 'youtube') {
+                    if (target < 0 || target >= station.videoIds.length) return;
+                    [station.videoIds[trackIndex], station.videoIds[target]] = [station.videoIds[target], station.videoIds[trackIndex]];
                     saveCustomStations(stations);
-
-                    const videoTracks = station.videoIds.map((id, index) => ({
-                        id: id,
-                        name: `Video ${index + 1}`,
-                        videoId: id
-                    }));
-                    renderModalTrackList(videoTracks, true);
+                    renderModalTrackList(youtubeTracks(station), true);
                 } else {
-                    // Local playlist
                     const files = await loadFilesFromDB(station.id);
-                    if (trackIndex >= files.length - 1) return;
-
-                    // Swap with next
-                    [files[trackIndex], files[trackIndex + 1]] = [files[trackIndex + 1], files[trackIndex]];
-
-                    // Re-save to IndexedDB
+                    if (target < 0 || target >= files.length) return;
+                    [files[trackIndex], files[target]] = [files[target], files[trackIndex]];
                     await resavePlaylistTracks(station.id, files);
                     renderModalTrackList(files);
                 }
-
-                console.log(`✅ Moved track down: ${trackIndex} -> ${trackIndex + 1}`);
             } catch (error) {
                 console.error('❌ Error moving track:', error);
-                const lang = localStorage.getItem('language') || 'ru';
-                alert(lang === 'en' ? 'Error moving track' : 'Ошибка перемещения трека');
+                alert(t().trackMoveError);
             }
         }
 
         async function deleteTrack(trackIndex) {
-            const lang = localStorage.getItem('language') || 'ru';
-            const confirmMsg = lang === 'en'
-                ? 'Delete this track from playlist?'
-                : 'Удалить этот трек из плейлиста?';
+            if (!confirm(t().confirmDeleteTrack)) return;
 
-            if (!confirm(confirmMsg)) return;
-
-            const stations = loadCustomStations();
-            const station = stations[currentEditingPlaylistIndex];
+            const { stations, station } = getEditingStation();
 
             try {
-                if (station.type === 'youtube' && station.isPlaylist) {
-                    // YouTube playlist
+                if (station.type === 'youtube') {
+                    if (station.videoIds.length <= 1) {
+                        alert(t().cannotDeleteLast);
+                        return;
+                    }
                     station.videoIds.splice(trackIndex, 1);
-
-                    if (station.videoIds.length === 0) {
-                        alert(lang === 'en'
-                            ? 'Cannot delete the last track. Delete the entire playlist instead.'
-                            : 'Нельзя удалить последний трек. Удалите весь плейлист вместо этого.');
-                        return;
-                    }
-
                     saveCustomStations(stations);
-
-                    const videoTracks = station.videoIds.map((id, index) => ({
-                        id: id,
-                        name: `Video ${index + 1}`,
-                        videoId: id
-                    }));
-                    renderModalTrackList(videoTracks, true);
+                    renderModalTrackList(youtubeTracks(station), true);
                 } else {
-                    // Local playlist
                     const files = await loadFilesFromDB(station.id);
-                    files.splice(trackIndex, 1);
-
-                    if (files.length === 0) {
-                        alert(lang === 'en'
-                            ? 'Cannot delete the last track. Delete the entire playlist instead.'
-                            : 'Нельзя удалить последний трек. Удалите весь плейлист вместо этого.');
+                    if (files.length <= 1) {
+                        alert(t().cannotDeleteLast);
                         return;
                     }
-
-                    // Re-save to IndexedDB
+                    files.splice(trackIndex, 1);
                     await resavePlaylistTracks(station.id, files);
-
-                    // Update file count in station metadata
                     station.fileCount = files.length;
                     saveCustomStations(stations);
-
                     renderModalTrackList(files);
                 }
 
                 renderStations();
-                console.log(`✅ Deleted track: ${trackIndex}`);
             } catch (error) {
                 console.error('❌ Error deleting track:', error);
-                alert(lang === 'en' ? 'Error deleting track' : 'Ошибка удаления трека');
+                alert(t().trackDeleteError);
             }
         }
 
         async function addTracksToPlaylist() {
             const input = document.getElementById('addTracksInput');
             const newFiles = Array.from(input.files);
-            const lang = localStorage.getItem('language') || 'ru';
-            const t = translations[lang];
 
             if (newFiles.length === 0) {
-                alert(t.selectFilesToAdd);
+                alert(t().selectFilesToAdd);
                 return;
             }
 
-            const stations = loadCustomStations();
-            const station = stations[currentEditingPlaylistIndex];
+            for (const file of newFiles) {
+                const sizeCheck = checkFileSize(file);
+                if (!sizeCheck.ok) {
+                    alert(sizeCheck.message);
+                    return;
+                }
+            }
+
+            const { stations, station } = getEditingStation();
+            const addButton = document.getElementById('addTracksBtn');
+            addButton.disabled = true;
+            addButton.textContent = t().saving;
 
             try {
-                // Check file sizes
-                for (const file of newFiles) {
-                    const sizeCheck = checkFileSize(file);
-                    if (!sizeCheck.ok) {
-                        alert(sizeCheck.message);
-                        return;
-                    }
-                }
-
-                // Load existing tracks
                 const existingFiles = await loadFilesFromDB(station.id);
-
-                // Read and add new files
-                console.log(`📦 Adding ${newFiles.length} new track(s)...`);
-
                 for (let i = 0; i < newFiles.length; i++) {
-                    const file = newFiles[i];
-                    console.log(`📄 Reading file ${i + 1}/${newFiles.length}: ${file.name}`);
-
-                    const fileData = await readFileAsBase64(file);
-                    const newTrackIndex = existingFiles.length + i;
-                    await saveFileToDB(station.id, newTrackIndex, file.name, fileData);
-
-                    existingFiles.push({ name: file.name, data: fileData });
-                    console.log(`✅ Added: ${file.name}`);
+                    await saveFileToDB(station.id, existingFiles.length + i, newFiles[i].name, newFiles[i]);
                 }
 
-                // Update file count
-                station.fileCount = existingFiles.length;
+                station.fileCount = existingFiles.length + newFiles.length;
                 saveCustomStations(stations);
 
-                // Refresh view
-                renderModalTrackList(existingFiles);
+                renderModalTrackList(await loadFilesFromDB(station.id));
                 renderStations();
-
                 input.value = '';
-
-                console.log(`✅ Added ${newFiles.length} track(s) to playlist`);
-                alert(`${t.tracksAdded} ${newFiles.length}`);
+                alert(fmt(t().tracksAdded, { n: newFiles.length }));
             } catch (error) {
                 console.error('❌ Error adding tracks:', error);
-                alert(`${t.errorAddingTracks} ${error.message}`);
+                alert(fmt(t().errorAddingTracks, { error: error.message }));
+            } finally {
+                addButton.disabled = false;
+                addButton.textContent = t().addSelectedBtn;
             }
         }
 
-        async function resavePlaylistTracks(stationId, files) {
-            // Delete all existing tracks
-            await deleteFilesFromDB(stationId);
+        // ========= LANGUAGE =========
+        function switchLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            document.documentElement.lang = lang;
+            document.title = t().documentTitle;
 
-            // Re-save in new order
-            for (let i = 0; i < files.length; i++) {
-                await saveFileToDB(stationId, i, files[i].name, files[i].data);
-            }
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('🎵 Custom Stations Page Loaded');
-            console.log('🔧 HLS.js version:', Hls.version);
-            console.log('🔧 HLS.js supported:', Hls.isSupported());
-            console.log('📁 LocalStorage available:', typeof(Storage) !== 'undefined');
-            console.log('💾 IndexedDB available:', typeof(indexedDB) !== 'undefined');
-            console.log('═══════════════════════════════════════════════════════');
-
-            // Initialize IndexedDB
-            try {
-                await initDB();
-                console.log('✅ IndexedDB ready');
-            } catch (error) {
-                console.error('❌ Failed to initialize IndexedDB:', error);
-                alert('Ошибка инициализации базы данных. Локальные файлы могут не работать.');
-            }
-
-            // Initialize form fields visibility
-            updateFormFields();
-
-            renderStations();
-
-            // ========= LANGUAGE SWITCHING =========
-            let currentLang = localStorage.getItem('language') || 'ru';
-
-            function switchLanguage(lang) {
-                currentLang = lang;
-                localStorage.setItem('language', lang);
-                const t = translations[lang];
-
-                // Update page elements
-                const pageTitle = document.querySelector('.page-title');
-                if (pageTitle) pageTitle.textContent = t.pageTitle;
-
-                const pageSubtitle = document.querySelector('.page-subtitle');
-                if (pageSubtitle) pageSubtitle.textContent = t.pageSubtitle;
-
-                // Update navigation
-                const navHome = document.querySelector('.nav-home');
-                if (navHome) navHome.textContent = t.navHome;
-
-                const navTimer = document.querySelector('.nav-timer');
-                if (navTimer) navTimer.textContent = t.navTimer;
-
-                const navStopwatch = document.querySelector('.nav-stopwatch');
-                if (navStopwatch) navStopwatch.textContent = t.navStopwatch;
-
-                const navStations = document.querySelector('.nav-stations');
-                if (navStations) navStations.textContent = t.navStations;
-
-                const navCalculator = document.querySelector('.nav-calculator');
-                if (navCalculator) navCalculator.textContent = t.navCalculator;
-
-                // Update player controls
-                const controlButtons = document.querySelectorAll('.control-buttons .btn');
-                if (controlButtons[0]) controlButtons[0].textContent = t.previousBtn;
-                if (controlButtons[1]) controlButtons[1].textContent = t.stopBtn;
-                if (controlButtons[2]) controlButtons[2].textContent = t.nextBtn;
-
-                // Update form
-                const cardTitles = document.querySelectorAll('.card h2');
-                if (cardTitles[0]) cardTitles[0].innerHTML = t.addStationTitle;
-
-                const stationCount = document.getElementById('stationCount');
-                if (cardTitles[1] && stationCount) {
-                    cardTitles[1].innerHTML = `${t.myStationsTitle} (<span id="stationCount">${stationCount.textContent}</span>)`;
-                }
-
-                // Station name
-                const formLabels = document.querySelectorAll('.form-group label');
-                if (formLabels[0]) formLabels[0].textContent = t.stationName;
-                if (formLabels[1]) formLabels[1].textContent = t.stationType;
-
-                const stationNameInput = document.getElementById('stationName');
-                if (stationNameInput) stationNameInput.placeholder = t.stationNamePlaceholder;
-
-                // Type help
-                const typeHelp = document.getElementById('typeHelp');
-                if (typeHelp) typeHelp.textContent = t.typeHelp;
-
-                const typeOptions = document.querySelectorAll('#stationType option');
-                if (typeOptions[0]) typeOptions[0].textContent = t.typeRadio;
-                if (typeOptions[1]) typeOptions[1].textContent = t.typeLocal;
-                if (typeOptions[2]) typeOptions[2].textContent = t.typeYoutube;
-
-                // Radio file labels
-                const radioFileLabel = document.getElementById('radioFileLabel');
-                if (radioFileLabel) radioFileLabel.textContent = t.radioFileLabel;
-
-                const radioFileHelp = document.getElementById('radioFileHelp');
-                if (radioFileHelp) radioFileHelp.textContent = t.radioFileHelp;
-
-                // Local files labels
-                const localFilesLabel = document.getElementById('localFilesLabel');
-                if (localFilesLabel) localFilesLabel.textContent = t.localFilesLabel;
-
-                const localFilesHelp = document.getElementById('localFilesHelp');
-                if (localFilesHelp) localFilesHelp.textContent = t.localFilesHelp;
-
-                // YouTube playlist
-                const youtubePlaylistTitle = document.getElementById('youtubePlaylistTitle');
-                if (youtubePlaylistTitle) youtubePlaylistTitle.textContent = t.youtubePlaylistTitle;
-
-                const youtubePlaylistHelp = document.getElementById('youtubePlaylistHelp');
-                if (youtubePlaylistHelp) youtubePlaylistHelp.textContent = t.youtubePlaylistHelp;
-
-                const youtubeTrackUrl = document.getElementById('youtubeTrackUrl');
-                if (youtubeTrackUrl) youtubeTrackUrl.placeholder = t.youtubeTrackPlaceholder;
-
-                const addToPlaylistBtn = document.querySelector('button[onclick="addYouTubeTrack()"]');
-                if (addToPlaylistBtn) addToPlaylistBtn.textContent = t.addToPlaylistBtn;
-
-                // OR divider
-                const orDivider = document.getElementById('radioOrDivider');
-                if (orDivider) orDivider.textContent = t.orDivider;
-
-                const submitBtn = document.querySelector('button[type="submit"]');
-                if (submitBtn) submitBtn.textContent = t.submitBtn;
-
-                // Update empty state
-                const emptyState = document.querySelector('.empty-state');
-                if (emptyState) {
-                    const emptyP = emptyState.querySelectorAll('p');
-                    if (emptyP[0]) emptyP[0].textContent = t.emptyStateText;
-                    if (emptyP[1]) emptyP[1].textContent = t.emptyStateHelp;
-                }
-
-                // Modal
-                const modalPlaylistName = document.getElementById('modalPlaylistName');
-                if (modalPlaylistName && modalPlaylistName.textContent.includes('Редактировать')) {
-                    // Only update if it's the default text
-                    modalPlaylistName.textContent = t.editPlaylistTitle;
-                }
-
-                // Update form fields visibility based on current type
-                updateFormFields();
-
-                document.querySelector('.lang-selector').value = lang;
-            }
-
-            document.querySelector('.lang-selector').addEventListener('change', (e) => {
-                switchLanguage(e.target.value);
+            document.querySelectorAll('.site-nav a[data-nav]').forEach(link => {
+                link.textContent = t().nav[link.dataset.nav];
+            });
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                element.textContent = t()[element.dataset.i18n];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+                element.placeholder = t()[element.dataset.i18nPlaceholder];
             });
 
-            // Set initial language
-            const langSelector = document.querySelector('.lang-selector');
-            langSelector.value = currentLang;
-            if (currentLang === 'en') {
-                switchLanguage('en');
+            renderStations();
+            renderFileList();
+            renderYouTubeTrackList();
+            updateNowPlaying();
+            setPreviewStatus(previewStatus.key, previewStatus.n);
+
+            if (currentEditingPlaylistIndex !== null) {
+                openPlaylistEditor(currentEditingPlaylistIndex);
+            }
+
+            document.querySelector('.lang-selector').value = lang;
+        }
+
+        document.querySelector('.lang-selector').addEventListener('change', (e) => {
+            switchLanguage(e.target.value);
+        });
+
+        // Stations changed in another tab
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'customStations' || e.key === 'selectedStation') renderStations();
+        });
+
+        // ========= INIT =========
+        document.addEventListener('DOMContentLoaded', async function() {
+            switchLanguage(currentLang);
+            updateFormFields();
+            loadYouTubeAPI();
+
+            try {
+                await initDB();
+            } catch (error) {
+                console.error('❌ Failed to initialize IndexedDB:', error);
+                alert(t().dbInitError);
             }
         });
     </script>
-
-    <!-- Playlist Editor Modal -->
-    <div id="playlistEditorModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalPlaylistName">Редактировать плейлист</h2>
-                <button class="close-modal" onclick="closePlaylistEditor()">&times;</button>
-            </div>
-
-            <div class="track-list" id="modalTrackList">
-                <!-- Tracks will be rendered here -->
-            </div>
-
-            <div class="add-tracks-section">
-                <h3>Добавить треки</h3>
-                <input type="file" id="addTracksInput" accept="audio/mp3,audio/mpeg,audio/wav,audio/x-wav,audio/flac,audio/x-flac" multiple>
-                <button class="btn btn-primary" style="margin-top: 10px;" onclick="addTracksToPlaylist()">Добавить выбранные</button>
-            </div>
-        </div>
-    </div>
-
 </body>
 </html>
