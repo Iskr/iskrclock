@@ -348,7 +348,7 @@ const state = {
     alarms: [],
     selectedAlarmId: null,
     volume: 50,
-    playerKey: 'fip',
+    playerKey: 'hermitage',
     timer: { h: 0, m: 5, s: 0, total: 0, remain: 0, end: 0, running: false, done: false, station: 'classic' },
     sw: { acc: 0, start: 0, running: false, laps: [] },
     sleep: { mode: 'wake', h: 7, m: 30 },
@@ -391,7 +391,7 @@ function loadAlarms(keyMap) {
             writeJSON('alarmSettings_v1', saved);
         }
         const old = saved || {};
-        let station = localStorage.getItem('selectedStation') || 'classic';
+        let station = localStorage.getItem('selectedStation') || 'hermitage';
         station = keyMap[station] || station;
         const hour = parseInt(old.hour, 10), minute = parseInt(old.minute, 10), snooze = parseInt(old.snooze, 10), volume = parseInt(old.volume, 10);
         const alarm = newAlarm(hour >= 0 && hour <= 23 ? hour : 7, minute >= 0 && minute <= 59 ? minute : 30);
@@ -1423,7 +1423,7 @@ async function deleteStation(id) {
     saveCustomStations(stations.filter(s => s.id !== id));
     state.alarms.forEach(a => { if (a.station === key) a.station = 'classic'; });
     if (state.timer.station === key) state.timer.station = 'classic';
-    if (state.playerKey === key) setPlayerKey('fip');
+    if (state.playerKey === key) setPlayerKey('hermitage');
     if (state.editId === id) state.editId = null;
     saveAlarms();
     saveTimer();
