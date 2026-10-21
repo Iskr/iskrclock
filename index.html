@@ -2,1881 +2,362 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IskrCLOCK v5.3 - Будильник с радио онлайн</title>
-    <meta name="description" content="Онлайн будильник с радио: 17 радиостанций, свои потоки, локальные файлы и YouTube, плавное нарастание громкости и автоматическое переподключение.">
-    <meta name="theme-color" content="#667eea">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>IskrCLOCK — будильник с радио онлайн</title>
+    <meta name="description" content="Онлайн будильник с радио и живым пейзажем: несколько будильников, 17 радиостанций, свои потоки, файлы и YouTube, таймер, секундомер и калькулятор сна.">
+    <meta name="theme-color" content="#1d2244">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏰</text></svg>">
-    <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from the script below. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="app.css?v=6.0">
+    <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
-    <script src="media.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            overflow-x: clip;
-            position: relative;
-            /* Transitions управляются через JavaScript */
-        }
-
-        /* Decorative scenery stays in place while the content scrolls */
-        .mountain-bg,
-        .stars,
-        .clouds,
-        .moon,
-        .sun,
-        .house {
-            pointer-events: none;
-        }
-
-        .mountain-bg {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 100%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><polygon fill="%23234a87" points="0,600 300,200 600,350 900,100 1200,250 1200,600"/><polygon fill="%231a3660" points="0,600 200,300 500,400 800,150 1200,300 1200,600"/></svg>') no-repeat center bottom;
-            background-size: cover;
-            transition: filter 20s ease-in-out;
-        }
-
-        .stars {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            opacity: 1;
-            transition: opacity 20s ease-in-out;
-        }
-
-        .stars.hidden {
-            opacity: 0;
-        }
-
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 3s ease-in-out infinite;
-        }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-
-        .moon {
-            position: fixed;
-            top: 80px;
-            left: 200px;
-            width: 80px;
-            height: 80px;
-            background: #f0f8ff;
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(240, 248, 255, 0.6);
-            opacity: 1;
-            transition: all 20s ease-in-out;
-        }
-
-        .moon.hidden {
-            opacity: 0;
-            transform: translateY(-100px);
-        }
-
-        .sun {
-            position: fixed;
-            top: 100px;
-            right: 150px;
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle, #ffd700 0%, #ffed4e 50%, #ff6b35 100%);
-            border-radius: 50%;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
-            opacity: 0;
-            transition: all 20s ease-in-out;
-            animation: sunRotate 30s ease-in-out infinite;
-        }
-
-        .sun.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        @keyframes sunRotate {
-            0% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.8); }
-            50% { box-shadow: 0 0 100px rgba(255, 215, 0, 1); }
-            100% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.8); }
-        }
-
-        .house {
-            position: fixed;
-            bottom: 150px;
-            left: 100px;
-            width: 40px;
-            height: 30px;
-            background: #8B4513;
-            transition: filter 20s ease-in-out;
-        }
-
-        .house::before {
-            content: '';
-            position: absolute;
-            top: -15px;
-            left: -5px;
-            width: 0;
-            height: 0;
-            border-left: 25px solid transparent;
-            border-right: 25px solid transparent;
-            border-bottom: 20px solid #654321;
-        }
-
-        .house-window {
-            position: absolute;
-            top: 5px;
-            left: 15px;
-            width: 8px;
-            height: 8px;
-            background: #FFD700;
-            border-radius: 2px;
-            transition: all 20s ease-in-out;
-        }
-
-        .clouds {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 20s ease-in-out;
-        }
-
-        .clouds.visible {
-            opacity: 1;
-        }
-
-        .cloud {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50px;
-            animation: cloudMove 30s linear infinite;
-        }
-
-        .cloud::before,
-        .cloud::after {
-            content: '';
-            position: absolute;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50px;
-        }
-
-        .cloud1 {
-            width: 80px;
-            height: 30px;
-            top: 120px;
-            left: -100px;
-        }
-
-        .cloud1::before {
-            width: 50px;
-            height: 50px;
-            top: -25px;
-            left: 10px;
-        }
-
-        .cloud1::after {
-            width: 60px;
-            height: 40px;
-            top: -15px;
-            right: 10px;
-        }
-
-        .cloud2 {
-            width: 60px;
-            height: 25px;
-            top: 180px;
-            left: -80px;
-            animation-delay: -15s;
-        }
-
-        .cloud2::before {
-            width: 40px;
-            height: 40px;
-            top: -20px;
-            left: 5px;
-        }
-
-        .cloud2::after {
-            width: 50px;
-            height: 30px;
-            top: -10px;
-            right: 5px;
-        }
-
-        @keyframes cloudMove {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(calc(100vw + 200px)); }
-        }
-
-        .youtube-player-container {
-            position: fixed;
-            top: -1000px;
-            left: -1000px;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 40px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-            gap: 10px;
-        }
-
-        .logo::before {
-            content: '⏰';
-            font-size: 24px;
-        }
-
-        .logo-version {
-            font-size: 12px;
-            opacity: 0.7;
-            font-weight: normal;
-        }
-
-        .nav {
-            display: flex;
-            gap: 30px;
-        }
-
-        .nav-item {
-            color: white;
-            text-decoration: none;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            opacity: 0.9;
-            transition: opacity 0.3s;
-        }
-
-        .nav-item:hover {
-            opacity: 1;
-        }
-
-        .nav-item.active {
-            opacity: 1;
-            font-weight: bold;
-            text-decoration: underline;
-            text-underline-offset: 6px;
-        }
-
-        .lang-selector {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 500;
-            transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .lang-selector:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .lang-selector option {
-            background: rgba(102, 126, 234, 0.95);
-            color: white;
-            padding: 10px;
-        }
-
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 120px);
-            padding: 20px;
-            position: relative;
-            z-index: 5;
-        }
-
-        .title {
-            color: white;
-            font-size: 36px;
-            margin-bottom: 40px;
-            text-align: center;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .clock-display {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px 60px;
-            margin-bottom: 40px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .current-time {
-            font-size: 72px;
-            color: white;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .current-date {
-            font-size: 18px;
-            color: rgba(255, 255, 255, 0.9);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        .alarm-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .alarm-time-section {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .time-input-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .time-input-group label {
-            color: white;
-            font-size: 16px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-        }
-
-        .time-input {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 12px 15px;
-            border-radius: 10px;
-            font-size: 18px;
-            text-align: center;
-            width: 80px;
-        }
-
-        .radio-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .radio-section label {
-            color: white;
-            font-size: 16px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-        }
-
-        .radio-controls {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .radio-select {
-            background: rgba(13, 110, 153, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 16px;
-            min-width: 200px;
-            max-width: 90vw;
-        }
-
-        .play-button {
-            background: #4CAF50;
-            border: none;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            font-size: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .play-button:hover {
-            background: #45a049;
-            transform: scale(1.1);
-        }
-
-        .play-button.playing {
-            background: #f44336;
-        }
-
-        .btn-manage-stations {
-            background: rgba(255, 165, 0, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            font-weight: bold;
-            line-height: 1.3;
-            text-align: center;
-        }
-
-        .btn-manage-stations:hover {
-            background: rgba(255, 165, 0, 1);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .volume-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .volume-label {
-            color: white;
-            font-size: 14px;
-        }
-
-        .volume-slider {
-            width: 110px;
-            accent-color: #4CAF50;
-            cursor: pointer;
-        }
-
-        .volume-value {
-            color: white;
-            font-size: 14px;
-            min-width: 38px;
-            font-variant-numeric: tabular-nums;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
-        }
-
-        .control-buttons {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-
-        .btn-primary {
-            background: #d32f2f;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #b71c1c;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-fullscreen {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 15px;
-        }
-
-        .remaining-time {
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            margin-bottom: 10px;
-            text-align: center;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .alarm-hint {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 13px;
-            text-align: center;
-            max-width: 420px;
-            margin-bottom: 20px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-        }
-
-        .stream-status {
-            color: white;
-            font-size: 14px;
-            text-align: center;
-            min-height: 20px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
-        }
-
-        .alarm-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .alarm-modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 400px;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .alarm-modal h2 {
-            color: #d32f2f;
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-
-        .alarm-modal .current-time {
-            color: #333;
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 20px;
-                padding: 20px;
-            }
-
-            .nav {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 15px;
-            }
-
-            .title {
-                font-size: 28px;
-            }
-
-            .current-time {
-                font-size: 48px;
-            }
-
-            .alarm-time-section {
-                gap: 12px;
-            }
-
-            .time-input-group label {
-                font-size: 14px;
-            }
-
-            .house {
-                left: 15px;
-            }
-
-            .control-buttons {
-                flex-direction: column;
-                align-items: center;
-                gap: 15px;
-            }
-
-            .radio-controls {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .clock-display {
-                padding: 25px 35px;
-            }
-
-            .remaining-time {
-                font-size: 24px;
-            }
-
-            .alarm-modal-content {
-                margin: 0 20px;
-                padding: 30px 20px;
-            }
-        }
-    </style>
+    <script src="iskr-sky.js?v=6.0"></script>
+    <script src="media.js?v=6.0"></script>
 </head>
 <body>
+    <iskr-sky id="sky" aria-hidden="true"></iskr-sky>
+
     <!-- YouTube Player (hidden) -->
-    <div class="youtube-player-container">
+    <div class="youtube-player-container" aria-hidden="true">
         <div id="youtube-player"></div>
     </div>
 
-    <div class="mountain-bg" id="mountainBg"></div>
-    <div class="stars" id="stars"></div>
-    <div class="clouds" id="clouds">
-        <div class="cloud cloud1"></div>
-        <div class="cloud cloud2"></div>
-    </div>
-    <div class="moon" id="moon"></div>
-    <div class="sun" id="sun"></div>
-    <div class="house" id="house">
-        <div class="house-window" id="houseWindow"></div>
-    </div>
-
-    <header class="header">
-        <div class="logo">
-            IskrCLOCK
-            <span class="logo-version">v5.3</span>
-        </div>
-        <nav class="nav">
-            <a href="index.html" class="nav-item active" data-nav="home" aria-current="page">⏰ Будильники</a>
-            <a href="timer.html" class="nav-item" data-nav="timer">⏲️ Таймер</a>
-            <a href="stopwatch.html" class="nav-item" data-nav="stopwatch">⏱️ Секундомер</a>
-            <a href="custom-stations.html" class="nav-item" data-nav="stations">🎵 Станции</a>
-            <a href="sleep-calculator.html" class="nav-item" data-nav="calculator">🧮 Калькулятор сна</a>
-        </nav>
-        <select class="lang-selector" aria-label="Language">
-            <option value="ru">🇷🇺 Русский</option>
-            <option value="en">🇬🇧 English</option>
-        </select>
-    </header>
-
-    <div class="main-container">
-        <h1 class="title" data-i18n="title">Будильник с радио онлайн</h1>
-
-        <div class="clock-display">
-            <div class="current-time" id="currentTime">00:00</div>
-            <div class="current-date" id="currentDate">Загрузка...</div>
-        </div>
-
-        <div class="alarm-controls">
-            <div class="alarm-time-section">
-                <div class="time-input-group">
-                    <label for="alarmHour" data-i18n="hours">Часы</label>
-                    <input type="number" class="time-input" id="alarmHour" min="0" max="23" value="09" placeholder="09" inputmode="numeric">
-                </div>
-                <div class="time-input-group">
-                    <label for="alarmMinute" data-i18n="minutes">Минуты</label>
-                    <input type="number" class="time-input" id="alarmMinute" min="0" max="59" value="30" placeholder="30" inputmode="numeric">
-                </div>
-                <div class="time-input-group">
-                    <label for="snoozeTime" data-i18n="snooze">Подремать (мин)</label>
-                    <input type="number" class="time-input" id="snoozeTime" min="1" max="60" value="5" placeholder="5" inputmode="numeric">
+    <div class="app" id="app">
+        <header class="top">
+            <div class="top-left">
+                <div class="logo">IskrCLOCK<span class="logo-version">v6.0</span></div>
+                <div class="plaque" id="npPlaque" hidden>
+                    <button class="plaque-play" id="npPlay" aria-label="Pause">❚❚</button>
+                    <span class="plaque-text" id="npName"></span>
                 </div>
             </div>
-        </div>
 
-        <div class="radio-section">
-            <label for="radioSelect" data-i18n="selectAlarmSound">Выбрать сигнал будильника?</label>
-            <div class="radio-controls">
-                <select class="radio-select" id="radioSelect">
-                    <option value="classic">🔔 Классический сигнал</option>
-                </select>
-                <button class="play-button" id="playButton" aria-label="Play">▶</button>
-                <a href="custom-stations.html" class="btn-manage-stations">
-                    <span data-i18n="customStationsLine1">🎵 Свои</span>
-                    <span data-i18n="customStationsLine2">станции</span>
-                </a>
-                <div class="volume-control">
-                    <label class="volume-label" for="volumeGrow" data-i18n="volumeGrow">Нарастает?</label>
-                    <input type="checkbox" id="volumeGrow" checked>
+            <nav class="tabs ui" id="tabs">
+                <a href="#alarms" data-tab="alarms" data-i18n="tabAlarms">Будильники</a>
+                <a href="#timer" data-tab="timer" data-i18n="tabTimer">Таймер</a>
+                <a href="#stopwatch" data-tab="stopwatch" data-i18n="tabStopwatch">Секундомер</a>
+                <a href="#stations" data-tab="stations" data-i18n="tabStations">Станции</a>
+                <a href="#sleep" data-tab="sleep" data-i18n="tabSleep">Калькулятор сна</a>
+            </nav>
+
+            <div class="top-right">
+                <div class="plaque" id="tmPlaque" hidden>
+                    <span class="plaque-icon" aria-hidden="true">⏲</span>
+                    <a href="#timer" class="plaque-link" id="tmText"></a>
                 </div>
-                <div class="volume-control">
-                    <label class="volume-label" for="volumeSlider" id="volumeSliderLabel">🔊</label>
-                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" step="5" value="50">
-                    <span class="volume-value" id="volumeValue">50%</span>
+                <div class="plaque" id="swPlaque" hidden>
+                    <span class="plaque-icon" aria-hidden="true">⏱</span>
+                    <a href="#stopwatch" class="plaque-link" id="swText"></a>
+                </div>
+                <div class="lang ui" role="group" aria-label="Language">
+                    <button data-lang="ru">RU</button>
+                    <button data-lang="en">EN</button>
                 </div>
             </div>
-            <div class="stream-status" id="streamStatus" aria-live="polite"></div>
+        </header>
+
+        <main>
+            <!-- ===== Будильники ===== -->
+            <section class="sec sec-alarms" data-sec="alarms">
+                <div class="al-head">
+                    <div class="date" id="date"></div>
+                    <div class="clock">
+                        <div class="clock-num" id="clockH">00</div>
+                        <div class="clock-colon" id="clockColon">:</div>
+                        <div class="clock-num" id="clockM">00</div>
+                    </div>
+                    <div class="al-row">
+                        <input class="al-label" id="alLabel" maxlength="30" spellcheck="false" aria-label="Название будильника">
+                        <div class="al-time">
+                            <button class="step" data-act="alH" data-d="-1" aria-label="−1 ч">−</button>
+                            <span class="al-num" id="alH">07</span>
+                            <button class="step" data-act="alH" data-d="1" aria-label="+1 ч">+</button>
+                            <span class="al-colon">:</span>
+                            <button class="step" data-act="alM" data-d="-5" aria-label="−5 мин">−</button>
+                            <span class="al-num" id="alM">30</span>
+                            <button class="step" data-act="alM" data-d="5" aria-label="+5 мин">+</button>
+                        </div>
+                        <span class="al-until" id="alUntil"></span>
+                    </div>
+                </div>
+
+                <div class="chips ui" id="alChips"></div>
+
+                <div class="al-ctl">
+                    <button class="al-toggle ui" id="alToggle"></button>
+                    <div class="player" id="alPlayer">
+                        <div class="player-row">
+                            <button class="player-play" id="alPlay" aria-label="Play">▶</button>
+                            <div class="player-text">
+                                <span class="player-state" id="alPlayState"></span>
+                                <span class="player-name" id="alPlayName"></span>
+                            </div>
+                            <a class="player-change" id="alChange" role="button" tabindex="0"></a>
+                        </div>
+                        <div class="st-pop" id="alList" hidden></div>
+                        <div class="expand">
+                            <div class="expand-inner">
+                                <div class="divider"></div>
+                                <div class="opts">
+                                    <div class="opt">
+                                        <span class="opt-label" data-i18n="snoozeLabel">Подремать</span>
+                                        <div class="opt-row">
+                                            <button class="mini" data-act="snooze" data-d="-1" aria-label="−1">−</button>
+                                            <span class="opt-val" id="alSnooze"></span>
+                                            <button class="mini" data-act="snooze" data-d="1" aria-label="+1">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="opt">
+                                        <span class="opt-label" data-i18n="fadeLabel">Нарастание</span>
+                                        <div class="opt-row switch-row" id="alFade" role="switch" tabindex="0">
+                                            <span class="switch"><span class="knob"></span></span>
+                                            <span class="opt-val" id="alFadeLabel"></span>
+                                        </div>
+                                    </div>
+                                    <div class="opt">
+                                        <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
+                                        <div class="opt-row">
+                                            <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                            <span class="opt-val vol-val" data-vol-val></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="divider"></div>
+                                <div class="days-row">
+                                    <span class="opt-label" data-i18n="daysLabel">Дни</span>
+                                    <div class="days" id="alDays"></div>
+                                    <span class="days-text" id="alDaysText"></span>
+                                    <a class="danger-link" id="alDelete" role="button" tabindex="0" data-i18n="delete">Удалить</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="unlock-hint" id="unlockHint" data-i18n="unlockHint" hidden></p>
+                <p class="hint ui" id="alHint" data-i18n="alarmHint"></p>
+            </section>
+
+            <!-- ===== Таймер ===== -->
+            <section class="sec sec-timer" data-sec="timer" hidden>
+                <div class="sec-title" data-i18n="tabTimer">Таймер</div>
+                <div class="digits" id="tmDigits">
+                    <div class="dgroup">
+                        <button class="dstep" data-act="tmH" data-d="1" aria-label="+1 ч">+</button>
+                        <div class="dnum" id="tmH">00</div>
+                        <button class="dstep" data-act="tmH" data-d="-1" aria-label="−1 ч">−</button>
+                    </div>
+                    <div class="dcolon">:</div>
+                    <div class="dgroup">
+                        <button class="dstep" data-act="tmM" data-d="1" aria-label="+1 мин">+</button>
+                        <div class="dnum" id="tmM">05</div>
+                        <button class="dstep" data-act="tmM" data-d="-1" aria-label="−1 мин">−</button>
+                    </div>
+                    <div class="dcolon">:</div>
+                    <div class="dgroup">
+                        <button class="dstep" data-act="tmS" data-d="5" aria-label="+5 с">+</button>
+                        <div class="dnum" id="tmS">00</div>
+                        <button class="dstep" data-act="tmS" data-d="-5" aria-label="−5 с">−</button>
+                    </div>
+                </div>
+                <div class="progress"><div class="progress-bar" id="tmBar"></div></div>
+                <div class="status" id="tmStatus" aria-live="polite"></div>
+                <div class="presets ui" id="tmPresets"></div>
+                <div class="big-btns">
+                    <button class="btn-accent" id="tmMain"></button>
+                    <button class="btn-glass" id="tmReset" data-i18n="reset">Сброс</button>
+                </div>
+                <div class="player player-small" id="tmPlayer">
+                    <div class="player-row">
+                        <button class="player-play" id="tmPlay" aria-label="Play">▶</button>
+                        <div class="player-text">
+                            <span class="player-state" id="tmPlayState"></span>
+                            <span class="player-name" id="tmPlayName"></span>
+                        </div>
+                        <a class="player-change" id="tmChange" role="button" tabindex="0"></a>
+                    </div>
+                    <div class="st-pop" id="tmList" hidden></div>
+                    <div class="expand">
+                        <div class="expand-inner">
+                            <div class="vol-row">
+                                <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
+                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                <span class="vol-val" data-vol-val></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="hint ui" data-i18n="timerHint"></p>
+            </section>
+
+            <!-- ===== Секундомер ===== -->
+            <section class="sec sec-stopwatch" data-sec="stopwatch" hidden>
+                <div class="sec-title" data-i18n="tabStopwatch">Секундомер</div>
+                <div class="sw-display">
+                    <div class="sw-main" id="swMain">00:00</div>
+                    <div class="sw-cs" id="swCs">.00</div>
+                </div>
+                <div class="big-btns sw-btns">
+                    <button class="btn-glass" id="swLap" data-i18n="lap">Круг</button>
+                    <button class="btn-accent" id="swMainBtn"></button>
+                    <button class="btn-glass" id="swReset" data-i18n="reset">Сброс</button>
+                </div>
+                <div class="player player-small sw-player" id="swPlayer">
+                    <div class="player-row">
+                        <button class="player-play" id="swPlay" aria-label="Play">▶</button>
+                        <div class="player-text">
+                            <span class="player-state" id="swPlayState"></span>
+                            <span class="player-name" id="swPlayName"></span>
+                        </div>
+                        <a class="player-change" id="swChange" role="button" tabindex="0"></a>
+                    </div>
+                    <div class="st-pop" id="swList" hidden></div>
+                    <div class="expand">
+                        <div class="expand-inner">
+                            <div class="vol-row">
+                                <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
+                                <input type="range" class="vol" min="0" max="100" step="5" data-vol>
+                                <span class="vol-val" data-vol-val></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="laps" id="swLaps"></div>
+                <p class="hint ui" data-i18n="stopwatchHint"></p>
+            </section>
+
+            <!-- ===== Станции ===== -->
+            <section class="sec sec-stations" data-sec="stations" hidden>
+                <div class="big-player">
+                    <div class="big-player-text">
+                        <span class="player-state" id="bpState"></span>
+                        <span class="big-player-name" id="bpName"></span>
+                        <span class="big-player-sub" id="bpSub"></span>
+                    </div>
+                    <button class="round" id="bpPrev">◀◀</button>
+                    <button class="round round-accent" id="bpPlay">▶</button>
+                    <button class="round" id="bpNext">▶▶</button>
+                </div>
+                <div class="st-grid ui">
+                    <div class="st-col">
+                        <div class="caps" data-i18n="radio">Радио</div>
+                        <div class="tiles" id="stBuiltin"></div>
+                    </div>
+                    <div class="st-col st-mine">
+                        <div id="stListMode">
+                            <div class="caps"><span data-i18n="myStations">Мои станции и плейлисты</span> · <span id="stCount">0</span></div>
+                            <div class="mine" id="stMine"></div>
+                            <div class="form">
+                                <span class="form-title" data-i18n="newStation">Новая станция или плейлист</span>
+                                <input class="field" id="fName" maxlength="100" data-i18n-placeholder="namePh">
+                                <div class="field-row">
+                                    <input class="field" id="fLink" data-i18n-placeholder="linksPh">
+                                    <button class="btn-small" id="fAddLink" data-i18n="add">Добавить</button>
+                                    <label class="btn-small"><input type="file" id="fFiles" multiple hidden accept=".mp3,.flac,.wav,.ogg,.opus,.m4a,.aac,.webm,.m3u,.m3u8,.pls,audio/*"><span data-i18n="files">Файлы…</span></label>
+                                </div>
+                                <div class="draft" id="fDraft" hidden>
+                                    <div class="draft-list" id="fDraftList"></div>
+                                    <span class="draft-note" id="fDraftNote"></span>
+                                </div>
+                                <div class="form-foot">
+                                    <span class="form-help" data-i18n="formHelp"></span>
+                                    <button class="btn-save" id="fSave" data-i18n="save">Сохранить</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="editor" id="stEditor" hidden>
+                            <div class="editor-head">
+                                <a class="accent-link" id="edBack" role="button" tabindex="0" data-i18n="backToMine">← Мои станции</a>
+                                <span class="editor-count" id="edCount"></span>
+                            </div>
+                            <input class="field" id="edName" maxlength="100" data-i18n-placeholder="namePh">
+                            <div class="ed-items" id="edItems"></div>
+                            <div class="field-row">
+                                <input class="field" id="edLink" data-i18n-placeholder="addLinkPh">
+                                <button class="btn-small" id="edAddLink" data-i18n="add">Добавить</button>
+                                <label class="btn-small"><input type="file" id="edFiles" multiple hidden accept=".mp3,.flac,.wav,.ogg,.opus,.m4a,.aac,.webm,.m3u,.m3u8,.pls,audio/*"><span data-i18n="files">Файлы…</span></label>
+                            </div>
+                            <div class="ed-foot">
+                                <div class="ed-switch" id="edShuffle" role="switch" tabindex="0"><span class="switch switch-sm"><span class="knob"></span></span><span data-i18n="shuffle">Перемешать</span></div>
+                                <div class="ed-switch" id="edLoop" role="switch" tabindex="0"><span class="switch switch-sm"><span class="knob"></span></span><span data-i18n="loop">По кругу</span></div>
+                                <span class="badge" id="edIsAlarm" data-i18n="onAlarm">На будильнике</span>
+                                <a class="accent-link" id="edSetAlarm" role="button" tabindex="0" data-i18n="toAlarm">На будильник</a>
+                                <a class="danger-link" id="edDelete" role="button" tabindex="0" data-i18n="delete">Удалить</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== Калькулятор сна ===== -->
+            <section class="sec sec-sleep" data-sec="sleep" hidden>
+                <div class="seg">
+                    <button id="slWake" data-i18n="wantWake">Хочу встать в</button>
+                    <button id="slBed" data-i18n="goingBed">Ложусь в</button>
+                </div>
+                <div class="digits digits-sleep" id="slDigits">
+                    <div class="dgroup">
+                        <button class="dstep" data-act="slH" data-d="1" aria-label="+1 ч">+</button>
+                        <div class="dnum" id="slH">07</div>
+                        <button class="dstep" data-act="slH" data-d="-1" aria-label="−1 ч">−</button>
+                    </div>
+                    <div class="dcolon">:</div>
+                    <div class="dgroup">
+                        <button class="dstep" data-act="slM" data-d="5" aria-label="+5 мин">+</button>
+                        <div class="dnum" id="slM">30</div>
+                        <button class="dstep" data-act="slM" data-d="-5" aria-label="−5 мин">−</button>
+                    </div>
+                </div>
+                <div class="sl-links ui">
+                    <a class="plain-link" id="slNow" role="button" tabindex="0" data-i18n="now">Сейчас</a>
+                    <a class="accent-link" id="slAddWake" role="button" tabindex="0" data-i18n="setAlarmHere">Поставить будильник на это время</a>
+                </div>
+                <div class="sl-title" id="slTitle"></div>
+                <div class="sl-cards" id="slCards"></div>
+                <div class="sl-msg" id="slMsg" aria-live="polite"></div>
+                <div class="sl-foot" data-i18n="sleepFoot"></div>
+            </section>
+        </main>
+
+        <div class="corner">
+            <button class="demo-btn" id="demoBtn">
+                <span class="demo-icon" id="demoIcon">▶</span><span class="demo-label" id="demoLabel" data-i18n="demo">Демо</span>
+            </button>
+            <button class="corner-btn ui" id="fullscreenBtn">⛶</button>
         </div>
 
-        <div class="control-buttons">
-            <button class="btn btn-secondary" id="toggleAlarm">Включить</button>
-            <button class="btn btn-secondary" id="snoozeButton">Подремать</button>
-            <button class="btn btn-fullscreen" id="fullscreenButton" aria-label="Fullscreen">⛶</button>
+        <div class="demo-panel" id="demoPanel" hidden>
+            <div class="demo-top">
+                <button class="demo-ctl demo-pause" id="demoPause">❚❚</button>
+                <button class="demo-ctl" id="demoPrev">‹</button>
+                <span class="demo-text" id="demoText"></span>
+                <button class="demo-ctl" id="demoNext">›</button>
+            </div>
+            <div class="demo-speeds" id="demoSpeeds"></div>
+            <label class="demo-slider"><span data-i18n="year">Год</span><input type="range" id="demoDoy" min="1" max="365" step="1"></label>
+            <label class="demo-slider"><span data-i18n="day">Сутки</span><input type="range" id="demoHour" min="0" max="23.95" step="0.05"></label>
         </div>
-
-        <div class="remaining-time" id="remainingTime" aria-live="off">Будильник выключен</div>
-        <div class="alarm-hint" id="alarmHint" style="display: none;"></div>
     </div>
 
-    <div class="alarm-modal" id="alarmModal" role="alertdialog" aria-modal="true" aria-labelledby="alarmModalTitle">
-        <div class="alarm-modal-content">
-            <h2 id="alarmModalTitle" data-i18n="modalTitle">⏰ БУДИЛЬНИК!</h2>
-            <div class="current-time" id="alarmModalTime">09:30</div>
-            <button class="btn btn-primary" onclick="stopAlarm()" data-i18n="modalStop">ВЫКЛЮЧИТЬ</button>
-            <button class="btn btn-secondary" onclick="snoozeAlarm()" data-i18n="modalSnooze">ПОДРЕМАТЬ</button>
+    <!-- ===== Звонок будильника ===== -->
+    <div class="ring" id="ring" role="alertdialog" aria-modal="true" aria-labelledby="ringTitle" hidden>
+        <div class="ring-top">
+            <div class="logo">IskrCLOCK<span class="logo-version">v6.0</span></div>
+        </div>
+        <div class="ring-body">
+            <div class="ring-title" id="ringTitle"></div>
+            <div class="ring-time" id="ringTime">07:30</div>
+            <div class="ring-station" id="ringStation"></div>
+            <div class="ring-status" id="ringStatus" aria-live="polite"></div>
+            <div class="ring-btns">
+                <button class="ring-stop" id="ringStop" data-i18n="ringStop">Выключить</button>
+                <button class="ring-snooze" id="ringSnooze"></button>
+            </div>
+            <div class="ring-note" id="ringNote"></div>
         </div>
     </div>
 
-    <script>
-        // ========= TRANSLATIONS =========
-        const translations = {
-            ru: {
-                nav: {
-                    home: '⏰ Будильники',
-                    timer: '⏲️ Таймер',
-                    stopwatch: '⏱️ Секундомер',
-                    stations: '🎵 Станции',
-                    calculator: '🧮 Калькулятор сна'
-                },
-                documentTitle: 'IskrCLOCK v5.3 - Будильник с радио онлайн',
-                locale: 'ru-RU',
-                title: 'Будильник с радио онлайн',
-                today: 'Сегодня:',
-                hours: 'Часы',
-                minutes: 'Минуты',
-                snooze: 'Подремать (мин)',
-                snoozeButton: 'Подремать',
-                selectAlarmSound: 'Выбрать сигнал будильника?',
-                classicBeep: '🔔 Классический сигнал',
-                myStations: '───── Мои станции ─────',
-                volumeGrow: 'Нарастает?',
-                volumeLabel: 'Громкость',
-                customStationsLine1: '🎵 Свои',
-                customStationsLine2: 'станции',
-                alarmOff: 'Будильник выключен',
-                timeRemaining: 'Осталось времени:',
-                toggleAlarmOn: 'Выключить',
-                toggleAlarmOff: 'Включить',
-                invalidTime: 'Пожалуйста, введите корректное время',
-                alarmHint: '💡 Будильник сработает, пока эта вкладка открыта. Не закрывайте её и не давайте устройству уснуть.',
-                modalTitle: '⏰ БУДИЛЬНИК!',
-                modalStop: 'ВЫКЛЮЧИТЬ',
-                modalSnooze: 'ПОДРЕМАТЬ',
-                playLabel: 'Прослушать',
-                stopLabel: 'Остановить',
-                fullscreenLabel: 'Полноэкранный режим',
-                statusConnecting: '📡 Подключение…',
-                statusReconnecting: '📡 Нет связи с потоком, переподключаюсь… (попытка {n})',
-                statusFallback: '🔔 Поток недоступен — играет резервный сигнал, продолжаю попытки подключиться',
-                statusUnavailable: '🔔 Источник недоступен — играет резервный сигнал'
-            },
-            en: {
-                nav: {
-                    home: '⏰ Alarms',
-                    timer: '⏲️ Timer',
-                    stopwatch: '⏱️ Stopwatch',
-                    stations: '🎵 Stations',
-                    calculator: '🧮 Sleep Calculator'
-                },
-                documentTitle: 'IskrCLOCK v5.3 - Online Alarm Clock with Radio',
-                locale: 'en-GB',
-                title: 'Online Alarm Clock with Radio',
-                today: 'Today:',
-                hours: 'Hours',
-                minutes: 'Minutes',
-                snooze: 'Snooze (min)',
-                snoozeButton: 'Snooze',
-                selectAlarmSound: 'Select alarm sound:',
-                classicBeep: '🔔 Classic Beep',
-                myStations: '───── My stations ─────',
-                volumeGrow: 'Fade in?',
-                volumeLabel: 'Volume',
-                customStationsLine1: '🎵 My',
-                customStationsLine2: 'stations',
-                alarmOff: 'Alarm is off',
-                timeRemaining: 'Time remaining:',
-                toggleAlarmOn: 'Turn Off',
-                toggleAlarmOff: 'Turn On',
-                invalidTime: 'Please enter a valid time',
-                alarmHint: '💡 The alarm works while this tab is open. Keep it open and don\'t let the device go to sleep.',
-                modalTitle: '⏰ WAKE UP!',
-                modalStop: 'STOP',
-                modalSnooze: 'SNOOZE',
-                playLabel: 'Preview',
-                stopLabel: 'Stop',
-                fullscreenLabel: 'Fullscreen',
-                statusConnecting: '📡 Connecting…',
-                statusReconnecting: '📡 Stream lost, reconnecting… (attempt {n})',
-                statusFallback: '🔔 Stream unavailable — playing the backup signal, still trying to reconnect',
-                statusUnavailable: '🔔 Source unavailable — playing the backup signal'
-            }
-        };
-
-        let currentLang = localStorage.getItem('language') === 'en' ? 'en' : 'ru';
-
-        function t() {
-            return translations[currentLang];
-        }
-
-        // ========= STATIONS =========
-        // Built-in stations. A label is either a string or { ru, en }.
-        const BUILTIN_STATIONS = [
-            { value: 'bbc-radio-1', label: '📻 BBC Radio 1' },
-            { value: 'npr', label: '📻 NPR (National Public Radio)' },
-            { value: 'ninja-chill', label: '🥷 NINJA RADIO 24/7' },
-            { value: 'nts-1', label: '🎧 NTS Radio 1 (London)' },
-            { value: 'nts-2', label: '🎧 NTS Radio 2 (London)' },
-            { value: 'rinse-france', label: '🎧 Rinse France (Paris)' },
-            { value: 'rinse-uk', label: '🎧 Rinse UK (London)' },
-            { value: 'fip', label: '🇫🇷 FIP Radio (Paris)' },
-            { value: 'europa-plus', label: { ru: '📻 Европа Плюс', en: '📻 Europa Plus' } },
-            { value: 'radio-energy', label: '📻 Radio Energy' },
-            { value: 'love-radio', label: '📻 Love Radio' },
-            { value: 'hit-fm', label: '📻 Hit FM' },
-            { value: 'monte-carlo', label: '📻 Monte Carlo' },
-            { value: 'studio-21', label: '🎧 STUDIO 21' },
-            { value: 'radio-metro', label: { ru: '🚇 Радио МЕТРО (СПб)', en: '🚇 Radio METRO (St. Petersburg)' } },
-            { value: 'hermitage', label: { ru: '🏛️ Эрмитаж FM 90.1 (СПб)', en: '🏛️ Hermitage FM 90.1 (St. Petersburg)' } },
-            { value: 'kurs-radio', label: { ru: '📻 KURS Radio (СПб)', en: '📻 KURS Radio (St. Petersburg)' } }
-        ];
-
-        // URL радиостанций
-        const radioStreams = {
-            'bbc-radio-1': 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_one/bbc_radio_one.isml/bbc_radio_one-audio=320000.norewind.m3u8',
-            'npr': 'https://streams.kut.org/4426_128.mp3?aw_0_1st.playerid=kut-free',
-            // Лондонские станции
-            'nts-1': 'https://stream-relay-geo.ntslive.net/stream',
-            'nts-2': 'https://stream-relay-geo.ntslive.net/stream2',
-            'rinse-france': 'https://radio10.pro-fhi.net/radio/9041/stream',
-            // Несколько адресов: каждая следующая попытка переподключения берёт следующий
-            'rinse-uk': [
-                'https://admin.stream.rinse.fm/proxy/rinse_uk/stream',
-                'https://streamer-uk.rinse.fm:8443/stream'
-            ],
-            // Французские станции
-            'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
-            // Русские станции
-            'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
-            // Энерджи (Газпром-Медиа) — эфир 101.ru, канал 99; пробуем разные серверы 101.ru
-            'radio-energy': [
-                'https://pub0302.101.ru:8443/stream/air/aac/64/99',
-                'https://pub0102.101.ru:8443/stream/air/aac/64/99',
-                'https://pub0202.101.ru:8443/stream/air/aac/64/99'
-            ],
-            // Love Radio (Krutoy Media) — их CDN n340.com (адрес из плеера loveradio.ru);
-            // канал 102 на 101.ru — это Юмор FM
-            // Без UID сервер вместо эфира отдаёт голосовое «перейдите на сайт станции»
-            'love-radio': 'https://stream2.n340.com/12_love_64_reg_44?type=aac&UID=DDBAB47E03D454FADEDBBD4BFA3DA5EA',
-            // Хит FM — официальный CDN hostingradio.ru
-            'hit-fm': [
-                'https://hitfm.hostingradio.ru/hitfm96.aacp',
-                'https://hitfm.hostingradio.ru/hitfm128.mp3'
-            ],
-            'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
-            'studio-21': 'https://stream.studio21.ru/studio2196.aacp',
-            // Питерские станции
-            'radio-metro': 'https://stream.radiometro.ru:8443/metro.mp3',
-            'hermitage': 'https://hermitage.hostingradio.ru/hermitage128.mp3',
-            'kurs-radio': 'https://listen9.myradio24.com/kursradio'
-        };
-
-        // Станции, которые без CORS прокси не отдаются браузеру (прокси из media.js).
-        // Сейчас таких нет: <audio> без crossOrigin играет потоки без CORS-заголовков,
-        // а бесплатные прокси нестабильны (из-за них и «умирал» Rinse UK).
-        const needsCorsProxy = [];
-
-        // Станции, которые отдают заглушку вместо эфира, если запрос пришёл с чужого сайта
-        const noReferrerStreams = ['love-radio'];
-
-        // HLS streams that need hls.js (or native HLS on Safari)
-        const hlsStreams = ['bbc-radio-1'];
-
-        // YouTube станции (ID видео)
-        const youtubeStreams = {
-            'ninja-chill': '7bdP1Ion2xk'
-        };
-
-        // ========= PLAYBACK SETTINGS =========
-        const FADE_DURATION_MS = 30000;      // нарастание громкости 0 → выбранная громкость
-        const RECONNECT_WINDOW_MS = 15000;   // сколько пытаемся переподключиться, прежде чем включить резервный сигнал
-        const RETRY_DELAYS_MS = [1000, 2000, 3000, 4000];
-        const BACKGROUND_RETRY_MS = 20000;   // пока играет резервный сигнал, продолжаем пробовать поток
-        const CONNECT_TIMEOUT_MS = 10000;    // подключение, которое не заиграло за это время, считается неудачным
-        const STALL_TIMEOUT_MS = 8000;       // поток «завис», если позиция не меняется столько времени
-
-        // ========= ALARM STATE =========
-        let alarmActive = false;
-        let alarmRinging = false;
-        let alarmTarget = null;      // timestamp (ms) of the next ring
-        let alarmTimeout = null;
-        let snoozeCount = 0;
-        let wakeLock = null;
-
-        // ========= STATIONS LIST =========
-        let stationListenerAdded = false;
-
-        function populateStationsList() {
-            const select = document.getElementById('radioSelect');
-            const previousValue = select.value;
-            select.innerHTML = '';
-
-            const addOption = (value, label) => {
-                const option = document.createElement('option');
-                option.value = value;
-                option.textContent = label;
-                select.appendChild(option);
-            };
-
-            addOption('classic', t().classicBeep);
-            BUILTIN_STATIONS.forEach(station => {
-                const label = typeof station.label === 'string' ? station.label : station.label[currentLang];
-                addOption(station.value, label);
-            });
-
-            const customStations = loadCustomStations();
-            if (customStations.length > 0) {
-                const separator = document.createElement('option');
-                separator.disabled = true;
-                separator.textContent = t().myStations;
-                select.appendChild(separator);
-
-                customStations.forEach((station, index) => {
-                    let icon = '🎵';
-                    if (station.type === 'local') icon = '💿';
-                    else if (station.type === 'youtube') icon = '📺';
-                    else if (station.type === 'radio') icon = '📻';
-                    addOption(customStationValue(station, index), `${icon} ${station.name}`);
-                });
-            }
-
-            // Restore the saved station (migrating old index-based values)
-            let savedStation = localStorage.getItem('selectedStation') || previousValue || 'classic';
-            if (savedStation.startsWith('custom-')) {
-                const station = findCustomStation(savedStation);
-                const index = loadCustomStations().indexOf(station);
-                savedStation = station ? customStationValue(station, index) : 'classic';
-            }
-            select.value = savedStation;
-            if (select.value !== savedStation) {
-                select.value = 'classic';
-            }
-
-            if (!stationListenerAdded) {
-                stationListenerAdded = true;
-                select.addEventListener('change', function() {
-                    localStorage.setItem('selectedStation', this.value);
-                    // Switching station while previewing plays the new one
-                    if (isPreviewPlaying()) {
-                        playRadioSound(this.value);
-                    }
-                });
-            }
-        }
-
-        // Builds a "createMedia(session, ctx)" function for a station.
-        function getMediaFactory(stationValue) {
-            if (stationValue.startsWith('custom-')) {
-                const station = findCustomStation(stationValue);
-                if (!station) return null;
-
-                if (station.type === 'local') {
-                    return async (s, ctx) => {
-                        if (!s.files) s.files = await loadFilesFromDB(station.id);
-                        if (s.files.length === 0) {
-                            const error = new Error('No files found for station');
-                            error.permanent = true;
-                            throw error;
-                        }
-                        const source = trackSource(s.files[s.trackIndex % s.files.length]);
-                        return createAudioAdapter(source.url, ctx, source.release);
-                    };
-                }
-
-                if (station.type === 'youtube') {
-                    if (station.isPlaylist && station.videoIds && station.videoIds.length > 0) {
-                        // Playlist: a random video on every (re)start
-                        return (s, ctx) => {
-                            const videoId = station.videoIds[Math.floor(Math.random() * station.videoIds.length)];
-                            return createYouTubeAdapter(videoId, ctx, false);
-                        };
-                    }
-                    const videoId = extractYouTubeId(station.url);
-                    if (!videoId) return null;
-                    return (s, ctx) => createYouTubeAdapter(videoId, ctx, true);
-                }
-
-                // Radio (and legacy "hls") stations
-                return (s, ctx) => createCustomRadioAdapter(station.url, ctx, s.attempt);
-            }
-
-            if (youtubeStreams[stationValue]) {
-                return (s, ctx) => createYouTubeAdapter(youtubeStreams[stationValue], ctx, false);
-            }
-
-            const urls = [].concat(radioStreams[stationValue] || []);
-            if (urls.length === 0) return null;
-            const url = urls[0];
-
-            if (hlsStreams.includes(stationValue)) {
-                return (s, ctx) => createHlsAdapter(url, ctx, s.attempt - 1);
-            }
-            if (needsCorsProxy.includes(stationValue)) {
-                // Every new attempt goes through the next proxy
-                return (s, ctx) => createAudioAdapter(getProxiedURL(url, s.attempt - 1), ctx);
-            }
-            // Stations with several mirrors: every new attempt tries the next address
-            const options = { noReferrer: noReferrerStreams.includes(stationValue) };
-            return (s, ctx) => createAudioAdapter(urls[(s.attempt - 1) % urls.length], ctx, null, options);
-        }
-
-        // ========= RESILIENT PLAYBACK SESSION =========
-        // A session keeps a source playing: when the stream errors out, stops or stalls
-        // it reconnects for RECONNECT_WINDOW_MS first, and only then turns on the backup
-        // signal — while continuing to retry in the background. As soon as the stream
-        // plays again the backup signal is switched off.
-        let session = null;
-
-        function startSession(createMedia) {
-            stopRadio();
-            const s = {
-                createMedia,
-                media: null,
-                ctx: null,
-                stopped: false,
-                fade: document.getElementById('volumeGrow').checked,
-                fadeStart: Date.now(),
-                attempt: 0,
-                failures: 0,
-                trackIndex: 0,
-                phase: 'idle',
-                phaseSince: Date.now(),
-                unhealthySince: Date.now(),
-                lastTime: -1,
-                lastProgressAt: 0,
-                fallbackActive: false,
-                retryTimer: null,
-                ticker: null
-            };
-            session = s;
-            setPlayingUI(true);
-            setStreamStatus('statusConnecting');
-            s.ticker = setInterval(() => superviseSession(s), 1000);
-            connectSession(s);
-        }
-
-        function sessionVolume(s) {
-            if (!s.fade) return getUserVolume();
-            return getUserVolume() * Math.min(1, (Date.now() - s.fadeStart) / FADE_DURATION_MS);
-        }
-
-        function disposeMedia(s) {
-            if (s.media) {
-                try {
-                    s.media.destroy();
-                } catch (e) {
-                    console.warn('⚠️ Error releasing media:', e);
-                }
-                s.media = null;
-            }
-        }
-
-        async function connectSession(s) {
-            if (s.stopped) return;
-            s.attempt++;
-            disposeMedia(s);
-
-            const attempt = s.attempt;
-            const ctx = {
-                dead: false,
-                isCurrent: () => !ctx.dead && !s.stopped && s.attempt === attempt,
-                playing: () => { if (ctx.isCurrent()) onSessionPlaying(s); },
-                fail: (reason, permanent) => {
-                    if (!ctx.isCurrent()) return;
-                    ctx.dead = true;
-                    onSessionFailure(s, reason, permanent);
-                },
-                ended: () => {
-                    if (!ctx.isCurrent()) return;
-                    ctx.dead = true;
-                    s.trackIndex++;
-                    connectSession(s);
-                },
-                volume: () => sessionVolume(s)
-            };
-            s.ctx = ctx;
-            s.phase = 'connecting';
-            s.phaseSince = Date.now();
-
-            try {
-                const media = await s.createMedia(s, ctx);
-                if (!ctx.isCurrent()) {
-                    if (media) media.destroy();
-                    return;
-                }
-                s.media = media;
-            } catch (error) {
-                ctx.fail(error && error.message ? error.message : String(error), error && error.permanent);
-            }
-        }
-
-        function onSessionPlaying(s) {
-            if (s.phase === 'playing') return;
-            s.phase = 'playing';
-            s.phaseSince = Date.now();
-            s.lastTime = -1;
-            s.lastProgressAt = Date.now();
-            s.unhealthySince = null;
-            s.failures = 0;
-            if (s.fallbackActive) {
-                console.log('✅ Stream is back, switching off the backup signal');
-                s.fallbackActive = false;
-                stopClassicSound();
-            }
-            setStreamStatus('');
-        }
-
-        function startFallback(s, statusKey) {
-            if (s.fallbackActive) return;
-            s.fallbackActive = true;
-            console.warn('🔔 Stream unavailable, playing the backup signal');
-            playClassicSound(s.fade);
-            setStreamStatus(statusKey);
-        }
-
-        function onSessionFailure(s, reason, permanent) {
-            console.warn(`⚠️ Playback problem (${reason})${permanent ? ' — permanent' : ''}`);
-            disposeMedia(s);
-            s.phase = 'waiting';
-            s.phaseSince = Date.now();
-            s.failures++;
-            s.trackIndex++; // playlists: skip a broken track
-            if (!s.unhealthySince) s.unhealthySince = Date.now();
-
-            if (permanent) {
-                startFallback(s, 'statusUnavailable');
-            } else if (Date.now() - s.unhealthySince >= RECONNECT_WINDOW_MS) {
-                startFallback(s, 'statusFallback');
-            }
-
-            if (!s.fallbackActive) {
-                setStreamStatus('statusReconnecting', s.failures);
-            }
-
-            let delay = RETRY_DELAYS_MS[Math.min(s.failures - 1, RETRY_DELAYS_MS.length - 1)];
-            if (s.fallbackActive) {
-                delay = permanent ? BACKGROUND_RETRY_MS * 3 : BACKGROUND_RETRY_MS;
-            }
-            clearTimeout(s.retryTimer);
-            s.retryTimer = setTimeout(() => connectSession(s), delay);
-        }
-
-        function superviseSession(s) {
-            if (s.stopped) return;
-            const now = Date.now();
-
-            if (s.media) {
-                s.media.setVolume(sessionVolume(s));
-            }
-
-            if (s.phase === 'connecting' && now - s.phaseSince > CONNECT_TIMEOUT_MS) {
-                s.ctx.fail('connection timeout');
-            } else if (s.phase === 'playing' && s.media) {
-                const time = s.media.getTime();
-                if (time !== s.lastTime) {
-                    s.lastTime = time;
-                    s.lastProgressAt = now;
-                } else if (now - s.lastProgressAt > STALL_TIMEOUT_MS) {
-                    s.ctx.fail('playback stalled');
-                }
-            }
-
-            // Still not playing after the reconnect window — let the backup signal play meanwhile
-            if (s.unhealthySince && now - s.unhealthySince >= RECONNECT_WINDOW_MS) {
-                startFallback(s, 'statusFallback');
-            }
-        }
-
-        // ========= CLASSIC (BACKUP) SIGNAL — Web Audio, works offline =========
-        let audioContext = null;
-        let classicInterval = null;
-        let classicGain = null;
-        let classicVolume = null;
-
-        function getAudioContext() {
-            if (!audioContext) {
-                const Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return null;
-                audioContext = new Ctx();
-            }
-            if (audioContext.state === 'suspended') {
-                audioContext.resume().catch(() => {});
-            }
-            return audioContext;
-        }
-
-        function playClassicSound(fade) {
-            stopClassicSound();
-            const ctx = getAudioContext();
-            if (!ctx) return;
-
-            // notes → gain (fade-in) → classicVolume (volume slider) → speakers
-            const volume = ctx.createGain();
-            volume.gain.value = classicVolumeLevel();
-            volume.connect(ctx.destination);
-            classicVolume = volume;
-
-            const gain = ctx.createGain();
-            gain.connect(volume);
-            gain.gain.setValueAtTime(fade ? 0.3 : 1, ctx.currentTime);
-            if (fade) {
-                gain.gain.linearRampToValueAtTime(1, ctx.currentTime + FADE_DURATION_MS / 1000);
-            }
-            classicGain = gain;
-
-            const frequencies = [523, 659, 784]; // C, E, G
-            const playChord = () => {
-                if (classicGain !== gain) return;
-                const start = ctx.currentTime;
-                frequencies.forEach((freq, index) => {
-                    const oscillator = ctx.createOscillator();
-                    const noteGain = ctx.createGain();
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(freq, start);
-                    oscillator.connect(noteGain);
-                    noteGain.connect(gain);
-
-                    const noteStart = start + index * 0.1;
-                    noteGain.gain.setValueAtTime(0, noteStart);
-                    noteGain.gain.linearRampToValueAtTime(0.1, noteStart + 0.1);
-                    noteGain.gain.linearRampToValueAtTime(0, noteStart + 2);
-                    oscillator.start(noteStart);
-                    oscillator.stop(noteStart + 2);
-                });
-            };
-
-            playChord();
-            classicInterval = setInterval(playChord, 3000);
-        }
-
-        function stopClassicSound() {
-            clearInterval(classicInterval);
-            classicInterval = null;
-            if (classicGain) {
-                classicGain.disconnect();
-                classicGain = null;
-            }
-            if (classicVolume) {
-                classicVolume.disconnect();
-                classicVolume = null;
-            }
-        }
-
-        // ========= VOLUME =========
-        // Slider 0–100 %. Streams use it directly (50 % = the previous fixed level);
-        // the synthesized backup signal is scaled so that 50 % sounds as before.
-        function getUserVolume() {
-            const value = parseInt(document.getElementById('volumeSlider').value, 10);
-            return isNaN(value) ? 0.5 : Math.max(0, Math.min(100, value)) / 100;
-        }
-
-        function classicVolumeLevel() {
-            return getUserVolume() * 2;
-        }
-
-        function applyVolume() {
-            document.getElementById('volumeValue').textContent = Math.round(getUserVolume() * 100) + '%';
-            if (session && session.media) {
-                session.media.setVolume(sessionVolume(session));
-            }
-            if (classicVolume) {
-                classicVolume.gain.value = classicVolumeLevel();
-            }
-        }
-
-        // ========= PLAY / STOP =========
-        function isPreviewPlaying() {
-            return document.getElementById('playButton').classList.contains('playing');
-        }
-
-        function setPlayingUI(playing) {
-            const playButton = document.getElementById('playButton');
-            playButton.textContent = playing ? '⏸' : '▶';
-            playButton.classList.toggle('playing', playing);
-            playButton.setAttribute('aria-label', playing ? t().stopLabel : t().playLabel);
-        }
-
-        let streamStatus = { key: '', n: 0 };
-
-        function setStreamStatus(key, n = 0) {
-            streamStatus = { key, n };
-            document.getElementById('streamStatus').textContent = key ? t()[key].replace('{n}', n) : '';
-        }
-
-        function playRadioSound(stationValue) {
-            stopRadio();
-            getAudioContext(); // unlock audio while we may still have a user gesture
-
-            const createMedia = stationValue === 'classic' ? null : getMediaFactory(stationValue);
-            if (!createMedia) {
-                if (stationValue !== 'classic') {
-                    console.warn('⚠️ Unknown station, using the classic signal:', stationValue);
-                }
-                playClassicSound(document.getElementById('volumeGrow').checked);
-                setPlayingUI(true);
-                return;
-            }
-
-            console.log('🎵 Starting station:', stationValue);
-            startSession(createMedia);
-        }
-
-        function stopRadio() {
-            if (session) {
-                session.stopped = true;
-                clearTimeout(session.retryTimer);
-                clearInterval(session.ticker);
-                disposeMedia(session);
-                session = null;
-            }
-            stopClassicSound();
-            setPlayingUI(false);
-            setStreamStatus('');
-        }
-
-        function toggleRadio() {
-            if (isPreviewPlaying()) {
-                stopRadio();
-            } else {
-                playRadioSound(document.getElementById('radioSelect').value);
-            }
-        }
-
-        // ========= CLOCK =========
-        function updateTime() {
-            const now = new Date();
-            const locale = t().locale;
-            const timeString = now.toLocaleTimeString(locale, {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-            const dateString = now.toLocaleDateString(locale, {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-
-            document.getElementById('currentTime').textContent = timeString;
-            document.getElementById('currentDate').textContent = `${t().today} ${dateString.charAt(0).toUpperCase()}${dateString.slice(1)}`;
-
-            checkAlarm();
-            updateRemainingTime();
-        }
-
-        // ========= ALARM =========
-        function readTimeInput(id, min, max) {
-            const value = parseInt(document.getElementById(id).value, 10);
-            return isNaN(value) || value < min || value > max ? null : value;
-        }
-
-        function nextOccurrence(hours, minutes) {
-            const target = new Date();
-            target.setHours(hours, minutes, 0, 0);
-            if (target.getTime() <= Date.now()) {
-                target.setDate(target.getDate() + 1);
-            }
-            return target.getTime();
-        }
-
-        // The alarm is stored as an absolute timestamp. It is checked every second,
-        // plus a one-shot timeout scheduled directly from the user's click — background
-        // tabs throttle repeating timers, but this one still fires on time.
-        function scheduleAlarm(timestamp) {
-            alarmTarget = timestamp;
-            clearTimeout(alarmTimeout);
-            alarmTimeout = setTimeout(checkAlarm, Math.max(0, timestamp - Date.now()) + 50);
-            updateRemainingTime();
-        }
-
-        function checkAlarm() {
-            if (alarmActive && !alarmRinging && alarmTarget && Date.now() >= alarmTarget) {
-                triggerAlarm();
-            }
-        }
-
-        function updateRemainingTime() {
-            const remaining = document.getElementById('remainingTime');
-            if (!alarmActive || !alarmTarget || alarmRinging) {
-                remaining.textContent = alarmRinging ? t().modalTitle : t().alarmOff;
-                return;
-            }
-
-            const diffSeconds = Math.max(0, Math.ceil((alarmTarget - Date.now()) / 1000));
-            const hours = Math.floor(diffSeconds / 3600);
-            const minutes = Math.floor((diffSeconds % 3600) / 60);
-            const seconds = diffSeconds % 60;
-            remaining.textContent = `${t().timeRemaining} ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-
-        function updateAlarmButton() {
-            const toggle = document.getElementById('toggleAlarm');
-            toggle.textContent = alarmActive ? t().toggleAlarmOn : t().toggleAlarmOff;
-            toggle.classList.toggle('btn-primary', alarmActive);
-            toggle.classList.toggle('btn-secondary', !alarmActive);
-
-            const hint = document.getElementById('alarmHint');
-            hint.textContent = t().alarmHint;
-            hint.style.display = alarmActive ? '' : 'none';
-        }
-
-        function setAlarm() {
-            const hours = readTimeInput('alarmHour', 0, 23);
-            const minutes = readTimeInput('alarmMinute', 0, 59);
-
-            if (hours === null || minutes === null) {
-                alert(t().invalidTime);
-                return;
-            }
-
-            alarmActive = true;
-            snoozeCount = 0;
-            getAudioContext(); // unlock audio playback on this click
-            scheduleAlarm(nextOccurrence(hours, minutes));
-            updateAlarmButton();
-            requestWakeLock();
-            saveSettings();
-
-            console.log('✅ Будильник установлен на', new Date(alarmTarget).toLocaleString());
-        }
-
-        function disableAlarm() {
-            alarmActive = false;
-            alarmRinging = false;
-            alarmTarget = null;
-            clearTimeout(alarmTimeout);
-            updateAlarmButton();
-            updateRemainingTime();
-            releaseWakeLock();
-            stopRadio();
-        }
-
-        function triggerAlarm() {
-            alarmRinging = true;
-            const modalTime = document.getElementById('alarmModalTime');
-            modalTime.textContent = new Date().toLocaleTimeString(t().locale, {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-
-            document.getElementById('alarmModal').style.display = 'flex';
-            document.title = t().modalTitle;
-            updateRemainingTime();
-
-            playRadioSound(document.getElementById('radioSelect').value);
-        }
-
-        function closeAlarmModal() {
-            alarmRinging = false;
-            document.getElementById('alarmModal').style.display = 'none';
-            document.title = t().documentTitle;
-        }
-
-        function stopAlarm() {
-            closeAlarmModal();
-            snoozeCount = 0;
-            disableAlarm();
-        }
-
-        function snoozeAlarm() {
-            closeAlarmModal();
-            stopRadio();
-
-            const snoozeMinutes = readTimeInput('snoozeTime', 1, 60) || 5;
-            snoozeCount++;
-            scheduleAlarm(Date.now() + snoozeMinutes * 60000);
-            console.log(`⏰ Будильник отложен на ${snoozeMinutes} минут (${snoozeCount} раз)`);
-        }
-
-        // Keep the screen on while an alarm is set, otherwise the device may fall asleep
-        async function requestWakeLock() {
-            if (!('wakeLock' in navigator) || wakeLock || document.visibilityState !== 'visible') return;
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                wakeLock.addEventListener('release', () => {
-                    wakeLock = null;
-                });
-            } catch (e) {
-                console.warn('⚠️ Wake Lock unavailable:', e.message);
-            }
-        }
-
-        function releaseWakeLock() {
-            if (wakeLock) {
-                wakeLock.release().catch(() => {});
-                wakeLock = null;
-            }
-        }
-
-        // ========= SETTINGS =========
-        function saveSettings() {
-            try {
-                localStorage.setItem('alarmSettings', JSON.stringify({
-                    hour: document.getElementById('alarmHour').value,
-                    minute: document.getElementById('alarmMinute').value,
-                    snooze: document.getElementById('snoozeTime').value,
-                    fade: document.getElementById('volumeGrow').checked,
-                    volume: document.getElementById('volumeSlider').value
-                }));
-            } catch (e) {
-                // Storage unavailable — settings just won't be remembered
-            }
-        }
-
-        function loadSettings() {
-            let settings = {};
-            try {
-                settings = JSON.parse(localStorage.getItem('alarmSettings')) || {};
-            } catch (e) {
-                settings = {};
-            }
-
-            // ?h=7&m=30 (e.g. from the sleep calculator) overrides the saved time
-            const params = new URLSearchParams(window.location.search);
-            if (params.has('h') && params.has('m')) {
-                settings.hour = params.get('h');
-                settings.minute = params.get('m');
-                history.replaceState(null, '', window.location.pathname);
-            }
-
-            const pad = (value) => String(value).padStart(2, '0');
-            const hour = parseInt(settings.hour, 10);
-            const minute = parseInt(settings.minute, 10);
-            const snooze = parseInt(settings.snooze, 10);
-            if (hour >= 0 && hour <= 23) document.getElementById('alarmHour').value = pad(hour);
-            if (minute >= 0 && minute <= 59) document.getElementById('alarmMinute').value = pad(minute);
-            if (snooze >= 1 && snooze <= 60) document.getElementById('snoozeTime').value = snooze;
-            if (typeof settings.fade === 'boolean') document.getElementById('volumeGrow').checked = settings.fade;
-            const volume = parseInt(settings.volume, 10);
-            if (volume >= 0 && volume <= 100) document.getElementById('volumeSlider').value = volume;
-            applyVolume();
-        }
-
-        // ===== СИСТЕМА НЕПРЕРЫВНОГО ПЕРЕТЕКАНИЯ ЦВЕТОВ v5.0 FLOW =====
-        function randomColorInRange(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-
-        // Генерация 4 времен суток: по 25% каждое
-        function generateBalancedStartColor() {
-            const timeOfDay = Math.random();
-
-            if (timeOfDay < 0.25) {
-                // 🌅 Рассвет: розовые/оранжевые тона
-                return {
-                    r: randomColorInRange(150, 200),
-                    g: randomColorInRange(100, 150),
-                    b: randomColorInRange(120, 170)
-                };
-            } else if (timeOfDay < 0.5) {
-                // ☀️ День: яркие светлые цвета
-                return {
-                    r: randomColorInRange(180, 240),
-                    g: randomColorInRange(180, 240),
-                    b: randomColorInRange(190, 250)
-                };
-            } else if (timeOfDay < 0.75) {
-                // 🌇 Закат: оранжевые/фиолетовые тона
-                return {
-                    r: randomColorInRange(160, 210),
-                    g: randomColorInRange(90, 140),
-                    b: randomColorInRange(130, 180)
-                };
-            } else {
-                // 🌙 Ночь: темные цвета
-                return {
-                    r: randomColorInRange(15, 50),
-                    g: randomColorInRange(15, 50),
-                    b: randomColorInRange(25, 60)
-                };
-            }
-        }
-
-        let startColor = generateBalancedStartColor();
-        let currentColor = { r: startColor.r, g: startColor.g, b: startColor.b };
-        let targetColor = generateBalancedStartColor();
-        const transitionSpeed = 60000; // 60 секунд
-        // Colors change over a minute, so ~10 updates per second look perfectly smooth
-        // and use far less CPU/battery than repainting the whole page at 60 FPS.
-        const COLOR_FRAME_INTERVAL = 100;
-        let animationStartTime = Date.now();
-        let lastTargetChangeTime = Date.now();
-        let lastColorFrame = 0;
-        let scene = null;
-
-        function generateNewTargetColor() {
-            startColor = { r: currentColor.r, g: currentColor.g, b: currentColor.b };
-            targetColor = generateBalancedStartColor();
-            animationStartTime = Date.now();
-            lastTargetChangeTime = Date.now();
-        }
-
-        function lerp(start, end, progress) {
-            return start + (end - start) * progress;
-        }
-
-        function easeInOutCubic(x) {
-            return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-        }
-
-        function animateColors(timestamp) {
-            requestAnimationFrame(animateColors);
-            if (timestamp - lastColorFrame < COLOR_FRAME_INTERVAL) return;
-            lastColorFrame = timestamp;
-
-            const now = Date.now();
-            const progress = Math.min((now - animationStartTime) / transitionSpeed, 1);
-            const easedProgress = easeInOutCubic(progress);
-
-            currentColor.r = lerp(startColor.r, targetColor.r, easedProgress);
-            currentColor.g = lerp(startColor.g, targetColor.g, easedProgress);
-            currentColor.b = lerp(startColor.b, targetColor.b, easedProgress);
-
-            if (now - lastTargetChangeTime >= transitionSpeed) {
-                generateNewTargetColor();
-            }
-
-            applyColors();
-        }
-
-        function applyColors() {
-            if (!scene) {
-                scene = {
-                    stars: document.getElementById('stars'),
-                    moon: document.getElementById('moon'),
-                    sun: document.getElementById('sun'),
-                    clouds: document.getElementById('clouds'),
-                    mountainBg: document.getElementById('mountainBg'),
-                    house: document.getElementById('house'),
-                    houseWindow: document.getElementById('houseWindow')
-                };
-            }
-
-            const r = Math.round(currentColor.r);
-            const g = Math.round(currentColor.g);
-            const b = Math.round(currentColor.b);
-            const clamp = (value) => Math.min(255, Math.max(0, Math.round(value)));
-
-            // 3-точечный градиент
-            const r2 = clamp(r * 1.2 + 20), g2 = clamp(g * 1.15 + 10), b2 = clamp(b * 1.25 + 15);
-            const r3 = clamp(r * 1.1 + 30), g3 = clamp(g * 1.2 + 25), b3 = clamp(b * 1.3 + 20);
-            document.body.style.background = `linear-gradient(135deg, rgb(${r}, ${g}, ${b}) 0%, rgb(${r2}, ${g2}, ${b2}) 50%, rgb(${r3}, ${g3}, ${b3}) 100%) fixed`;
-
-            const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-
-            // Управление элементами по яркости
-            if (brightness < 0.3) {
-                scene.stars.style.opacity = (0.3 - brightness) / 0.3;
-                scene.moon.style.opacity = (0.3 - brightness) / 0.3;
-                scene.sun.style.opacity = 0;
-                scene.clouds.style.opacity = 0;
-            } else if (brightness > 0.6) {
-                scene.stars.style.opacity = 0;
-                scene.moon.style.opacity = 0;
-                scene.sun.style.opacity = (brightness - 0.6) / 0.4;
-                scene.clouds.style.opacity = (brightness - 0.6) / 0.4;
-            } else {
-                scene.stars.style.opacity = 0;
-                scene.moon.style.opacity = 0;
-                scene.sun.style.opacity = 0.3;
-                scene.clouds.style.opacity = 0.5;
-            }
-
-            const hueRotate = (brightness * 360) % 360;
-            scene.mountainBg.style.filter = `hue-rotate(${hueRotate}deg) brightness(${0.7 + brightness * 0.5}) saturate(${1.0 + brightness * 0.2})`;
-            scene.house.style.filter = `brightness(${0.8 + brightness * 0.5})`;
-
-            if (brightness < 0.5) {
-                scene.houseWindow.style.background = '#FFD700';
-                scene.houseWindow.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.8)';
-            } else {
-                scene.houseWindow.style.background = '#87CEEB';
-                scene.houseWindow.style.boxShadow = 'none';
-            }
-        }
-
-        function createStars() {
-            const starsContainer = document.getElementById('stars');
-            starsContainer.innerHTML = '';
-            for (let i = 0; i < 50; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 60 + '%';
-                star.style.width = Math.random() * 3 + 1 + 'px';
-                star.style.height = star.style.width;
-                star.style.animationDelay = Math.random() * 2 + 's';
-                starsContainer.appendChild(star);
-            }
-        }
-
-        // ========= FULLSCREEN =========
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log('Не удалось войти в полноэкранный режим:', err);
-                    });
-                }
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        // ========= LANGUAGE =========
-        function switchLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('language', lang);
-            document.documentElement.lang = lang;
-
-            document.querySelectorAll('.nav-item[data-nav]').forEach(link => {
-                link.textContent = t().nav[link.dataset.nav];
-            });
-            document.querySelectorAll('[data-i18n]').forEach(element => {
-                element.textContent = t()[element.dataset.i18n];
-            });
-
-            document.getElementById('snoozeButton').textContent = t().snoozeButton;
-            document.getElementById('fullscreenButton').setAttribute('aria-label', t().fullscreenLabel);
-            document.getElementById('volumeSlider').setAttribute('aria-label', t().volumeLabel);
-            document.getElementById('volumeSliderLabel').title = t().volumeLabel;
-            document.title = alarmRinging ? t().modalTitle : t().documentTitle;
-
-            populateStationsList();
-            updateAlarmButton();
-            setPlayingUI(isPreviewPlaying());
-            setStreamStatus(streamStatus.key, streamStatus.n);
-            updateTime();
-
-            document.querySelector('.lang-selector').value = lang;
-        }
-
-        // ========= INIT =========
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🌟 IskrCLOCK v5.3 • HLS.js ' + (window.Hls ? Hls.version : 'not loaded') + ' • IndexedDB • YouTube API');
-
-            loadSettings();
-            switchLanguage(currentLang);
-            loadYouTubeAPI();
-
-            // Custom stations live in IndexedDB/localStorage — reload the list once the DB is open
-            initDB()
-                .catch(err => console.error('❌ Ошибка инициализации IndexedDB:', err))
-                .then(() => populateStationsList());
-
-            createStars();
-            updateTime();
-            setInterval(updateTime, 1000);
-
-            applyColors();
-            setTimeout(generateNewTargetColor, 2000);
-            requestAnimationFrame(animateColors);
-
-            document.getElementById('toggleAlarm').addEventListener('click', function() {
-                if (alarmActive) {
-                    stopAlarm();
-                } else {
-                    setAlarm();
-                }
-            });
-
-            document.getElementById('playButton').addEventListener('click', toggleRadio);
-            document.getElementById('fullscreenButton').addEventListener('click', toggleFullscreen);
-
-            document.getElementById('snoozeButton').addEventListener('click', function() {
-                if (alarmActive) {
-                    snoozeAlarm();
-                }
-            });
-
-            ['alarmHour', 'alarmMinute'].forEach(id => {
-                document.getElementById(id).addEventListener('change', function() {
-                    saveSettings();
-                    if (alarmActive && !alarmRinging) setAlarm();
-                });
-            });
-            document.getElementById('snoozeTime').addEventListener('change', saveSettings);
-            document.getElementById('volumeGrow').addEventListener('change', saveSettings);
-            document.getElementById('volumeSlider').addEventListener('input', applyVolume);
-            document.getElementById('volumeSlider').addEventListener('change', saveSettings);
-
-            document.querySelector('.lang-selector').addEventListener('change', (e) => {
-                switchLanguage(e.target.value);
-            });
-
-            // Coming back to the tab: catch up on a missed ring and restore the wake lock
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    checkAlarm();
-                    if (alarmActive) requestWakeLock();
-                }
-            });
-
-            // Station list changed in another tab (e.g. on the stations page)
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'customStations') populateStationsList();
-            });
-
-            // Closing the tab would silently cancel the alarm — ask first
-            window.addEventListener('beforeunload', (e) => {
-                if (alarmActive) {
-                    e.preventDefault();
-                    e.returnValue = '';
-                }
-            });
-        });
-    </script>
+    <script src="app.js?v=6.0"></script>
 </body>
 </html>
