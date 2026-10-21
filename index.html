@@ -878,9 +878,19 @@
             'fip': 'https://icecast.radiofrance.fr/fip-hifi.aac',
             // Русские станции
             'europa-plus': 'https://ep128.hostingradio.ru:8030/ep128',
-            'radio-energy': 'https://pub0302.101.ru:8443/stream/air/aac/64/99',
-            'love-radio': 'https://pub0101.101.ru:8443/stream/air/aac/64/102',
-            'hit-fm': 'https://pub0202.101.ru:8443/stream/air/aac/64/200',
+            // Энерджи (Газпром-Медиа) — эфир 101.ru, канал 99; пробуем разные серверы 101.ru
+            'radio-energy': [
+                'https://pub0302.101.ru:8443/stream/air/aac/64/99',
+                'https://pub0102.101.ru:8443/stream/air/aac/64/99',
+                'https://pub0202.101.ru:8443/stream/air/aac/64/99'
+            ],
+            // Love Radio (Krutoy Media) — свой сервер; канал 102 на 101.ru — это Юмор FM
+            'love-radio': 'https://stream.loveradio.ru/12_love_64?type=.aac',
+            // Хит FM — официальный CDN hostingradio.ru
+            'hit-fm': [
+                'https://hitfm.hostingradio.ru/hitfm96.aacp',
+                'https://hitfm.hostingradio.ru/hitfm128.mp3'
+            ],
             'monte-carlo': 'https://montecarlo.hostingradio.ru/montecarlo96.aacp',
             'studio-21': 'https://stream.studio21.ru/studio2196.aacp',
             // Питерские станции
