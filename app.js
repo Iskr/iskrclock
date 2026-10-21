@@ -126,6 +126,8 @@ const I18N = {
         day: 'Сутки',
         prevDay: 'Предыдущий день',
         nextDay: 'Следующий день',
+        demoCollapse: 'Свернуть пульт',
+        demoExpand: 'Развернуть пульт',
         fullscreen: 'Полноэкранный режим',
         ringTitle: 'Будильник · {label}',
         ringPlays: 'Играет {station}',
@@ -259,6 +261,8 @@ const I18N = {
         day: 'Day',
         prevDay: 'Previous day',
         nextDay: 'Next day',
+        demoCollapse: 'Collapse controls',
+        demoExpand: 'Expand controls',
         fullscreen: 'Fullscreen',
         ringTitle: 'Alarm · {label}',
         ringPlays: 'Playing {station}',
@@ -357,7 +361,7 @@ const state = {
     chipsOpen: false,
     editId: null,            // custom station open in the editor
     draft: [],               // items of the "new station" form (files stay in memory until saved)
-    demo: { on: false, paused: false, speed: 1, doy: 1, hour: 12 },
+    demo: { on: false, paused: false, speed: 1, doy: 1, hour: 12, collapsed: false },
     dbReady: false
 };
 
@@ -824,6 +828,10 @@ function renderDemo() {
     $('demoPanel').hidden = !d.on;
     if (!d.on) return;
     setText('demoPause', d.paused ? '▶' : '❚❚');
+    $('demoPanel').classList.toggle('collapsed', d.collapsed);
+    $('demoCollapse').title = t(d.collapsed ? 'demoExpand' : 'demoCollapse');
+    $('demoCollapse').setAttribute('aria-label', $('demoCollapse').title);
+    $('demoCollapse').setAttribute('aria-expanded', String(!d.collapsed));
     const date = new Date(new Date().getFullYear(), 0, d.doy);
     setText('demoText', date.toLocaleDateString(t('locale'), { day: 'numeric', month: 'long' }) + ' · ' + pad(Math.floor(d.hour)) + ':' + pad(Math.floor((d.hour % 1) * 60)));
     if (document.activeElement !== $('demoDoy')) $('demoDoy').value = d.doy;
@@ -2035,6 +2043,13 @@ function bindEvents() {
     // Demo
     $('demoBtn').addEventListener('click', toggleDemo);
     $('demoPause').addEventListener('click', () => { state.demo.paused = !state.demo.paused; renderDemo(); });
+    // Collapsed, the panel keeps only its top row (pause, date, day arrows); remembered for next time
+    try { state.demo.collapsed = localStorage.getItem('demoCollapsed') === '1'; } catch (e) {}
+    $('demoCollapse').addEventListener('click', () => {
+        state.demo.collapsed = !state.demo.collapsed;
+        try { localStorage.setItem('demoCollapsed', state.demo.collapsed ? '1' : '0'); } catch (e) {}
+        renderDemo();
+    });
     $('demoPrev').addEventListener('click', () => { state.demo.doy = (state.demo.doy + 363) % 365 + 1; updateSky(); renderClock(); renderDemo(); });
     $('demoNext').addEventListener('click', () => { state.demo.doy = state.demo.doy % 365 + 1; updateSky(); renderClock(); renderDemo(); });
     $('demoDoy').addEventListener('input', e => { state.demo.doy = +e.target.value; updateSky(); renderClock(); renderDemo(); });
