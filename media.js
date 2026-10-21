@@ -1,6 +1,7 @@
-// IskrCLOCK — shared media code for index.html and custom-stations.html:
-// custom stations storage (localStorage + IndexedDB), CORS proxies, M3U parsing,
-// hls.js loading and media adapters for HTML5 audio, HLS and YouTube.
+// IskrCLOCK — media layer: built-in station catalog, custom stations storage
+// (localStorage + IndexedDB) with migration of older formats, M3U/PLS parsing,
+// hls.js loading, media adapters (HTML5 audio, HLS, YouTube) and the resilient
+// playback engine used by alarms, the timer signal and station preview.
 
 // ========= CORS PROXIES =========
 const corsProxies = [
@@ -14,37 +15,56 @@ function getProxiedURL(url, proxyIndex = 0) {
     return corsProxies[proxyIndex % corsProxies.length] + encodeURIComponent(url);
 }
 
-// ========= CUSTOM STATIONS (localStorage) =========
-function loadCustomStations() {
-    try {
-        const saved = JSON.parse(localStorage.getItem('customStations'));
-        return Array.isArray(saved) ? saved : [];
-    } catch (e) {
-        return [];
-    }
-}
+// ========= BUILT-IN STATIONS =========
+// `key` values are stored in users' alarms — never rename them.
+// A station has `url` or `urls` (mirrors: every reconnect attempt takes the next one),
+// or `youtube` (video ID). `hls` streams go through hls.js / native HLS.
+const BUILTIN_STATIONS = [
+    { key: 'fip', name: 'FIP Radio', city: { ru: 'Париж', en: 'Paris' },
+        url: 'https://icecast.radiofrance.fr/fip-hifi.aac' },
+    { key: 'bbc-radio-1', name: 'BBC Radio 1', city: { ru: 'Лондон', en: 'London' }, hls: true,
+        url: 'https://as-hls-ww-live.akamaized.net/pool_01505109/live/ww/bbc_radio_one/bbc_radio_one.isml/bbc_radio_one-audio=320000.norewind.m3u8' },
+    { key: 'npr', name: 'NPR', city: { ru: 'США', en: 'USA' },
+        url: 'https://streams.kut.org/4426_128.mp3?aw_0_1st.playerid=kut-free' },
+    { key: 'ninja-chill', name: 'NINJA RADIO 24/7', city: { ru: 'Онлайн', en: 'Online' }, youtube: '7bdP1Ion2xk' },
+    { key: 'nts-1', name: 'NTS Radio 1', city: { ru: 'Лондон', en: 'London' },
+        url: 'https://stream-relay-geo.ntslive.net/stream' },
+    { key: 'nts-2', name: 'NTS Radio 2', city: { ru: 'Лондон', en: 'London' },
+        url: 'https://stream-relay-geo.ntslive.net/stream2' },
+    { key: 'rinse-france', name: 'Rinse France', city: { ru: 'Париж', en: 'Paris' },
+        url: 'https://radio10.pro-fhi.net/radio/9041/stream' },
+    { key: 'rinse-uk', name: 'Rinse UK', city: { ru: 'Лондон', en: 'London' },
+        urls: ['https://admin.stream.rinse.fm/proxy/rinse_uk/stream', 'https://streamer-uk.rinse.fm:8443/stream'] },
+    { key: 'europa-plus', name: { ru: 'Европа Плюс', en: 'Europa Plus' }, city: { ru: 'Москва', en: 'Moscow' },
+        url: 'https://ep128.hostingradio.ru:8030/ep128' },
+    // Энерджи (Газпром-Медиа) — эфир 101.ru, канал 99; пробуем разные серверы 101.ru
+    { key: 'radio-energy', name: 'Radio Energy', city: { ru: 'Москва', en: 'Moscow' },
+        urls: ['https://pub0302.101.ru:8443/stream/air/aac/64/99', 'https://pub0102.101.ru:8443/stream/air/aac/64/99', 'https://pub0202.101.ru:8443/stream/air/aac/64/99'] },
+    // Love Radio (Krutoy Media): без UID и с Referer чужого сайта сервер отдаёт голосовую заглушку
+    { key: 'love-radio', name: 'Love Radio', city: { ru: 'Москва', en: 'Moscow' }, noReferrer: true,
+        url: 'https://stream2.n340.com/12_love_64_reg_44?type=aac&UID=DDBAB47E03D454FADEDBBD4BFA3DA5EA' },
+    { key: 'hit-fm', name: 'Hit FM', city: { ru: 'Москва', en: 'Moscow' },
+        urls: ['https://hitfm.hostingradio.ru/hitfm96.aacp', 'https://hitfm.hostingradio.ru/hitfm128.mp3'] },
+    { key: 'monte-carlo', name: 'Monte Carlo', city: { ru: 'Москва', en: 'Moscow' },
+        url: 'https://montecarlo.hostingradio.ru/montecarlo96.aacp' },
+    { key: 'studio-21', name: 'STUDIO 21', city: { ru: 'Москва', en: 'Moscow' },
+        url: 'https://stream.studio21.ru/studio2196.aacp' },
+    { key: 'radio-metro', name: { ru: 'Радио МЕТРО', en: 'Radio METRO' }, city: { ru: 'Санкт-Петербург', en: 'St. Petersburg' },
+        url: 'https://stream.radiometro.ru:8443/metro.mp3' },
+    { key: 'hermitage', name: { ru: 'Эрмитаж FM 90.1', en: 'Hermitage FM 90.1' }, city: { ru: 'Санкт-Петербург', en: 'St. Petersburg' },
+        url: 'https://hermitage.hostingradio.ru/hermitage128.mp3' },
+    { key: 'kurs-radio', name: 'KURS Radio', city: { ru: 'Санкт-Петербург', en: 'St. Petersburg' },
+        url: 'https://listen9.myradio24.com/kursradio' },
+    { key: 'classic', name: { ru: 'Классический', en: 'Classic' }, city: { ru: 'Сигнал без интернета', en: 'Works offline' }, classic: true }
+];
 
-function saveCustomStations(stations) {
-    localStorage.setItem('customStations', JSON.stringify(stations));
-}
-
-// Custom stations are referenced by their id ("custom-<id>"), so deleting
-// another station doesn't silently switch the alarm to a different one.
-// Old selections stored as "custom-<index>" are still understood.
-function customStationValue(station, index) {
-    return 'custom-' + (station.id || index);
-}
-
-function findCustomStation(value) {
-    const key = value.slice('custom-'.length);
-    const stations = loadCustomStations();
-    const byId = stations.find(station => station.id === key);
-    if (byId) return byId;
-    return /^\d+$/.test(key) ? stations[parseInt(key, 10)] || null : null;
+function findBuiltinStation(key) {
+    return BUILTIN_STATIONS.find(station => station.key === key) || null;
 }
 
 // ========= AUDIO FILES (IndexedDB) =========
-// Files are stored as Blobs (older versions stored base64 data URLs — both work).
+// Records: { id, stationId, fileIndex, name, data } where data is a Blob
+// (older versions stored base64 data URL strings — both are played).
 let db = null;
 const DB_NAME = 'IskrClockDB';
 const DB_VERSION = 1;
@@ -77,47 +97,103 @@ function dbStore(mode) {
     return db.transaction([STORE_NAME], mode).objectStore(STORE_NAME);
 }
 
-function loadFilesFromDB(stationId) {
+function dbRequest(makeRequest) {
     return new Promise((resolve, reject) => {
-        const request = dbStore('readonly').index('stationId').getAll(stationId);
-        request.onsuccess = () => resolve(request.result.sort((a, b) => a.fileIndex - b.fileIndex));
-        request.onerror = () => reject(request.error);
-    });
-}
-
-function saveFileToDB(stationId, fileIndex, fileName, fileData) {
-    return new Promise((resolve, reject) => {
-        const request = dbStore('readwrite').add({ stationId, fileIndex, name: fileName, data: fileData });
+        let request;
+        try {
+            request = makeRequest();
+        } catch (e) {
+            reject(e);
+            return;
+        }
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
     });
 }
 
-function deleteFilesFromDB(stationId) {
-    return new Promise((resolve, reject) => {
-        const store = dbStore('readwrite');
-        const request = store.index('stationId').getAllKeys(stationId);
-        request.onsuccess = () => {
-            request.result.forEach(key => store.delete(key));
-            store.transaction.oncomplete = () => resolve();
-            store.transaction.onerror = () => reject(store.transaction.error);
-        };
-        request.onerror = () => reject(request.error);
-    });
+function loadFilesFromDB(stationId) {
+    return dbRequest(() => dbStore('readonly').index('stationId').getAll(stationId))
+        .then(files => files.sort((a, b) => a.fileIndex - b.fileIndex));
+}
+
+function getFileFromDB(fileId) {
+    return dbRequest(() => dbStore('readonly').get(fileId));
+}
+
+function saveFileToDB(stationId, fileIndex, fileName, fileData) {
+    return dbRequest(() => dbStore('readwrite').add({ stationId, fileIndex, name: fileName, data: fileData }));
+}
+
+function deleteFileFromDB(fileId) {
+    return dbRequest(() => dbStore('readwrite').delete(fileId));
 }
 
 // A stored track can be a Blob or (legacy) a data URL string
-function trackSource(track) {
-    if (typeof track.data === 'string') {
-        return { url: track.data, release: null };
+function trackSource(data) {
+    if (typeof data === 'string') {
+        return { url: data, release: null };
     }
-    const url = URL.createObjectURL(track.data);
+    const url = URL.createObjectURL(data);
     return { url, release: () => URL.revokeObjectURL(url) };
 }
 
-// ========= PLAYLISTS & YOUTUBE IDS =========
-// Parse M3U playlist and extract the first stream URL
-async function parseM3UPlaylist(url) {
+function fileSizeOf(data) {
+    if (!data) return 0;
+    if (typeof data === 'string') {
+        const comma = data.indexOf(',');
+        return Math.round((data.length - comma - 1) * 3 / 4);
+    }
+    return data.size || 0;
+}
+
+// "MP3 · 6,1 МБ"
+function describeFile(name, size, lang = 'ru') {
+    const ext = (String(name).split('.').pop() || '').toUpperCase();
+    const mb = (size / 1048576).toFixed(1);
+    return `${ext} · ${lang === 'ru' ? mb.replace('.', ',') + ' МБ' : mb + ' MB'}`;
+}
+
+// ========= LINKS =========
+function extractYouTubeId(urlOrId) {
+    if (!urlOrId) return null;
+    urlOrId = String(urlOrId).trim();
+    if (/^[\w-]{11}$/.test(urlOrId)) {
+        return urlOrId;
+    }
+    const match = urlOrId.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([\w-]{11})/);
+    return match ? match[1] : null;
+}
+
+function hostnameOf(url) {
+    try {
+        return new URL(url).hostname;
+    } catch (e) {
+        return url;
+    }
+}
+
+// Kind of a stream URL: 'hls' (.m3u8), 'm3u' (.m3u/.pls playlist or a stored playlist file), 'stream'
+function streamKind(url) {
+    if (url.startsWith('data:')) return 'm3u';
+    if (/\.m3u8($|\?)/i.test(url)) return 'hls';
+    if (/\.(m3u|pls)($|\?)/i.test(url)) return 'm3u';
+    return 'stream';
+}
+
+// Turns pasted text (links separated by spaces, commas or new lines) into playlist items
+function parseLinks(text) {
+    return String(text).split(/[\s,]+/).filter(Boolean).map(link => {
+        const list = link.match(/[?&]list=([\w-]+)/);
+        if (list && /youtu/.test(link)) return { k: 'ytlist', list: list[1] };
+        const videoId = /youtu/.test(link) || /^[\w-]{11}$/.test(link) ? extractYouTubeId(link) : null;
+        if (videoId) return { k: 'youtube', vid: videoId };
+        if (!/^https?:\/\/\S+$/i.test(link)) return null;
+        return { k: streamKind(link), url: link };
+    }).filter(Boolean);
+}
+
+// Parse an M3U / PLS playlist and extract the first stream URL
+async function parsePlaylistFile(url) {
     let text;
     if (url.startsWith('data:')) {
         const [header, payload] = url.split(',');
@@ -133,30 +209,118 @@ async function parseM3UPlaylist(url) {
         text = await response.text();
     }
 
-    const streamUrl = text.split('\n')
-        .map(line => line.trim())
-        .find(line => line.startsWith('http://') || line.startsWith('https://'));
-    if (!streamUrl) {
-        const error = new Error('No stream URL found in playlist');
-        error.permanent = true;
-        throw error;
+    // M3U: a bare URL per line; PLS: "File1=http://…"
+    for (const line of text.split('\n')) {
+        const match = line.trim().match(/^(?:File\d+=)?(https?:\/\/\S+)/i);
+        if (match) return match[1];
     }
-    return streamUrl;
+    const error = new Error('No stream URL found in playlist');
+    error.permanent = true;
+    throw error;
 }
 
-function isPlainM3U(url) {
-    return url.startsWith('data:') || /\.m3u($|\?)/i.test(url);
+// ========= CUSTOM STATIONS =========
+// Format v2 (localStorage "customStations"):
+//   { id, name, items: [item], shuffle, loop }
+//   item: { k: 'stream'|'hls'|'m3u', url } | { k: 'youtube', vid } | { k: 'ytlist', list }
+//       | { k: 'file', fileId, name, size }   (fileId → IndexedDB record; legacy: inline `data`)
+// Older formats ({ type: 'radio'|'hls'|'local'|'youtube', url, videoIds, fileCount, files })
+// are converted once by migrateCustomStations(); the original value stays in "customStations_v1".
+const STATIONS_KEY = 'customStations';
+const STATIONS_BACKUP_KEY = 'customStations_v1';
+const SCHEMA_KEY = 'iskrSchema';
+const SCHEMA_VERSION = 2;
+
+function readJSON(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return value == null ? fallback : value;
+    } catch (e) {
+        return fallback;
+    }
 }
 
-function extractYouTubeId(urlOrId) {
-    if (!urlOrId) return null;
-    urlOrId = urlOrId.trim();
-    if (/^[\w-]{11}$/.test(urlOrId)) {
-        return urlOrId;
+function loadCustomStations() {
+    const stations = readJSON(STATIONS_KEY, []);
+    return Array.isArray(stations) ? stations.filter(s => s && Array.isArray(s.items)) : [];
+}
+
+function saveCustomStations(stations) {
+    localStorage.setItem(STATIONS_KEY, JSON.stringify(stations));
+}
+
+function newId(prefix) {
+    return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function migrateOldStation(old, index, dbReady) {
+    const station = {
+        id: old.id || 'legacy' + index,
+        name: old.name || 'Station ' + (index + 1),
+        items: [],
+        shuffle: false,
+        loop: true
+    };
+
+    if (old.type === 'local') {
+        if (Array.isArray(old.files)) {
+            // The earliest format kept base64 files in localStorage — move them to IndexedDB
+            for (let i = 0; i < old.files.length; i++) {
+                const file = old.files[i];
+                const item = { k: 'file', name: file.name, size: fileSizeOf(file.data) };
+                if (dbReady) {
+                    item.fileId = await saveFileToDB(station.id, i, file.name, file.data);
+                } else {
+                    item.data = file.data;
+                }
+                station.items.push(item);
+            }
+        } else if (dbReady && old.id) {
+            const records = await loadFilesFromDB(old.id);
+            station.items = records.map(record => ({ k: 'file', fileId: record.id, name: record.name, size: fileSizeOf(record.data) }));
+        }
+    } else if (old.type === 'youtube') {
+        const ids = old.isPlaylist && Array.isArray(old.videoIds) && old.videoIds.length
+            ? old.videoIds
+            : [extractYouTubeId(old.url)];
+        station.items = ids.filter(Boolean).map(vid => ({ k: 'youtube', vid }));
+    } else if (old.url) {
+        // 'radio' and the legacy 'hls' type
+        station.items = [{ k: streamKind(old.url), url: old.url }];
+    }
+    return station;
+}
+
+// Converts custom stations from older versions. Returns a map old selection value → new key
+// so the alarm keeps its station ("custom-3" by index or "custom-<id>").
+async function migrateCustomStations(dbReady) {
+    const keyMap = {};
+    if (readJSON(SCHEMA_KEY, 0) >= SCHEMA_VERSION) return keyMap;
+
+    const raw = localStorage.getItem(STATIONS_KEY);
+    const old = readJSON(STATIONS_KEY, []);
+    if (raw && localStorage.getItem(STATIONS_BACKUP_KEY) == null) {
+        localStorage.setItem(STATIONS_BACKUP_KEY, raw);
     }
 
-    const match = urlOrId.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([\w-]{11})/);
-    return match ? match[1] : null;
+    if (Array.isArray(old) && old.length) {
+        const migrated = [];
+        for (let i = 0; i < old.length; i++) {
+            const station = old[i] && Array.isArray(old[i].items) ? old[i] : await migrateOldStation(old[i] || {}, i, dbReady);
+            migrated.push(station);
+            keyMap['custom-' + i] = 'custom-' + station.id;
+            if (old[i] && old[i].id) keyMap['custom-' + old[i].id] = 'custom-' + station.id;
+        }
+        saveCustomStations(migrated);
+    }
+    localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
+    return keyMap;
+}
+
+function findCustomStation(key, stations = loadCustomStations()) {
+    if (!key || !key.startsWith('custom-')) return null;
+    const id = key.slice('custom-'.length);
+    return stations.find(station => station.id === id) || null;
 }
 
 // ========= YOUTUBE PLAYER =========
@@ -164,7 +328,7 @@ function extractYouTubeId(urlOrId) {
 // playback that currently owns it (youtubeEventTarget).
 let youtubePlayer = null;
 let youtubePlayerReady = false;
-let youtubeEventTarget = null; // { ctx, permanentErrors }
+let youtubeEventTarget = null; // { ctx, permanentErrors, onEnded }
 
 function onYouTubeIframeAPIReady() {
     youtubePlayer = new YT.Player('youtube-player', {
@@ -189,7 +353,7 @@ function onYouTubeIframeAPIReady() {
                 if (event.data === YT.PlayerState.PLAYING) {
                     youtubeEventTarget.ctx.playing();
                 } else if (event.data === YT.PlayerState.ENDED) {
-                    youtubeEventTarget.ctx.ended();
+                    (youtubeEventTarget.onEnded || youtubeEventTarget.ctx.ended)();
                 }
             },
             'onError': function(event) {
@@ -366,14 +530,8 @@ async function createHlsAdapter(url, ctx, proxyIndex = 0) {
     };
 }
 
-function createYouTubeAdapter(videoId, ctx, permanentErrors) {
-    if (!youtubePlayerReady) {
-        throw new Error('YouTube player is not ready');
-    }
-    youtubeEventTarget = { ctx, permanentErrors };
-    youtubePlayer.setVolume(Math.round(ctx.volume() * 100));
-    youtubePlayer.loadVideoById(videoId);
-
+function youtubeAdapter(ctx, target) {
+    youtubeEventTarget = target;
     return {
         getTime: () => {
             try { return youtubePlayer.getCurrentTime(); } catch (e) { return 0; }
@@ -382,22 +540,519 @@ function createYouTubeAdapter(videoId, ctx, permanentErrors) {
             try { youtubePlayer.setVolume(Math.round(v * 100)); } catch (e) { /* player not ready */ }
         },
         destroy: () => {
-            if (youtubeEventTarget && youtubeEventTarget.ctx === ctx) youtubeEventTarget = null;
+            if (youtubeEventTarget === target) youtubeEventTarget = null;
             try { youtubePlayer.stopVideo(); } catch (e) { /* ignore */ }
         }
     };
 }
 
-// Radio stream of a custom station: resolves .m3u playlists, picks HLS or plain audio,
+function requireYouTube() {
+    if (!youtubePlayerReady) {
+        throw new Error('YouTube player is not ready');
+    }
+}
+
+function createYouTubeAdapter(videoId, ctx, permanentErrors) {
+    requireYouTube();
+    const adapter = youtubeAdapter(ctx, { ctx, permanentErrors });
+    youtubePlayer.setVolume(Math.round(ctx.volume() * 100));
+    youtubePlayer.loadVideoById(videoId);
+    return adapter;
+}
+
+// A YouTube playlist (list=…) plays through on its own; the item ends after its last video
+function createYouTubeListAdapter(listId, ctx, shuffle) {
+    requireYouTube();
+    const target = {
+        ctx,
+        permanentErrors: false,
+        onEnded: () => {
+            let last = true;
+            try {
+                const ids = youtubePlayer.getPlaylist() || [];
+                last = youtubePlayer.getPlaylistIndex() >= ids.length - 1;
+            } catch (e) { /* treat as the end */ }
+            if (last) ctx.ended();
+        }
+    };
+    const adapter = youtubeAdapter(ctx, target);
+    youtubePlayer.setVolume(Math.round(ctx.volume() * 100));
+    youtubePlayer.loadPlaylist({ list: listId, listType: 'playlist', index: 0 });
+    try { youtubePlayer.setShuffle(!!shuffle); } catch (e) { /* not ready for shuffle yet */ }
+    return adapter;
+}
+
+// A live stream never really ends — "ended" means the connection dropped, so reconnect
+function streamContext(ctx) {
+    return { ...ctx, ended: () => ctx.fail('stream ended') };
+}
+
+// Radio stream URL of a custom item: resolves .m3u/.pls playlists, picks HLS or plain audio,
 // routes plain-HTTP streams through a CORS proxy (a different one on every attempt).
-async function createCustomRadioAdapter(stationUrl, ctx, attempt) {
-    let url = stationUrl;
-    if (isPlainM3U(url)) {
-        url = await parseM3UPlaylist(url);
+async function createStreamAdapter(streamUrl, ctx, attempt) {
+    ctx = streamContext(ctx);
+    let url = streamUrl;
+    if (streamKind(url) === 'm3u') {
+        url = await parsePlaylistFile(url);
     }
     const proxyIndex = Math.max(0, attempt - 1);
-    if (url.includes('.m3u8')) {
+    if (streamKind(url) === 'hls') {
         return createHlsAdapter(url, ctx, proxyIndex);
     }
     return createAudioAdapter(url.startsWith('http:') ? getProxiedURL(url, proxyIndex) : url, ctx);
+}
+
+async function createItemAdapter(item, ctx, attempt) {
+    switch (item.k) {
+        case 'youtube':
+            return createYouTubeAdapter(item.vid, ctx, false);
+        case 'ytlist':
+            return createYouTubeListAdapter(item.list, ctx, false);
+        case 'file': {
+            let data = item.data;
+            if (!data) {
+                const record = await getFileFromDB(item.fileId);
+                if (!record) {
+                    const error = new Error('File not found in IndexedDB');
+                    error.permanent = true;
+                    throw error;
+                }
+                data = record.data;
+            }
+            const source = trackSource(data);
+            return createAudioAdapter(source.url, ctx, source.release);
+        }
+        default:
+            return createStreamAdapter(item.url, ctx, attempt);
+    }
+}
+
+// ========= PLAYBACK ENGINE =========
+// One engine per page; one source plays at a time. A session keeps the source playing:
+// when a stream errors out, stops or stalls it reconnects for RECONNECT_WINDOW_MS first.
+// Alarm and timer sessions then turn on the backup signal (and keep retrying in the
+// background, switching back as soon as the stream plays); preview sessions just stop.
+const PLAYBACK = {
+    FADE_MS: 30000,               // нарастание громкости 0 → выбранная громкость
+    RECONNECT_WINDOW_MS: 15000,   // сколько пытаемся переподключиться до резервного сигнала
+    RETRY_DELAYS_MS: [1000, 2000, 3000, 4000],
+    BACKGROUND_RETRY_MS: 20000,   // пока играет резервный сигнал, продолжаем пробовать поток
+    CONNECT_TIMEOUT_MS: 10000,    // подключение, которое не заиграло за это время, считается неудачным
+    STALL_TIMEOUT_MS: 8000        // поток «завис», если позиция не меняется столько времени
+};
+
+function shuffledOrder(n) {
+    const order = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+    }
+    return order;
+}
+
+// hooks: getVolume() → 0..1, onChange(state)
+function createPlaybackEngine(hooks) {
+    let session = null;
+    let lastError = null;
+
+    // ----- classic (backup) signal: Web Audio, works offline -----
+    let audioContext = null;
+    let classicInterval = null;
+    let classicGain = null;
+    let classicVolume = null;
+
+    function getAudioContext() {
+        if (!audioContext) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return null;
+            audioContext = new Ctx();
+        }
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().catch(() => {});
+        }
+        return audioContext;
+    }
+
+    // The synthesized chord is quieter than music, so 50 % sounds like the old fixed level
+    function classicLevel() {
+        return hooks.getVolume() * 2;
+    }
+
+    function playClassic(fade) {
+        stopClassic();
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        // notes → gain (fade-in) → classicVolume (volume slider) → speakers
+        const volume = ctx.createGain();
+        volume.gain.value = classicLevel();
+        volume.connect(ctx.destination);
+        classicVolume = volume;
+
+        const gain = ctx.createGain();
+        gain.connect(volume);
+        gain.gain.setValueAtTime(fade ? 0.3 : 1, ctx.currentTime);
+        if (fade) {
+            gain.gain.linearRampToValueAtTime(1, ctx.currentTime + PLAYBACK.FADE_MS / 1000);
+        }
+        classicGain = gain;
+
+        const frequencies = [523, 659, 784]; // C, E, G
+        const playChord = () => {
+            if (classicGain !== gain) return;
+            const start = ctx.currentTime;
+            frequencies.forEach((freq, index) => {
+                const oscillator = ctx.createOscillator();
+                const noteGain = ctx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(freq, start);
+                oscillator.connect(noteGain);
+                noteGain.connect(gain);
+
+                const noteStart = start + index * 0.1;
+                noteGain.gain.setValueAtTime(0, noteStart);
+                noteGain.gain.linearRampToValueAtTime(0.1, noteStart + 0.1);
+                noteGain.gain.linearRampToValueAtTime(0, noteStart + 2);
+                oscillator.start(noteStart);
+                oscillator.stop(noteStart + 2);
+            });
+        };
+
+        playChord();
+        classicInterval = setInterval(playChord, 3000);
+    }
+
+    function stopClassic() {
+        clearInterval(classicInterval);
+        classicInterval = null;
+        if (classicGain) {
+            classicGain.disconnect();
+            classicGain = null;
+        }
+        if (classicVolume) {
+            classicVolume.disconnect();
+            classicVolume = null;
+        }
+    }
+
+    // ----- sources -----
+    // Resolves a station key into { items, shuffle, loop, factory(s, ctx) }
+    function resolveSource(key) {
+        const builtin = findBuiltinStation(key);
+        if (builtin) {
+            if (builtin.classic) return { classic: true };
+            if (builtin.youtube) {
+                return { items: [builtin], factory: (s, ctx) => createYouTubeAdapter(builtin.youtube, ctx, false) };
+            }
+            const urls = builtin.urls || [builtin.url];
+            const pick = s => urls[(s.attempt - 1) % urls.length];
+            if (builtin.hls) {
+                return { items: [builtin], factory: (s, ctx) => createHlsAdapter(pick(s), streamContext(ctx), s.attempt - 1) };
+            }
+            return { items: [builtin], factory: (s, ctx) => createAudioAdapter(pick(s), streamContext(ctx), null, { noReferrer: !!builtin.noReferrer }) };
+        }
+
+        const station = findCustomStation(key);
+        if (!station || !station.items.length) return null;
+        return {
+            items: station.items,
+            shuffle: !!station.shuffle,
+            loop: station.loop !== false,
+            factory: (s, ctx) => createItemAdapter(station.items[s.order[s.pos % s.order.length]], ctx, s.attempt)
+        };
+    }
+
+    function snapshot() {
+        if (!session) {
+            return { playing: false, key: null, error: lastError };
+        }
+        const s = session;
+        return {
+            playing: true,
+            key: s.key,
+            purpose: s.purpose,
+            status: s.status,
+            failures: s.failures,
+            itemIndex: s.order ? s.order[s.pos % s.order.length] : 0,
+            itemCount: s.order ? s.order.length : 1,
+            fallback: s.fallbackActive,
+            error: null
+        };
+    }
+
+    function notify() {
+        if (hooks.onChange) hooks.onChange(snapshot());
+    }
+
+    function sessionVolume(s) {
+        const volume = hooks.getVolume();
+        if (!s.fade) return volume;
+        return volume * Math.min(1, (Date.now() - s.fadeStart) / PLAYBACK.FADE_MS);
+    }
+
+    function disposeMedia(s) {
+        if (s.media) {
+            try {
+                s.media.destroy();
+            } catch (e) {
+                console.warn('⚠️ Error releasing media:', e);
+            }
+            s.media = null;
+        }
+    }
+
+    // options: { purpose: 'preview' | 'alarm' | 'timer', fade, startAt }
+    function play(key, options = {}) {
+        stop(true);
+        lastError = null;
+        getAudioContext(); // unlock audio while we may still have a user gesture
+
+        const purpose = options.purpose || 'preview';
+        const fade = !!options.fade;
+        const source = resolveSource(key);
+
+        const s = {
+            key,
+            purpose,
+            fade,
+            fadeStart: Date.now(),
+            media: null,
+            ctx: null,
+            stopped: false,
+            attempt: 0,
+            failures: 0,
+            consecutiveErrors: 0,
+            phase: 'idle',
+            phaseSince: Date.now(),
+            unhealthySince: Date.now(),
+            lastTime: -1,
+            lastProgressAt: 0,
+            fallbackActive: false,
+            retryTimer: null,
+            ticker: null,
+            status: 'connecting',
+            order: null,
+            pos: 0,
+            loop: true
+        };
+        session = s;
+
+        if (!source || source.classic) {
+            // The classic signal, or an unknown / empty station (alarms must still ring)
+            if (!source && purpose === 'preview') {
+                session = null;
+                lastError = 'unavailable';
+                notify();
+                return;
+            }
+            s.status = '';
+            s.classicOnly = true;
+            playClassic(fade);
+            notify();
+            return;
+        }
+
+        const n = source.items.length;
+        s.order = source.shuffle ? shuffledOrder(n) : Array.from({ length: n }, (_, i) => i);
+        s.loop = purpose === 'preview' ? source.loop !== false : true; // alarms never go silent
+        s.factory = source.factory;
+        if (options.startAt != null) {
+            const at = s.order.indexOf(options.startAt);
+            s.pos = at >= 0 ? at : 0;
+        }
+
+        s.ticker = setInterval(() => supervise(s), 1000);
+        notify();
+        connect(s);
+    }
+
+    function stop(silent) {
+        const s = session;
+        session = null;
+        if (s) {
+            s.stopped = true;
+            clearTimeout(s.retryTimer);
+            clearInterval(s.ticker);
+            disposeMedia(s);
+        }
+        stopClassic();
+        if (!silent) notify();
+    }
+
+    async function connect(s) {
+        if (s.stopped) return;
+        s.attempt++;
+        disposeMedia(s);
+
+        const attempt = s.attempt;
+        const ctx = {
+            dead: false,
+            isCurrent: () => !ctx.dead && !s.stopped && s.attempt === attempt,
+            playing: () => { if (ctx.isCurrent()) onPlaying(s); },
+            fail: (reason, permanent) => {
+                if (!ctx.isCurrent()) return;
+                ctx.dead = true;
+                onFailure(s, reason, permanent);
+            },
+            ended: () => {
+                if (!ctx.isCurrent()) return;
+                ctx.dead = true;
+                onEnded(s);
+            },
+            volume: () => sessionVolume(s)
+        };
+        s.ctx = ctx;
+        s.phase = 'connecting';
+        s.phaseSince = Date.now();
+
+        try {
+            const media = await s.factory(s, ctx);
+            if (!ctx.isCurrent()) {
+                if (media) media.destroy();
+                return;
+            }
+            s.media = media;
+        } catch (error) {
+            ctx.fail(error && error.message ? error.message : String(error), error && error.permanent);
+        }
+    }
+
+    function onPlaying(s) {
+        if (s.phase === 'playing') return;
+        s.phase = 'playing';
+        s.phaseSince = Date.now();
+        s.lastTime = -1;
+        s.lastProgressAt = Date.now();
+        s.unhealthySince = null;
+        s.failures = 0;
+        s.consecutiveErrors = 0;
+        if (s.fallbackActive) {
+            s.fallbackActive = false;
+            stopClassic();
+        }
+        s.status = '';
+        notify();
+    }
+
+    // A file or a video finished: go to the next item (a single item plays again)
+    function onEnded(s) {
+        s.pos++;
+        if (s.purpose === 'preview' && !s.loop && s.pos >= s.order.length) {
+            stop();
+            return;
+        }
+        notify();
+        connect(s);
+    }
+
+    function startFallback(s, status) {
+        if (s.fallbackActive) return;
+        if (s.purpose === 'preview') {
+            // Preview doesn't beep — it gives up and reports the error
+            lastError = status === 'unavailable' ? 'unavailable' : 'failed';
+            stop();
+            return;
+        }
+        s.fallbackActive = true;
+        s.status = status;
+        playClassic(s.fade);
+        notify();
+    }
+
+    function onFailure(s, reason, permanent) {
+        console.warn(`⚠️ Playback problem (${reason})${permanent ? ' — permanent' : ''}`);
+        disposeMedia(s);
+        s.phase = 'waiting';
+        s.phaseSince = Date.now();
+        s.failures++;
+        if (!s.unhealthySince) s.unhealthySince = Date.now();
+
+        const n = s.order.length;
+        if (n > 1) {
+            // Playlist: skip the broken item; it's a real failure only if every item fails
+            s.consecutiveErrors++;
+            s.pos++;
+            if (s.consecutiveErrors >= n * 2) {
+                startFallback(s, 'fallback');
+                if (s.stopped) return;
+            }
+        }
+
+        if (permanent && n === 1) {
+            startFallback(s, 'unavailable');
+        } else if (Date.now() - s.unhealthySince >= PLAYBACK.RECONNECT_WINDOW_MS) {
+            startFallback(s, 'fallback');
+        }
+        if (s.stopped) return;
+
+        if (!s.fallbackActive) {
+            s.status = 'reconnecting';
+        }
+        notify();
+
+        let delay = n > 1 && s.consecutiveErrors < n
+            ? 300
+            : PLAYBACK.RETRY_DELAYS_MS[Math.min(s.failures - 1, PLAYBACK.RETRY_DELAYS_MS.length - 1)];
+        if (s.fallbackActive) {
+            delay = permanent ? PLAYBACK.BACKGROUND_RETRY_MS * 3 : PLAYBACK.BACKGROUND_RETRY_MS;
+        }
+        clearTimeout(s.retryTimer);
+        s.retryTimer = setTimeout(() => connect(s), delay);
+    }
+
+    function supervise(s) {
+        if (s.stopped) return;
+        const now = Date.now();
+
+        if (s.media) {
+            s.media.setVolume(sessionVolume(s));
+        }
+
+        if (s.phase === 'connecting' && now - s.phaseSince > PLAYBACK.CONNECT_TIMEOUT_MS) {
+            s.ctx.fail('connection timeout');
+        } else if (s.phase === 'playing' && s.media) {
+            const time = s.media.getTime();
+            if (time !== s.lastTime) {
+                s.lastTime = time;
+                s.lastProgressAt = now;
+            } else if (now - s.lastProgressAt > PLAYBACK.STALL_TIMEOUT_MS) {
+                s.ctx.fail('playback stalled');
+            }
+        }
+
+        // Still not playing after the reconnect window — let the backup signal play meanwhile
+        if (!s.stopped && s.unhealthySince && now - s.unhealthySince >= PLAYBACK.RECONNECT_WINDOW_MS) {
+            startFallback(s, 'fallback');
+        }
+    }
+
+    // Previous / next item of a playlist
+    function step(delta) {
+        const s = session;
+        if (!s || !s.order || s.order.length < 2) return false;
+        s.pos = (s.pos + delta + s.order.length) % s.order.length;
+        s.consecutiveErrors = 0;
+        clearTimeout(s.retryTimer);
+        notify();
+        connect(s);
+        return true;
+    }
+
+    function applyVolume() {
+        if (session && session.media) {
+            session.media.setVolume(sessionVolume(session));
+        }
+        if (classicVolume) {
+            classicVolume.gain.value = classicLevel();
+        }
+    }
+
+    return {
+        play,
+        stop: () => stop(),
+        step,
+        applyVolume,
+        getState: snapshot,
+        unlock: getAudioContext
+    };
 }
