@@ -655,6 +655,35 @@ iskr-sky {
     white-space: nowrap;
 }
 
+.player-music {
+    margin-top: 10px;
+}
+
+/* ◀◀ ▶▶ — flip through stations (or tracks of a playing playlist); shown with "Change" */
+.player-skip {
+    display: flex;
+    gap: 6px;
+    flex: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease var(--ease-hide);
+}
+
+.skip {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+    color: var(--ink);
+    font-size: 10px;
+}
+
+.skip:hover {
+    background: rgba(255, 255, 255, .22);
+}
+
 .expand {
     display: grid;
     grid-template-rows: 0fr;
@@ -679,7 +708,10 @@ iskr-sky {
 
 .al-ctl:hover .player-change, :is(.al-ctl:has(:focus-visible)) .player-change, .reveal-all .player-change,
 .player-small:hover .player-change, :is(.player-small:has(:focus-visible)) .player-change,
-.player.pop-open .player-change {
+.player.pop-open .player-change,
+.al-ctl:hover .player-skip, :is(.al-ctl:has(:focus-visible)) .player-skip, .reveal-all .player-skip,
+.player-small:hover .player-skip, :is(.player-small:has(:focus-visible)) .player-skip,
+.player.pop-open .player-skip {
     opacity: 1;
     pointer-events: auto;
     transition-delay: 0s;
@@ -949,6 +981,20 @@ iskr-sky {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.st-add {
+    grid-column: 1 / -1;
+    position: sticky;
+    bottom: -6px;
+    background: rgb(28, 30, 52);
+    justify-content: center;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 0 0 10px 10px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .st-opt-mark {
@@ -1894,7 +1940,7 @@ iskr-sky {
     transition: max-width .3s ease, margin .3s ease;
 }
 
-.demo-icon:hover + .demo-label, .demo-btn.on .demo-label, .demo-btn:focus-visible .demo-label {
+.demo-btn:hover .demo-label, .demo-btn.on .demo-label, .demo-btn:focus-visible .demo-label {
     max-width: 140px;
     margin-left: 8px;
 }
@@ -2258,4 +2304,8 @@ body.ringing .app {
         transition-duration: .01ms !important;
         animation-duration: .01ms !important;
     }
+}
+
+.st-add:hover {
+    background: rgb(40, 42, 66);
 }
