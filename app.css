@@ -419,14 +419,14 @@ iskr-sky {
 
 .al-head:hover .al-row,
 :is(.al-head:has(:focus-visible)) .al-row,
-.touch .al-row {
+.touch .ui-on .al-row {
     background: rgba(0, 0, 0, .22);
     transition-delay: 0s;
 }
 
 .al-head:hover .step,
 :is(.al-head:has(:focus-visible)) .step,
-.touch .step {
+.touch .ui-on .step {
     width: 32px;
     opacity: 1;
     pointer-events: auto;
@@ -708,7 +708,7 @@ iskr-sky {
 
 /* The alarm player opens while the pointer is over the toggle button or the player;
    the timer / stopwatch players open on their own hover */
-.al-ctl:hover .expand, :is(.al-ctl:has(:focus-visible)) .expand, .touch .al-ctl .expand,
+.al-ctl:hover .expand, :is(.al-ctl:has(:focus-visible)) .expand, .touch .ui-on .al-ctl .expand,
 .player-small:hover .expand, :is(.player-small:has(:focus-visible)) .expand,
 .player.pop-open .expand {
     grid-template-rows: 1fr;
@@ -716,10 +716,10 @@ iskr-sky {
     transition-delay: 0s;
 }
 
-.al-ctl:hover .player-change, :is(.al-ctl:has(:focus-visible)) .player-change, .touch .player-change,
+.al-ctl:hover .player-change, :is(.al-ctl:has(:focus-visible)) .player-change, .touch .ui-on .player-change,
 .player-small:hover .player-change, :is(.player-small:has(:focus-visible)) .player-change,
 .player.pop-open .player-change,
-.al-ctl:hover .player-skip, :is(.al-ctl:has(:focus-visible)) .player-skip, .touch .player-skip,
+.al-ctl:hover .player-skip, :is(.al-ctl:has(:focus-visible)) .player-skip, .touch .ui-on .player-skip,
 .player-small:hover .player-skip, :is(.player-small:has(:focus-visible)) .player-skip,
 .player.pop-open .player-skip {
     opacity: 1;
@@ -1086,7 +1086,7 @@ iskr-sky {
 
 .digits.editable:hover .dstep,
 :is(.digits.editable:has(:focus-visible)) .dstep,
-.touch .digits.editable .dstep {
+.touch .ui-on .digits.editable .dstep {
     opacity: 1;
     pointer-events: auto;
     transition-delay: 0s;
@@ -1950,6 +1950,10 @@ iskr-sky {
     -webkit-backdrop-filter: blur(10px);
 }
 
+.corner-btn[hidden] {
+    display: none;
+}
+
 .corner-btn {
     width: 44px;
     display: flex;
@@ -2264,8 +2268,6 @@ body.ringing .app {
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         overflow: visible;
-        opacity: 1;
-        pointer-events: auto;
     }
 
     .tabs a {
@@ -2301,9 +2303,26 @@ body.ringing .app {
         color: var(--ink);
     }
 
-    /* Demo and fullscreen don't fit next to the tab bar (fullscreen doesn't work on iPhone anyway) */
-    .corner, .demo-panel {
-        display: none !important;
+    /* Demo and fullscreen sit above the tab bar */
+    .corner {
+        right: 16px;
+        bottom: calc(84px + env(safe-area-inset-bottom));
+    }
+
+    .demo-btn, .corner-btn {
+        height: 40px;
+    }
+
+    .corner-btn {
+        width: 40px;
+    }
+
+    .demo-panel {
+        left: 16px;
+        right: 16px;
+        width: auto;
+        bottom: calc(134px + env(safe-area-inset-bottom));
+        background: rgba(14, 16, 32, .7);
     }
 
     .keys-hint {
@@ -2439,11 +2458,6 @@ body.ringing .app {
         padding: 16px;
     }
 
-    .corner {
-        right: 16px;
-        bottom: 16px;
-    }
-
     .field-row {
         flex-wrap: wrap;
     }
@@ -2463,7 +2477,7 @@ body.ringing .app {
         min-width: 0;
     }
 
-    .touch .step {
+    .touch .ui-on .step {
         width: 44px;
     }
 
