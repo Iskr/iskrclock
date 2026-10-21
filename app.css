@@ -417,6 +417,11 @@ iskr-sky {
     background: rgba(255, 255, 255, .24);
 }
 
+/* No keyboard on touch screens: the key hints are noise there */
+.touch .keys-hint {
+    display: none;
+}
+
 .al-head:hover .al-row,
 :is(.al-head:has(:focus-visible)) .al-row,
 .touch .ui-on .al-row {
@@ -938,6 +943,11 @@ iskr-sky {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     z-index: 3;
+}
+
+.st-pop.down {
+    top: calc(100% + 8px);
+    bottom: auto;
 }
 
 .player-small .st-pop {
@@ -2100,12 +2110,14 @@ iskr-sky {
 }
 
 /* ===== Ringing alarm ===== */
+
 .ring {
     position: fixed;
     inset: 0;
     z-index: 20;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
     color: var(--ink);
 }
 
@@ -2135,7 +2147,7 @@ body.ringing .app {
 }
 
 .ring-time {
-    font-size: clamp(96px, 26vw, 200px);
+    font-size: clamp(64px, min(26vw, 30vh), 200px);
     line-height: 1;
     font-weight: 300;
     letter-spacing: -.03em;
@@ -2197,19 +2209,9 @@ body.ringing .app {
 
 /* ===== Smaller screens ===== */
 @media (max-width: 1180px) {
-    .st-grid {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-    }
-
-    .tiles {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 900px) {
+    /* The tabs move to their own row so the timer / stopwatch plaques fit next to the language switch */
     .top {
         grid-template-columns: 1fr auto;
-        padding: 20px 20px 16px;
         row-gap: 12px;
     }
 
@@ -2228,6 +2230,20 @@ body.ringing .app {
 
     .tabs::-webkit-scrollbar {
         display: none;
+    }
+
+    .st-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    }
+
+    .tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .top {
+        padding: 20px 20px 16px;
     }
 
     .st-grid {
@@ -2303,25 +2319,40 @@ body.ringing .app {
         color: var(--ink);
     }
 
-    /* Demo and fullscreen sit above the tab bar */
+    /* Demo and fullscreen sit in the header, left of the language switch:
+       anywhere near the tab bar they would cover the content */
     .corner {
-        right: 16px;
-        bottom: calc(84px + env(safe-area-inset-bottom));
+        position: absolute;
+        top: 15px;
+        right: 108px;
+        bottom: auto;
+        gap: 6px;
     }
 
     .demo-btn, .corner-btn {
-        height: 40px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .demo-btn {
+        padding: 0 11px;
     }
 
     .corner-btn {
-        width: 40px;
+        width: 36px;
+        font-size: 16px;
+    }
+
+    .demo-btn .demo-label {
+        max-width: 0 !important;
+        margin-left: 0 !important;
     }
 
     .demo-panel {
         left: 16px;
         right: 16px;
         width: auto;
-        bottom: calc(134px + env(safe-area-inset-bottom));
+        bottom: calc(84px + env(safe-area-inset-bottom));
         background: rgba(14, 16, 32, .7);
     }
 
@@ -2384,6 +2415,43 @@ body.ringing .app {
 
     .top-left .plaque, .top-right .plaque {
         max-width: 150px;
+    }
+
+    /* First row: logo, Demo / fullscreen, language; the plaques (what's playing, a running
+       timer / stopwatch) get a row of their own under it */
+    .top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 8px;
+    }
+
+    .top-left, .top-right {
+        display: contents;
+    }
+
+    .top .logo {
+        order: 0;
+    }
+
+    .top .lang {
+        order: 1;
+        margin-left: auto;
+    }
+
+    .top::after {
+        content: '';
+        order: 2;
+        flex-basis: 100%;
+    }
+
+    .top .plaque {
+        order: 3;
+        margin-top: 10px;
+    }
+
+    .top-right .plaque {
+        flex: none;
     }
 
     .al-row {
@@ -2506,5 +2574,61 @@ body.ringing .app {
 @media (max-aspect-ratio: 4/5) {
     iskr-sky canvas {
         object-position: 4% 80% !important;
+    }
+}
+
+/* Ringing alarm on a short screen (phone in landscape): Stop and Snooze stay reachable */
+@media (max-height: 500px) {
+    .ring-top {
+        padding: 12px 24px;
+    }
+
+    .ring-body {
+        margin-top: 0;
+        padding-bottom: 16px;
+    }
+
+    .ring-stop, .ring-snooze {
+        height: 56px;
+    }
+}
+
+/* Narrow phones: the station name gets the whole first row of a player, the buttons go under it */
+@media (max-width: 420px) {
+    .ui-on .player-row {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+
+    .ui-on .player-text {
+        flex-basis: calc(100% - 58px);
+    }
+
+    .ui-on .player-skip {
+        margin-left: 58px;
+    }
+
+    .ui-on .player-change {
+        margin-left: auto;
+    }
+
+    .app:not(.ui-on) .player-skip, .app:not(.ui-on) .player-change {
+        display: none;
+    }
+
+    .bp-row {
+        flex-wrap: wrap;
+        justify-content: center;
+        row-gap: 10px;
+    }
+
+    .big-player-text {
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 380px) {
+    .tabs a {
+        font-size: 10px;
     }
 }

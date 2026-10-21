@@ -379,11 +379,33 @@ function validStation(key) {
     return key.startsWith('custom-') ? !!findCustomStation(key) : !!findBuiltinStation(key);
 }
 
+// While old stations couldn't be converted (e.g. storage full), a choice of one of them is
+// kept as is: the conversion is retried on the next load and the station comes back
+let stationsMigrationFailed = false;
+function keepStation(key) {
+    return validStation(key) || (stationsMigrationFailed && !!key && key.startsWith('custom-'));
+}
+
 // Reads alarms; converts the single alarm of older versions (keeping its station)
 function loadAlarms(keyMap) {
     const saved = readJSON('alarmSettings', null);
-    if (saved && saved.v === 2 && Array.isArray(saved.alarms) && saved.alarms.length) {
-        state.alarms = saved.alarms.map(a => ({ ...newAlarm(7, 30), ...a, days: Array.isArray(a.days) && a.days.length === 7 ? a.days.map(Boolean) : [false, false, false, false, false, false, false] }));
+    const savedAlarms = saved && saved.v === 2 && Array.isArray(saved.alarms) ? saved.alarms.filter(a => a && typeof a === 'object') : [];
+    if (savedAlarms.length) {
+        // Damaged values fall back to defaults instead of breaking the page
+        const num = (v, min, max, def) => { const n = Number(v); return Number.isInteger(n) && n >= min && n <= max ? n : def; };
+        state.alarms = savedAlarms.map(a => {
+            const alarm = { ...newAlarm(7, 30), ...a };
+            alarm.id = typeof a.id === 'string' && a.id ? a.id : newId('a');
+            alarm.h = num(a.h, 0, 23, 7);
+            alarm.m = num(a.m, 0, 59, 30);
+            alarm.snooze = num(a.snooze, 1, 30, 5);
+            alarm.label = typeof a.label === 'string' ? a.label : '';
+            alarm.on = !!a.on;
+            alarm.fade = a.fade !== false;
+            alarm.snoozeUntil = Number.isFinite(a.snoozeUntil) ? a.snoozeUntil : null;
+            alarm.days = Array.isArray(a.days) && a.days.length === 7 ? a.days.map(Boolean) : [false, false, false, false, false, false, false];
+            return alarm;
+        });
         state.selectedAlarmId = saved.selectedAlarmId;
         state.volume = Number.isFinite(saved.volume) ? saved.volume : 50;
     } else {
@@ -397,7 +419,7 @@ function loadAlarms(keyMap) {
         const alarm = newAlarm(hour >= 0 && hour <= 23 ? hour : 7, minute >= 0 && minute <= 59 ? minute : 30);
         alarm.on = false; // the old page never remembered whether the alarm was on
         alarm.station = station;
-        if (snooze >= 1 && snooze <= 60) alarm.snooze = snooze;
+        if (snooze >= 1) alarm.snooze = Math.min(30, snooze);
         if (typeof old.fade === 'boolean') alarm.fade = old.fade;
         state.alarms = [alarm];
         state.selectedAlarmId = alarm.id;
@@ -405,7 +427,7 @@ function loadAlarms(keyMap) {
     }
 
     state.alarms.forEach(a => {
-        if (!validStation(a.station)) a.station = 'classic';
+        if (!keepStation(a.station)) a.station = 'classic';
     });
     if (!state.alarms.some(a => a.id === state.selectedAlarmId)) {
         state.selectedAlarmId = state.alarms[0].id;
@@ -419,12 +441,12 @@ function selectedAlarm() {
 
 function loadOtherState() {
     const key = localStorage.getItem('playerStation');
-    if (validStation(key)) state.playerKey = key;
+    if (keepStation(key)) state.playerKey = key;
 
     const timer = readJSON('timerState', null);
     if (timer && typeof timer === 'object') {
         Object.assign(state.timer, timer);
-        if (!validStation(state.timer.station)) state.timer.station = 'classic';
+        if (!keepStation(state.timer.station)) state.timer.station = 'classic';
         if (state.timer.running && state.timer.end <= Date.now()) {
             // Finished while the page was closed: show it as done, without the sound
             Object.assign(state.timer, { running: false, remain: 0, done: true });
@@ -599,6 +621,7 @@ function checkAlarms() {
         first.snoozeUntil = null;
         arm(first);
         saveAlarms();
+        scheduleAlarmTimeout();
         checkAlarms();
         return;
     }
@@ -606,8 +629,8 @@ function checkAlarms() {
     due.slice(1).forEach(a => {
         if (Math.abs(armed[a.id] - at) < 60000) {
             a.snoozeUntil = null;
-            armed[a.id] = nextRing(a, now + 1000);
             if (!a.days.some(Boolean)) a.on = false;
+            arm(a);
         }
     });
     ring(first);
@@ -641,7 +664,10 @@ function finishRing(snooze) {
         }
     }
     saveAlarms();
-    armAll();
+    // Only the alarm that rang is re-armed: another one that came due meanwhile must still ring
+    if (alarm) arm(alarm);
+    scheduleAlarmTimeout();
+    updateWakeLock();
     renderAlarms();
     checkAlarms();
 }
@@ -876,7 +902,7 @@ function chip(alarm) {
             renderAlarms();
         }
     }, h('span', { class: 'chip-time', text: pad(alarm.h) + ':' + pad(alarm.m) }),
-       h('span', { class: 'chip-label', text: alarm.label || t('alarmDefault') }));
+       h('span', { class: 'chip-label', 'data-id': alarm.id, text: alarm.label || t('alarmDefault') }));
 }
 
 function renderChips() {
@@ -1003,6 +1029,23 @@ function stationPopup(boxId, currentKey, onPick) {
             $('fName').focus();
         }
     }));
+    placePopup(box);
+}
+
+// The list opens upwards; near the top of a small screen it opens downwards instead
+function placePopup(box) {
+    box.classList.remove('down');
+    box.style.maxHeight = '';
+    const anchor = box.offsetParent;
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect(), need = box.offsetHeight;
+    const above = r.top - 16;
+    if (need <= above) return;
+    const tabs = $('tabs'), tabsRect = tabs.getBoundingClientRect();
+    const bottomEdge = getComputedStyle(tabs).position === 'fixed' ? tabsRect.top : innerHeight;
+    const below = bottomEdge - r.bottom - 16;
+    if (below > above) box.classList.add('down');
+    box.style.maxHeight = Math.max(160, Math.min(need, Math.max(above, below))) + 'px';
 }
 
 function renderSmallPlayer(prefix, key, idleText, popupId, onPick) {
@@ -1118,6 +1161,7 @@ function timerRemaining() {
 }
 
 let timerInterval = null;
+let timerEndTimeout = null;
 
 function timerTick() {
     const tm = state.timer;
@@ -1130,7 +1174,11 @@ function timerTick() {
 
 function startTimerLoop() {
     clearInterval(timerInterval);
-    if (state.timer.running) timerInterval = setInterval(timerTick, 200);
+    clearTimeout(timerEndTimeout);
+    if (!state.timer.running) return;
+    timerInterval = setInterval(timerTick, 200);
+    // Background tabs throttle repeating timers to once a minute; a single timeout still fires on time
+    timerEndTimeout = setTimeout(timerTick, Math.min(Math.max(0, state.timer.end - Date.now()) + 20, 2147483000));
 }
 
 function stopTimerSignal() {
@@ -1344,6 +1392,7 @@ function renderBigPlayer() {
         setText('bpSub', entry.sub);
     }
     setText('bpPlay', s.playing ? '❚❚' : '▶');
+    $('bpPlay').setAttribute('aria-label', s.playing ? t('pauseAria') : t('play'));
     $('bpPrev').title = isPlaylist ? t('prevTrack') : t('prevStation');
     $('bpNext').title = isPlaylist ? t('nextTrack') : t('nextStation');
 }
@@ -1532,8 +1581,12 @@ function updateEdited(fn) {
     const stations = loadCustomStations();
     const station = stations.find(s => s.id === state.editId);
     if (!station) return;
+    const st = engine.getState();
+    const playingThis = st.playing && st.key === 'custom-' + station.id;
+    const current = playingThis ? station.items[st.itemIndex] : null;
     fn(station);
     saveCustomStations(stations);
+    if (playingThis) engine.refresh(current ? station.items.indexOf(current) : -1);
     renderStations();
     renderPlayers();
 }
@@ -1695,6 +1748,9 @@ function applyLanguage() {
     document.querySelectorAll('[data-i18n-placeholder]').forEach(node => {
         node.placeholder = t(node.dataset.i18nPlaceholder);
     });
+    document.querySelectorAll('[data-i18n-aria]').forEach(node => {
+        node.setAttribute('aria-label', t(node.dataset.i18nAria));
+    });
     document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
     $('fullscreenBtn').title = t('fullscreen');
     $('fullscreenBtn').setAttribute('aria-label', t('fullscreen'));
@@ -1732,7 +1788,7 @@ function showUi(hideAfter) {
 
 function hideUi() {
     // Keep controls visible while a list or the editor is open, or while typing
-    if (state.popup || state.chipsOpen || !$('stEditor').hidden) return;
+    if (state.popup || state.chipsOpen || (state.tab === 'stations' && !$('stEditor').hidden)) return;
     const el = document.activeElement;
     if (el && el.matches && el.matches('input:not([type=range]):not([type=checkbox]), textarea, select')) return;
     app.classList.remove('ui-on');
@@ -1778,7 +1834,8 @@ if (isTouch) {
         else if (e.target.isConnected && !(e.target.closest && e.target.closest(KEEP_UI_TOUCH))) {
             clearTimeout(uiHideTimeout);
             hideUi();
-            return;
+            // Still shown when the tap only closed a list: fade later as usual
+            if (!app.classList.contains('ui-on')) return;
         }
         restartIdle();
     });
@@ -1823,9 +1880,19 @@ function bindEvents() {
     // Alarm
     const label = $('alLabel');
     label.addEventListener('input', fitLabel);
+    // Saved without re-rendering: the change comes on blur, when the user is already pressing
+    // another control (a chip, "+", a day), and rebuilding it would swallow that click
     label.addEventListener('change', () => {
         const value = label.value.trim();
-        updateAlarm(a => { a.label = value === t('alarmDefault') ? '' : value; });
+        const alarm = selectedAlarm();
+        alarm.label = value === t('alarmDefault') ? '' : value;
+        saveAlarms();
+        document.querySelectorAll('.chip-label[data-id="' + alarm.id + '"]').forEach(n => { n.textContent = alarm.label || t('alarmDefault'); });
+        fitLabel();
+    });
+    label.addEventListener('blur', () => {
+        if (!label.value.trim()) label.value = selectedAlarm().label || t('alarmDefault');
+        fitLabel();
     });
     label.addEventListener('keydown', e => { if (e.key === 'Enter') label.blur(); });
     $('alRename').addEventListener('click', () => {
@@ -1844,7 +1911,8 @@ function bindEvents() {
         delete armed[alarm.id];
         state.selectedAlarmId = state.alarms[0].id;
         saveAlarms();
-        armAll();
+        scheduleAlarmTimeout();
+        updateWakeLock();
         renderAlarms();
     });
     $('alPlay').addEventListener('click', () => togglePlayer(selectedAlarm().station));
@@ -1893,8 +1961,9 @@ function bindEvents() {
 
     // Keyboard shortcuts for the timer and the stopwatch
     document.addEventListener('keydown', e => {
+        if (e.target.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey || state.ringing) return;
         // Space on a focused button already presses it — don't toggle a second time
-        if (e.target.closest('input, textarea, select, button, a, [role="button"], [role="switch"]') || e.ctrlKey || e.metaKey || e.altKey || state.ringing) return;
+        if (e.code === 'Space' && e.target.closest('button, [role="button"], [role="switch"]')) return;
         if (state.tab === 'timer') {
             if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
             else if (e.code === 'KeyR') resetTimer();
@@ -2026,7 +2095,8 @@ async function init() {
     try {
         keyMap = await migrateCustomStations(state.dbReady);
     } catch (e) {
-        console.error('❌ Station migration failed — the original data is kept in', STATIONS_BACKUP_KEY, e);
+        stationsMigrationFailed = true;
+        console.error('❌ Station migration failed, will retry on the next load:', e);
     }
     loadAlarms(keyMap);
     loadOtherState();
