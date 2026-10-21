@@ -482,6 +482,20 @@
             font-size: 14px;
         }
 
+        .volume-slider {
+            width: 110px;
+            accent-color: #4CAF50;
+            cursor: pointer;
+        }
+
+        .volume-value {
+            color: white;
+            font-size: 14px;
+            min-width: 38px;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
         .control-buttons {
             display: flex;
             gap: 20px;
@@ -727,6 +741,11 @@
                     <label class="volume-label" for="volumeGrow" data-i18n="volumeGrow">Нарастает?</label>
                     <input type="checkbox" id="volumeGrow" checked>
                 </div>
+                <div class="volume-control">
+                    <label class="volume-label" for="volumeSlider" id="volumeSliderLabel">🔊</label>
+                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" step="5" value="50">
+                    <span class="volume-value" id="volumeValue">50%</span>
+                </div>
             </div>
             <div class="stream-status" id="streamStatus" aria-live="polite"></div>
         </div>
@@ -773,6 +792,7 @@
                 classicBeep: '🔔 Классический сигнал',
                 myStations: '───── Мои станции ─────',
                 volumeGrow: 'Нарастает?',
+                volumeLabel: 'Громкость',
                 customStationsLine1: '🎵 Свои',
                 customStationsLine2: 'станции',
                 alarmOff: 'Будильник выключен',
@@ -812,6 +832,7 @@
                 classicBeep: '🔔 Classic Beep',
                 myStations: '───── My stations ─────',
                 volumeGrow: 'Fade in?',
+                volumeLabel: 'Volume',
                 customStationsLine1: '🎵 My',
                 customStationsLine2: 'stations',
                 alarmOff: 'Alarm is off',
@@ -918,8 +939,7 @@
         };
 
         // ========= PLAYBACK SETTINGS =========
-        const MAX_VOLUME = 0.5;
-        const FADE_DURATION_MS = 30000;      // нарастание громкости 0 → MAX_VOLUME
+        const FADE_DURATION_MS = 30000;      // нарастание громкости 0 → выбранная громкость
         const RECONNECT_WINDOW_MS = 15000;   // сколько пытаемся переподключиться, прежде чем включить резервный сигнал
         const RETRY_DELAYS_MS = [1000, 2000, 3000, 4000];
         const BACKGROUND_RETRY_MS = 20000;   // пока играет резервный сигнал, продолжаем пробовать поток
@@ -1087,8 +1107,8 @@
         }
 
         function sessionVolume(s) {
-            if (!s.fade) return MAX_VOLUME;
-            return MAX_VOLUME * Math.min(1, (Date.now() - s.fadeStart) / FADE_DURATION_MS);
+            if (!s.fade) return getUserVolume();
+            return getUserVolume() * Math.min(1, (Date.now() - s.fadeStart) / FADE_DURATION_MS);
         }
 
         function disposeMedia(s) {
@@ -1222,6 +1242,7 @@
         let audioContext = null;
         let classicInterval = null;
         let classicGain = null;
+        let classicVolume = null;
 
         function getAudioContext() {
             if (!audioContext) {
@@ -1240,8 +1261,14 @@
             const ctx = getAudioContext();
             if (!ctx) return;
 
+            // notes → gain (fade-in) → classicVolume (volume slider) → speakers
+            const volume = ctx.createGain();
+            volume.gain.value = classicVolumeLevel();
+            volume.connect(ctx.destination);
+            classicVolume = volume;
+
             const gain = ctx.createGain();
-            gain.connect(ctx.destination);
+            gain.connect(volume);
             gain.gain.setValueAtTime(fade ? 0.3 : 1, ctx.currentTime);
             if (fade) {
                 gain.gain.linearRampToValueAtTime(1, ctx.currentTime + FADE_DURATION_MS / 1000);
@@ -1279,6 +1306,32 @@
             if (classicGain) {
                 classicGain.disconnect();
                 classicGain = null;
+            }
+            if (classicVolume) {
+                classicVolume.disconnect();
+                classicVolume = null;
+            }
+        }
+
+        // ========= VOLUME =========
+        // Slider 0–100 %. Streams use it directly (50 % = the previous fixed level);
+        // the synthesized backup signal is scaled so that 50 % sounds as before.
+        function getUserVolume() {
+            const value = parseInt(document.getElementById('volumeSlider').value, 10);
+            return isNaN(value) ? 0.5 : Math.max(0, Math.min(100, value)) / 100;
+        }
+
+        function classicVolumeLevel() {
+            return getUserVolume() * 2;
+        }
+
+        function applyVolume() {
+            document.getElementById('volumeValue').textContent = Math.round(getUserVolume() * 100) + '%';
+            if (session && session.media) {
+                session.media.setVolume(sessionVolume(session));
+            }
+            if (classicVolume) {
+                classicVolume.gain.value = classicVolumeLevel();
             }
         }
 
@@ -1514,7 +1567,8 @@
                     hour: document.getElementById('alarmHour').value,
                     minute: document.getElementById('alarmMinute').value,
                     snooze: document.getElementById('snoozeTime').value,
-                    fade: document.getElementById('volumeGrow').checked
+                    fade: document.getElementById('volumeGrow').checked,
+                    volume: document.getElementById('volumeSlider').value
                 }));
             } catch (e) {
                 // Storage unavailable — settings just won't be remembered
@@ -1545,6 +1599,9 @@
             if (minute >= 0 && minute <= 59) document.getElementById('alarmMinute').value = pad(minute);
             if (snooze >= 1 && snooze <= 60) document.getElementById('snoozeTime').value = snooze;
             if (typeof settings.fade === 'boolean') document.getElementById('volumeGrow').checked = settings.fade;
+            const volume = parseInt(settings.volume, 10);
+            if (volume >= 0 && volume <= 100) document.getElementById('volumeSlider').value = volume;
+            applyVolume();
         }
 
         // ===== СИСТЕМА НЕПРЕРЫВНОГО ПЕРЕТЕКАНИЯ ЦВЕТОВ v5.0 FLOW =====
@@ -1733,6 +1790,8 @@
 
             document.getElementById('snoozeButton').textContent = t().snoozeButton;
             document.getElementById('fullscreenButton').setAttribute('aria-label', t().fullscreenLabel);
+            document.getElementById('volumeSlider').setAttribute('aria-label', t().volumeLabel);
+            document.getElementById('volumeSliderLabel').title = t().volumeLabel;
             document.title = alarmRinging ? t().modalTitle : t().documentTitle;
 
             populateStationsList();
@@ -1790,6 +1849,8 @@
             });
             document.getElementById('snoozeTime').addEventListener('change', saveSettings);
             document.getElementById('volumeGrow').addEventListener('change', saveSettings);
+            document.getElementById('volumeSlider').addEventListener('input', applyVolume);
+            document.getElementById('volumeSlider').addEventListener('change', saveSettings);
 
             document.querySelector('.lang-selector').addEventListener('change', (e) => {
                 switchLanguage(e.target.value);

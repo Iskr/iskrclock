@@ -880,7 +880,6 @@
 
         // ========= SETTINGS =========
         const MAX_FILE_SIZE = 350 * 1024 * 1024; // 350 MB — enough for FLAC albums and long mixes
-        const PREVIEW_VOLUME = 0.5;
         const RECONNECT_WINDOW_MS = 15000;   // a broken stream is retried this long before giving up
         const RETRY_DELAYS_MS = [1000, 2000, 3000, 4000];
         const CONNECT_TIMEOUT_MS = 10000;
@@ -924,6 +923,17 @@
                 reader.onerror = () => reject(reader.error);
                 reader.readAsDataURL(blob);
             });
+        }
+
+        // Preview at the volume chosen on the alarm page (50 % by default)
+        function previewVolume() {
+            try {
+                const volume = parseInt(JSON.parse(localStorage.getItem('alarmSettings')).volume, 10);
+                if (volume >= 0 && volume <= 100) return volume / 100;
+            } catch (e) {
+                // no saved settings
+            }
+            return 0.5;
         }
 
         function isPlaylistStation(station) {
@@ -1385,7 +1395,7 @@
                         connectPreview(p); // a live stream "ended" — reconnect
                     }
                 },
-                volume: () => PREVIEW_VOLUME
+                volume: previewVolume
             };
             p.ctx = ctx;
             p.phase = 'connecting';
