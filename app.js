@@ -61,6 +61,7 @@ const I18N = {
         myStations: 'Мои станции и плейлисты',
         noStations: 'Здесь появятся ваши станции и плейлисты',
         newStation: 'Новая станция или плейлист',
+        addStation: '+ Добавить станцию',
         namePh: 'Название',
         linksPh: 'Ссылки на потоки, .m3u или YouTube',
         addLinkPh: 'Добавить ссылку: поток, .m3u, YouTube',
@@ -187,6 +188,7 @@ const I18N = {
         myStations: 'My stations & playlists',
         noStations: 'Your stations and playlists will appear here',
         newStation: 'New station or playlist',
+        addStation: '+ Add a station',
         namePh: 'Name',
         linksPh: 'Stream links, .m3u or YouTube',
         addLinkPh: 'Add a link: stream, .m3u, YouTube',
@@ -343,7 +345,7 @@ const state = {
     chipsOpen: false,
     editId: null,            // custom station open in the editor
     draft: [],               // items of the "new station" form (files stay in memory until saved)
-    demo: { on: false, paused: false, speed: 600, doy: 1, hour: 12 },
+    demo: { on: false, paused: false, speed: 1, doy: 1, hour: 12 },
     dbReady: false
 };
 
@@ -960,6 +962,19 @@ function stationPopup(boxId, currentKey, onPick) {
             h('span', { class: 'st-opt-sub', text: entry.sub })),
         h('span', { class: 'st-opt-mark', text: cur ? '✓' : '' })));
     });
+    // Leads to the "new station" form on the Stations tab
+    box.append(h('button', {
+        class: 'st-opt st-add',
+        text: t('addStation'),
+        onclick: () => {
+            state.popup = null;
+            state.editId = null;
+            location.hash = '#stations';
+            setTab('stations');
+            showUi(isTouch ? 4000 : 0);
+            $('fName').focus();
+        }
+    }));
 }
 
 function renderSmallPlayer(prefix, key, idleText, popupId, onPick) {
@@ -968,6 +983,13 @@ function renderSmallPlayer(prefix, key, idleText, popupId, onPick) {
     $(prefix + 'Play').setAttribute('aria-label', on ? t('pauseAria') : t('play'));
     setText(prefix + 'PlayState', on ? t('nowPlaying') : idleText);
     setText(prefix + 'PlayName', stationEntry(key).name);
+    const custom = findCustomStation(key);
+    const tracks = on && (prefix === 'sw' || prefix === 'mu') && custom && custom.items.length > 1;
+    $(prefix + 'Player').querySelectorAll('.skip').forEach(b => {
+        const next = +b.dataset.d > 0;
+        b.title = tracks ? t(next ? 'nextTrack' : 'prevTrack') : t(next ? 'nextStation' : 'prevStation');
+        b.setAttribute('aria-label', b.title);
+    });
     const open = state.popup === popupId;
     setText(prefix + 'Change', open ? t('hide') : t('change'));
     $(prefix + 'Player').classList.toggle('pop-open', open);
@@ -978,19 +1000,59 @@ function renderSmallPlayer(prefix, key, idleText, popupId, onPick) {
 
 function renderPlayers() {
     const alarm = selectedAlarm();
-    renderSmallPlayer('al', alarm.station, t('alarmSignal'), 'al', key => updateAlarm(a => { a.station = key; }));
+    // A station picked from a list starts playing right away
+    renderSmallPlayer('al', alarm.station, t('alarmSignal'), 'al', key => {
+        updateAlarm(a => { a.station = key; });
+        engine.play(key, { purpose: 'preview' });
+    });
     renderSmallPlayer('tm', state.timer.station, t('timerSignal'), 'tm', key => {
         state.timer.station = key;
         saveTimer();
-    });
-    renderSmallPlayer('sw', state.playerKey, t('swMusic'), 'sw', key => {
-        setPlayerKey(key);
         engine.play(key, { purpose: 'preview' });
     });
+    const pickMusic = key => {
+        setPlayerKey(key);
+        engine.play(key, { purpose: 'preview' });
+    };
+    renderSmallPlayer('sw', state.playerKey, t('swMusic'), 'sw', pickMusic);
+    renderSmallPlayer('mu', state.playerKey, t('swMusic'), 'mu', pickMusic);
     document.querySelectorAll('[data-vol]').forEach(input => {
         if (document.activeElement !== input) input.value = state.volume;
     });
     document.querySelectorAll('[data-vol-val]').forEach(node => { node.textContent = state.volume + '%'; });
+}
+
+function neighbourStation(key, delta) {
+    const list = allStations();
+    const i = Math.max(0, list.findIndex(x => x.key === key));
+    return list[(i + delta + list.length) % list.length].key;
+}
+
+// ◀◀ ▶▶ in a player: plays the next station (and makes it the alarm / timer signal);
+// for music — the next track of a playing playlist, otherwise the next station
+function skipPlayer(which, delta) {
+    if (which === 'al' || which === 'tm') {
+        const old = which === 'al' ? selectedAlarm().station : state.timer.station;
+        const next = neighbourStation(old, delta);
+        if (which === 'al') {
+            updateAlarm(a => { a.station = next; });
+        } else {
+            state.timer.station = next;
+            saveTimer();
+        }
+        engine.play(next, { purpose: 'preview' });
+        return;
+    }
+    const key = state.playerKey;
+    const s = engine.getState();
+    const custom = findCustomStation(key);
+    if (s.playing && s.key === key && custom && custom.items.length > 1) {
+        engine.step(delta);
+        return;
+    }
+    const next = neighbourStation(key, delta);
+    setPlayerKey(next);
+    engine.play(next, { purpose: 'preview' });
 }
 
 // Everything that depends on what's playing
@@ -1552,7 +1614,8 @@ function renderSleep() {
     const cards = $('slCards');
     cards.textContent = '';
     const base = sl.h * 60 + sl.m;
-    [6, 5, 4, 3].forEach(n => {
+    // Cards go from the earliest time to the latest in both modes
+    (wake ? [6, 5, 4, 3] : [3, 4, 5, 6]).forEach(n => {
         const total = wake ? base - 15 - n * 90 : base + 15 + n * 90;
         const mins = ((total % 1440) + 1440) % 1440;
         const hh = Math.floor(mins / 60), mm = mins % 60;
@@ -1737,13 +1800,16 @@ function bindEvents() {
     $('alPlay').addEventListener('click', () => togglePreview(selectedAlarm().station));
 
     // Players: "Change" opens the station list
-    [['al', 'alChange'], ['tm', 'tmChange'], ['sw', 'swChange']].forEach(([popup, id]) => {
+    document.querySelectorAll('.skip').forEach(b => b.addEventListener('click', () => skipPlayer(b.dataset.skip, +b.dataset.d)));
+    [['al', 'alChange'], ['tm', 'tmChange'], ['sw', 'swChange'], ['mu', 'muChange']].forEach(([popup, id]) => {
         onActivate($(id), () => {
             state.popup = state.popup === popup ? null : popup;
             renderPlayers();
         });
     });
     document.addEventListener('click', e => {
+        // A button that re-rendered its own list is no longer in the page — that's not "outside"
+        if (!e.target.isConnected) return;
         if (state.popup && !e.target.closest('.player')) {
             state.popup = null;
             renderPlayers();
@@ -1755,6 +1821,7 @@ function bindEvents() {
     });
     $('tmPlay').addEventListener('click', () => togglePreview(state.timer.station));
     $('swPlay').addEventListener('click', () => togglePreview(state.playerKey));
+    $('muPlay').addEventListener('click', () => togglePreview(state.playerKey));
 
     // Volume (all sliders share one value)
     document.querySelectorAll('[data-vol]').forEach(input => {
