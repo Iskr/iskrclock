@@ -270,8 +270,30 @@ function releaseAudio(audio) {
     audio.load();
 }
 
-function createAudioAdapter(url, ctx, onDestroy) {
-    const audio = new Audio();
+// Some stations (Love Radio) serve a "go to our website" message instead of the
+// broadcast when the request carries a Referer from another site. An <audio> element
+// has no referrerpolicy attribute, and a page-wide no-referrer policy would break the
+// YouTube embed, so such streams are played by an element owned by a hidden
+// same-origin iframe whose document has a no-referrer policy.
+let noReferrerFrame = null;
+
+function getNoReferrerDocument() {
+    if (!noReferrerFrame || !noReferrerFrame.isConnected) {
+        noReferrerFrame = document.createElement('iframe');
+        noReferrerFrame.style.display = 'none';
+        noReferrerFrame.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(noReferrerFrame);
+        const frameDoc = noReferrerFrame.contentDocument;
+        const meta = frameDoc.createElement('meta');
+        meta.name = 'referrer';
+        meta.content = 'no-referrer';
+        frameDoc.head.appendChild(meta);
+    }
+    return noReferrerFrame.contentDocument;
+}
+
+function createAudioAdapter(url, ctx, onDestroy, options = {}) {
+    const audio = options.noReferrer ? getNoReferrerDocument().createElement('audio') : new Audio();
     audio.preload = 'auto';
     audio.addEventListener('playing', ctx.playing);
     audio.addEventListener('ended', ctx.ended);

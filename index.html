@@ -906,6 +906,9 @@
         // а бесплатные прокси нестабильны (из-за них и «умирал» Rinse UK).
         const needsCorsProxy = [];
 
+        // Станции, которые отдают заглушку вместо эфира, если запрос пришёл с чужого сайта
+        const noReferrerStreams = ['love-radio'];
+
         // HLS streams that need hls.js (or native HLS on Safari)
         const hlsStreams = ['bbc-radio-1'];
 
@@ -1044,7 +1047,8 @@
                 return (s, ctx) => createAudioAdapter(getProxiedURL(url, s.attempt - 1), ctx);
             }
             // Stations with several mirrors: every new attempt tries the next address
-            return (s, ctx) => createAudioAdapter(urls[(s.attempt - 1) % urls.length], ctx);
+            const options = { noReferrer: noReferrerStreams.includes(stationValue) };
+            return (s, ctx) => createAudioAdapter(urls[(s.attempt - 1) % urls.length], ctx, null, options);
         }
 
         // ========= RESILIENT PLAYBACK SESSION =========
