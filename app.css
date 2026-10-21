@@ -1289,15 +1289,36 @@ iskr-sky {
     padding: 12px 16px 12px 22px;
 }
 
-/* Volume slides out under every player on hover */
-.big-player:hover .expand, :is(.big-player:has(:focus-visible)) .expand {
-    grid-template-rows: 1fr;
-    opacity: 1;
-    transition-delay: 0s;
+/* The big player's volume slides out sideways, next to the buttons: the player keeps
+   its height and the station list below doesn't move */
+.bp-vol {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+    max-width: 0;
+    margin-right: -16px; /* no empty gap while folded */
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: max-width .3s ease var(--ease-hide), margin .3s ease var(--ease-hide), opacity .25s ease var(--ease-hide);
 }
 
-.big-player .vol-row {
-    padding: 10px 22px;
+.bp-vol .vol {
+    flex: none;
+    width: 150px;
+}
+
+.bp-vol .vol-val {
+    font-size: 14px;
+}
+
+.big-player:hover .bp-vol, :is(.big-player:has(:focus-visible)) .bp-vol, .touch .bp-vol {
+    max-width: 220px;
+    margin-right: 0;
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: 0s;
 }
 
 .sig-row {
@@ -2487,9 +2508,6 @@ body.ringing .app {
         gap: 8px;
     }
 
-    .big-player .vol-row {
-        padding: 10px 12px;
-    }
 
     .big-player-name {
         font-size: 20px;
@@ -2619,7 +2637,23 @@ body.ringing .app {
     .bp-row {
         flex-wrap: wrap;
         justify-content: center;
-        row-gap: 10px;
+        gap: 10px;
+    }
+
+    /* No room next to the buttons: the volume takes a full row under them */
+    .bp-vol {
+        order: 1;
+        flex: 1 1 100%;
+        margin-right: 0;
+    }
+
+    .big-player:hover .bp-vol, :is(.big-player:has(:focus-visible)) .bp-vol, .touch .bp-vol {
+        max-width: none;
+    }
+
+    .bp-vol .vol {
+        flex: 1;
+        width: auto;
     }
 
     .big-player-text {

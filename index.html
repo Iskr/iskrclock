@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="app.css?v=6.5">
+    <link rel="stylesheet" href="app.css?v=6.6">
     <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
     <script src="iskr-sky.js?v=6.3"></script>
@@ -257,18 +257,13 @@
                             <span class="big-player-name" id="bpName"></span>
                             <span class="big-player-sub" id="bpSub"></span>
                         </div>
+                        <div class="bp-vol">
+                            <input type="range" class="vol" min="0" max="100" step="5" data-vol data-i18n-aria="volumeLabel">
+                            <span class="vol-val" data-vol-val></span>
+                        </div>
                         <button class="round" id="bpPrev">◀◀</button>
                         <button class="round round-accent" id="bpPlay">▶</button>
                         <button class="round" id="bpNext">▶▶</button>
-                    </div>
-                    <div class="expand">
-                        <div class="expand-inner">
-                            <div class="vol-row">
-                                <span class="opt-label" data-i18n="volumeLabel">Громкость</span>
-                                <input type="range" class="vol" min="0" max="100" step="5" data-vol data-i18n-aria="volumeLabel">
-                                <span class="vol-val" data-vol-val></span>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 <div class="st-grid ui">
