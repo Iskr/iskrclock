@@ -2087,6 +2087,52 @@ iskr-sky {
     white-space: nowrap;
 }
 
+.demo-collapse {
+    width: 28px;
+    padding: 0;
+    margin-left: 2px;
+    font-size: 11px;
+}
+
+/* Collapsed: only pause and the expand button, as a small pill */
+.demo-panel.collapsed .demo-speeds,
+.demo-panel.collapsed .demo-slider,
+.demo-panel.collapsed #demoPrev,
+.demo-panel.collapsed #demoNext,
+.demo-panel.collapsed .demo-text {
+    display: none;
+}
+
+.demo-panel.collapsed {
+    width: auto;
+    right: auto;
+    padding: 8px;
+}
+
+.demo-panel.collapsed .demo-collapse {
+    margin-left: 0;
+}
+
+/* The arrow points where the panel folds: up on the desktop (panel at the top),
+   down on smaller screens (panel above the bottom edge) */
+.demo-collapse {
+    transform: rotate(180deg);
+}
+
+.demo-panel.collapsed .demo-collapse {
+    transform: none;
+}
+
+@media (max-width: 900px) {
+    .demo-collapse {
+        transform: none;
+    }
+
+    .demo-panel.collapsed .demo-collapse {
+        transform: rotate(180deg);
+    }
+}
+
 .demo-speeds {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
