@@ -342,6 +342,16 @@ iskr-sky {
     text-shadow: 0 1px 10px rgba(0, 0, 0, .35);
 }
 
+.al-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.step.rename {
+    font-size: 15px;
+}
+
 .al-label {
     font-size: 16px;
     color: var(--ink-85);
@@ -657,10 +667,6 @@ iskr-sky {
     pointer-events: none;
     transition: opacity .25s ease var(--ease-hide);
     white-space: nowrap;
-}
-
-.player-music {
-    margin-top: 10px;
 }
 
 /* ◀◀ ▶▶ — flip through stations (or tracks of a playing playlist); shown with "Change" */
@@ -1256,9 +1262,7 @@ iskr-sky {
 /* ===== Stations ===== */
 .big-player {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 16px 12px 22px;
+    flex-direction: column;
     width: 1100px;
     max-width: calc(100vw - 32px);
     background: rgba(0, 0, 0, .24);
@@ -1266,6 +1270,42 @@ iskr-sky {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: 18px;
+}
+
+.bp-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px 12px 22px;
+}
+
+/* Volume slides out under every player on hover */
+.big-player:hover .expand, :is(.big-player:has(:focus-visible)) .expand {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition-delay: 0s;
+}
+
+.big-player .vol-row {
+    padding: 10px 22px;
+}
+
+.sig-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+}
+
+.sig-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .big-player-text {
@@ -2355,9 +2395,13 @@ body.ringing .app {
         display: none;
     }
 
-    .big-player {
+    .bp-row {
         padding: 10px 12px;
         gap: 8px;
+    }
+
+    .big-player .vol-row {
+        padding: 10px 12px;
     }
 
     .big-player-name {
@@ -2440,5 +2484,13 @@ body.ringing .app {
     *, *::before, *::after {
         transition-duration: .01ms !important;
         animation-duration: .01ms !important;
+    }
+}
+
+/* Tall narrow screens (phones): the landscape is cropped at the sides — keep the house
+   and the trees on the left in view instead of the empty middle */
+@media (max-aspect-ratio: 4/5) {
+    iskr-sky canvas {
+        object-position: 4% 80% !important;
     }
 }
