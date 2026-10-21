@@ -2091,7 +2091,10 @@ iskr-sky {
     width: 28px;
     padding: 0;
     margin-left: 2px;
-    font-size: 11px;
+}
+
+.demo-collapse svg {
+    display: block;
 }
 
 /* Collapsed: only pause and the expand button, as a small pill */
