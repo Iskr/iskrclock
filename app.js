@@ -1719,8 +1719,8 @@ function renderAll() {
 // ========= SHOW CONTROLS ON HOVER / TAP =========
 const app = $('app');
 let uiHideTimeout = null;
-// Touch screens have no hover: there the controls are always shown (hiding them
-// left holes in the layout and made everything jump on the first tap)
+// Touch screens have no hover: a tap shows the controls, a tap on an empty spot
+// hides them, and they also fade after a while without touches
 const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
 if (isTouch) document.documentElement.classList.add('touch');
 
@@ -1731,15 +1731,20 @@ function showUi(hideAfter) {
 }
 
 function hideUi() {
-    // Keep controls visible while a list or the editor is open
-    if (isTouch || state.popup || state.chipsOpen) return;
+    // Keep controls visible while a list or the editor is open, or while typing
+    if (state.popup || state.chipsOpen || !$('stEditor').hidden) return;
+    const el = document.activeElement;
+    if (el && el.matches && el.matches('input:not([type=range]):not([type=checkbox]), textarea, select')) return;
     app.classList.remove('ui-on');
 }
 
 // While the pointer rests over the page the controls fade after a few idle seconds,
 // unless it rests on a control itself
 const UI_IDLE_MS = 4000;
+const UI_IDLE_TOUCH_MS = 10000;
 const KEEP_UI = 'button, a, input, label, .player, .tabs, .lang, .chips, .al-head, .digits, .seg, .st-grid, .big-player, .sl-cards, .corner, .demo-panel, .plaque';
+// On touch screens a tap on the big clock hides the controls, so only the alarm card counts
+const KEEP_UI_TOUCH = KEEP_UI.replace('.al-head', '.al-row');
 let lastPointerTarget = null;
 
 function hideUiWhenIdle() {
@@ -1760,7 +1765,28 @@ document.documentElement.addEventListener('mouseleave', () => {
     clearTimeout(uiHideTimeout);
     uiHideTimeout = setTimeout(hideUi, 400);
 });
-if (isTouch) app.classList.add('ui-on');
+
+if (isTouch) {
+    const restartIdle = () => {
+        if (!app.classList.contains('ui-on')) return;
+        clearTimeout(uiHideTimeout);
+        uiHideTimeout = setTimeout(hideUi, UI_IDLE_TOUCH_MS);
+    };
+    // click, not pointerdown: a finger that scrolls the page doesn't toggle anything
+    document.addEventListener('click', e => {
+        if (!app.classList.contains('ui-on')) showUi();
+        else if (e.target.isConnected && !(e.target.closest && e.target.closest(KEEP_UI_TOUCH))) {
+            clearTimeout(uiHideTimeout);
+            hideUi();
+            return;
+        }
+        restartIdle();
+    });
+    window.addEventListener('touchstart', restartIdle, { passive: true });
+    window.addEventListener('scroll', restartIdle, { passive: true });
+    showUi();
+    restartIdle();
+}
 
 // ========= EVENTS =========
 function bindEvents() {
@@ -1949,7 +1975,8 @@ function bindEvents() {
         speeds.append(h('button', { 'data-speed': speed, text, onclick: () => { state.demo.speed = speed; renderDemo(); } }));
     });
 
-    // Fullscreen
+    // Fullscreen (not available on iPhone)
+    if (!document.fullscreenEnabled) $('fullscreenBtn').hidden = true;
     $('fullscreenBtn').addEventListener('click', () => {
         if (!document.fullscreenElement) {
             if (document.documentElement.requestFullscreen) {
