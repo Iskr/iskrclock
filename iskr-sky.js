@@ -490,6 +490,22 @@ class IskrSky extends HTMLElement {
     });
     if (!this.grainPat) this.grainPat = this.ctx.createPattern(buildGrain(), 'repeat');
   }
+  // Smoothed music levels from the `levels` hook (a function → array of 0..1 or null):
+  // quick rise, slow fall, fading out after the music stops
+  _levels() {
+    const src = typeof this.levels === 'function' ? this.levels() : null;
+    if (!src && !this._lv) return null;
+    const n = src ? src.length : this._lv.length;
+    if (!this._lv || this._lv.length !== n) this._lv = new Float32Array(n);
+    let top = 0;
+    for (let i = 0; i < n; i++) {
+      const t = src ? src[i] : 0, o = this._lv[i];
+      this._lv[i] = t > o ? o + (t - o) * 0.6 : o * 0.88;
+      top = Math.max(top, this._lv[i]);
+    }
+    if (!src && top < 0.01) { this._lv = null; return null; }
+    return this._lv;
+  }
   _frame(time) {
     const P = this.P, c = this.ctx, pr = this.pr, t = this._hour, G = GEO;
     const AS = P.AS, sa = AS.sun.s, ma = AS.moon.s, sx = AS.sun.x, sy = AS.sun.y, mx = AS.moon.x, my = AS.moon.y;
@@ -559,10 +575,29 @@ class IskrSky extends HTMLElement {
     g = c.createLinearGradient(0, HZ, 0, HZ + LD); g.addColorStop(0, css(P.lake, 0.28)); g.addColorStop(1, css(P.lake, 0.6)); c.fillStyle = g; c.fillRect(0, HZ, W, LD);
     c.fillStyle = css(P.lake, 0.35); c.fillRect(0, HZ, W, 1.5);
     c.globalCompositeOperation = 'lighter';
-    G.ripples.forEach(rp => { const a = (0.5 + 0.5 * Math.sin(time * 0.5 + rp.ph)) * 0.12; c.fillStyle = css(mixC(P.hor, [255, 255, 255], 0.3), a); c.fillRect(rp.x + Math.sin(time * 0.2 + rp.ph) * 20, rp.y, rp.w, 0.8); });
+    // music (optional `levels` hook): light columns glimmering on the open water (between the house
+    // and the firs) like an equalizer's reflection, low notes on the left; the ripples and the
+    // sun / moon path brighten with the beat
+    const lv = this._still ? null : this._levels();
+    let energy = 0, bass = 0;
+    if (lv) {
+      const n = lv.length, x0 = 290, cw = (1110 - x0) / n;
+      c.fillStyle = css(this.glowColor || mixC(P.hor, [255, 255, 255], 0.5));
+      for (let i = 0; i < n; i++) {
+        const v = lv[i]; energy += v / n; if (i < 3) bass += v / 3; if (v < 0.03) continue;
+        const x = x0 + (i + 0.5) * cw, len = LD * (0.2 + 0.8 * v);
+        for (let y = 1; y < len; y += 2.2) {
+          const q = y / len, w = cw * (0.7 - q * 0.35), wob = Math.sin(time * 2.2 + y * 0.35 + i * 1.7) * (1 + y * 0.05);
+          c.globalAlpha = Math.min(1, 0.7 * v * (1 - q) ** 1.3);
+          c.fillRect(x - w / 2 + wob, HZ + y, w, 1.4);
+        }
+      }
+      c.globalAlpha = 1;
+    }
+    G.ripples.forEach(rp => { const a = (0.5 + 0.5 * Math.sin(time * 0.5 + rp.ph)) * 0.12 * (1 + energy * 2); c.fillStyle = css(mixC(P.hor, [255, 255, 255], 0.3), a); c.fillRect(rp.x + Math.sin(time * 0.2 + rp.ph) * 20, rp.y, rp.w, 0.8); });
     const glit = (x, col, op, n, wd) => { for (let k = 0; k < n; k++) { const [a, b, d] = G.glit[k], q = k / n, y = HZ + 2 + k * 1.7, w = (1.5 + a * wd * 0.25) * (1 - q * 0.5), fl = this._still ? 0.7 : (0.5 + 0.5 * Math.sin(time * (2 + d * 5) + k * 2.1)) ** 2; c.fillStyle = css(col, op * fl * (1 - q) * 0.75); c.fillRect(x - w / 2 + (b - 0.5) * (6 + k * 2.2), y, w, 1); c.fillRect(x - w / 2 - (d - 0.5) * (6 + k * 2.2), y + 0.8, w * 0.7, 1); } };
-    if (sunOp > 0.02 && sx > -40 && sx < W + 40) glit(sx, P.sunC, sunOp, 40, 60);
-    if (moonOp > 0.02 && my < HZ) glit(mx, [230, 236, 255], moonOp * (0.3 + 0.7 * P.illum) * 0.7, 30, 26);
+    if (sunOp > 0.02 && sx > -40 && sx < W + 40) glit(sx, P.sunC, sunOp * (1 + bass * 0.8), 40, 60);
+    if (moonOp > 0.02 && my < HZ) glit(mx, [230, 236, 255], moonOp * (0.3 + 0.7 * P.illum) * 0.7 * (1 + bass * 0.8), 30, 26);
     c.globalCompositeOperation = 'source-over';
     // fog
     if (P.fog > 0.05) for (let k = 0; k < 4; k++) {
