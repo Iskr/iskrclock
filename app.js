@@ -785,7 +785,7 @@ if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').m
 }
 
 // The water glows to the music while a station plays (when its sound may be read)
-sky.levels = () => engine.getLevels(20);
+sky.levels = () => engine.getLevels(7);
 
 let demoFrame = null;
 let demoLast = 0;

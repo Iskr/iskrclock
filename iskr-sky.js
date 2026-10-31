@@ -375,6 +375,9 @@ function snowman(c, P, x, y, S) {
   c.restore();
 }
 
+// x of the music glow pillars on the open water (scene coordinates), unevenly spaced like real lights
+const GLOW_X = [335, 445, 575, 690, 815, 925, 1055];
+
 // ---------- element ----------
 class IskrSky extends HTMLElement {
   static get observedAttributes() { return ['doy', 'hour', 'still', 'year']; }
@@ -490,6 +493,17 @@ class IskrSky extends HTMLElement {
     });
     if (!this.grainPat) this.grainPat = this.ctx.createPattern(buildGrain(), 'repeat');
   }
+  // A 1-pixel-high horizontal glow (transparent → colour → transparent), redrawn when the colour changes
+  _glowSprite(col) {
+    const key = col.map(v => v | 0).join();
+    if (this._glowKey !== key) {
+      this._glowKey = key;
+      const sp = this._glow || (this._glow = mk(64, 1)), g = sp.getContext('2d'), gr = g.createLinearGradient(0, 0, 64, 0);
+      [[0, 0], [0.2, 0.25], [0.5, 1], [0.8, 0.25], [1, 0]].forEach(([o, a]) => gr.addColorStop(o, css(col, a)));
+      g.clearRect(0, 0, 64, 1); g.fillStyle = gr; g.fillRect(0, 0, 64, 1);
+    }
+    return this._glow;
+  }
   // Smoothed music levels from the `levels` hook (a function → array of 0..1 or null):
   // quick rise, slow fall, fading out after the music stops
   _levels() {
@@ -575,21 +589,21 @@ class IskrSky extends HTMLElement {
     g = c.createLinearGradient(0, HZ, 0, HZ + LD); g.addColorStop(0, css(P.lake, 0.28)); g.addColorStop(1, css(P.lake, 0.6)); c.fillStyle = g; c.fillRect(0, HZ, W, LD);
     c.fillStyle = css(P.lake, 0.35); c.fillRect(0, HZ, W, 1.5);
     c.globalCompositeOperation = 'lighter';
-    // music (optional `levels` hook): light columns glimmering on the open water (between the house
-    // and the firs) like an equalizer's reflection, low notes on the left; the ripples and the
-    // sun / moon path brighten with the beat
+    // music (optional `levels` hook): soft pillars of light on the open water (between the house
+    // and the firs), like lamps reflected in a lake — one per band, low notes on the left — rippling
+    // with the water; the ripples and the sun / moon path brighten with the beat
     const lv = this._still ? null : this._levels();
     let energy = 0, bass = 0;
     if (lv) {
-      const n = lv.length, x0 = 290, cw = (1110 - x0) / n;
-      c.fillStyle = css(this.glowColor || mixC(P.hor, [255, 255, 255], 0.5));
+      const n = lv.length, sprite = this._glowSprite(mixC(this.glowColor || P.hor, [255, 255, 255], 0.35));
       for (let i = 0; i < n; i++) {
-        const v = lv[i]; energy += v / n; if (i < 3) bass += v / 3; if (v < 0.03) continue;
-        const x = x0 + (i + 0.5) * cw, len = LD * (0.2 + 0.8 * v);
-        for (let y = 1; y < len; y += 2.2) {
-          const q = y / len, w = cw * (0.7 - q * 0.35), wob = Math.sin(time * 2.2 + y * 0.35 + i * 1.7) * (1 + y * 0.05);
-          c.globalAlpha = Math.min(1, 0.7 * v * (1 - q) ** 1.3);
-          c.fillRect(x - w / 2 + wob, HZ + y, w, 1.4);
+        const v = lv[i]; energy += v / n; if (i < 2) bass += v / 2; if (v < 0.04) continue;
+        const x = GLOW_X[i % GLOW_X.length] + (i >= GLOW_X.length ? 40 : 0), len = LD * (0.45 + 0.55 * v);
+        for (let y = 0; y < len; y++) {
+          const q = y / len, w = (24 + 46 * v) * (0.75 + 0.6 * q);
+          const dx = Math.sin(time * 1.6 + y * 0.22 + i * 1.3) * (1.2 + y * 0.05);
+          c.globalAlpha = 0.5 * v * (1 - q) ** 1.6 * (0.6 + 0.4 * Math.sin(y * 0.75 - time * 4 + i * 2));
+          c.drawImage(sprite, x - w / 2 + dx, HZ + y, w, 1);
         }
       }
       c.globalAlpha = 1;
