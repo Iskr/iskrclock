@@ -500,22 +500,106 @@ function getNoReferrerDocument() {
     return noReferrerFrame.contentDocument;
 }
 
+// ========= MUSIC FOR THE LANDSCAPE =========
+// The water can glow to the music only when the page may read the sound. Local files
+// (blob:/data:) and same-site URLs always can; another site's stream only if its server
+// allows CORS. That is found out by playing it once with crossOrigin and remembered per
+// stream. Reading an element that loaded without CORS would silence it, so it's never tapped.
+const CORS_KEY = 'iskrCorsStreams';
+let corsStreams = null;
+
+function corsMap() {
+    if (!corsStreams) {
+        corsStreams = {};
+        try {
+            const saved = JSON.parse(localStorage.getItem(CORS_KEY));
+            if (saved && typeof saved === 'object') corsStreams = saved;
+        } catch (e) { /* no storage */ }
+    }
+    return corsStreams;
+}
+
+// The stream's address without the query (tokens and listener ids change)
+function streamId(url) {
+    try {
+        const u = new URL(url, location.href);
+        return u.host + u.pathname;
+    } catch (e) {
+        return '';
+    }
+}
+
+function isReadableUrl(url) {
+    if (/^(blob|data):/i.test(url)) return true;
+    try {
+        return new URL(url, location.href).origin === location.origin;
+    } catch (e) {
+        return false;
+    }
+}
+
+function rememberCors(url, allowed) {
+    const id = streamId(url);
+    if (!id) return;
+    corsMap()[id] = allowed ? 1 : 0;
+    try { localStorage.setItem(CORS_KEY, JSON.stringify(corsStreams)); } catch (e) { /* no storage */ }
+}
+
 function createAudioAdapter(url, ctx, onDestroy, options = {}) {
     const audio = options.noReferrer ? getNoReferrerDocument().createElement('audio') : new Audio();
+    const visual = !!ctx.visual && !options.noReferrer;
+    let readable = visual && isReadableUrl(url);
+    // Another site's stream: try it with CORS unless it's known to refuse
+    let corsTry = visual && !readable && /^https?:/i.test(url) && corsMap()[streamId(url)] !== 0;
+    let withoutCors = false;
+    let untap = null;
+    let playGen = 0;
+    const start = () => {
+        const gen = ++playGen;
+        // NotAllowedError = autoplay blocked: retrying won't help
+        audio.play().catch(err => {
+            if (gen === playGen) ctx.fail(err.name || 'play() failed', err.name === 'NotAllowedError');
+        });
+    };
+
     audio.preload = 'auto';
-    audio.addEventListener('playing', ctx.playing);
+    audio.addEventListener('playing', () => {
+        if (corsTry) {
+            rememberCors(url, true);
+            corsTry = false;
+            readable = true;
+        }
+        if (withoutCors) {
+            rememberCors(url, false);
+            withoutCors = false;
+        }
+        if (readable && !untap) untap = ctx.tap(audio);
+        ctx.playing();
+    });
     audio.addEventListener('ended', ctx.ended);
     audio.addEventListener('error', () => {
+        if (corsTry) {
+            // Maybe the server doesn't allow CORS: play it the usual way, without the glow
+            corsTry = false;
+            withoutCors = true;
+            playGen++; // the rejected play() of the first try is not a failure
+            audio.removeAttribute('crossorigin');
+            audio.src = url;
+            start();
+            return;
+        }
         ctx.fail('media error ' + (audio.error ? audio.error.code : ''));
     });
     audio.volume = ctx.volume();
+    if (corsTry) audio.crossOrigin = 'anonymous';
     audio.src = url;
-    playAudio(audio, ctx);
+    start();
 
     return {
         getTime: () => audio.currentTime,
         setVolume: (v) => { audio.volume = v; },
         destroy: () => {
+            if (untap) untap();
             releaseAudio(audio);
             if (onDestroy) onDestroy();
         }
@@ -547,7 +631,12 @@ async function createHlsAdapter(url, ctx, proxyIndex = 0) {
     }
     const hls = new Hls(config);
 
-    audio.addEventListener('playing', ctx.playing);
+    let untap = null;
+    audio.addEventListener('playing', () => {
+        // hls.js feeds the element through MediaSource, so the page may read the sound
+        if (ctx.visual && !untap) untap = ctx.tap(audio);
+        ctx.playing();
+    });
     audio.addEventListener('ended', ctx.ended);
     audio.volume = ctx.volume();
 
@@ -568,6 +657,7 @@ async function createHlsAdapter(url, ctx, proxyIndex = 0) {
         getTime: () => audio.currentTime,
         setVolume: (v) => { audio.volume = v; },
         destroy: () => {
+            if (untap) untap();
             hls.destroy();
             releaseAudio(audio);
         }
@@ -728,6 +818,83 @@ function createPlaybackEngine(hooks) {
         return audioContext;
     }
 
+    // ----- levels for the landscape -----
+    // Sound that may be read passes source → analyser → speakers. Only previews are tapped:
+    // alarms and the timer keep playing straight from the <audio> element, as before.
+    let analyser = null;
+    let analyserBins = null;
+    let analyserWave = null;
+    let tapCount = 0;
+    let levelsOut = null;
+    let levelsAvg = null;
+
+    function getAnalyser() {
+        if (!audioContext) return null;
+        if (!analyser) {
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 1024;
+            analyser.smoothingTimeConstant = 0.65;
+            analyser.minDecibels = -90;
+            analyser.maxDecibels = -20;
+            analyser.connect(audioContext.destination);
+            analyserBins = new Uint8Array(analyser.frequencyBinCount);
+            analyserWave = new Uint8Array(analyser.fftSize);
+        }
+        return analyser;
+    }
+
+    // Only while the audio context runs: an element routed into a suspended one is silent
+    function tapElement(audio) {
+        if (!audioContext || audioContext.state !== 'running') return null;
+        try {
+            const node = audioContext.createMediaElementSource(audio);
+            node.connect(getAnalyser());
+            tapCount++;
+            return () => {
+                node.disconnect();
+                tapCount--;
+            };
+        } catch (e) {
+            console.warn('⚠️ No levels for this source:', e);
+            return null;
+        }
+    }
+
+    function analyserSilent() {
+        analyser.getByteTimeDomainData(analyserWave);
+        for (let i = 0; i < analyserWave.length; i++) {
+            if (analyserWave[i] !== 128) return false;
+        }
+        return true;
+    }
+
+    // n bands from 60 Hz to 12 kHz (log-spaced), 0..1, independent of the volume slider;
+    // null when nothing readable is playing
+    function getLevels(n) {
+        if (!analyser || (!tapCount && !classicVolume)) return null;
+        analyser.getByteFrequencyData(analyserBins);
+        if (!levelsOut || levelsOut.length !== n) {
+            levelsOut = new Float32Array(n);
+            levelsAvg = new Float32Array(n);
+        }
+        const volume = classicVolume && !tapCount ? classicLevel() : (session ? sessionVolume(session) : hooks.getVolume());
+        // The volume is applied before the analyser: add it back (in the analyser's byte scale)
+        const boost = -20 * Math.log10(Math.max(0.03, Math.min(1, volume))) / (analyser.maxDecibels - analyser.minDecibels) * 255;
+        const binHz = audioContext.sampleRate / 2 / analyserBins.length;
+        for (let i = 0; i < n; i++) {
+            const f0 = 60 * Math.pow(200, i / n), f1 = 60 * Math.pow(200, (i + 1) / n);
+            const a = Math.min(analyserBins.length - 1, Math.floor(f0 / binHz));
+            const b = Math.min(analyserBins.length, Math.max(a + 1, Math.ceil(f1 / binHz)));
+            let peak = 0;
+            for (let k = a; k < b; k++) peak = Math.max(peak, analyserBins[k]);
+            const v = peak ? Math.max(0, Math.min(1, ((peak + boost) / 255 - 0.3) / 0.6)) : 0;
+            // A steady sound glows gently, a beat jumps above its band's recent average
+            levelsAvg[i] += (v - levelsAvg[i]) * 0.04;
+            levelsOut[i] = Math.max(0, Math.min(1, v * 0.45 + (v - levelsAvg[i]) * 1.6));
+        }
+        return levelsOut;
+    }
+
     // The synthesized chord is quieter than music, so 50 % sounds like the old fixed level
     function classicLevel() {
         return hooks.getVolume() * 2;
@@ -741,7 +908,7 @@ function createPlaybackEngine(hooks) {
         // notes → gain (fade-in) → classicVolume (volume slider) → speakers
         const volume = ctx.createGain();
         volume.gain.value = classicLevel();
-        volume.connect(ctx.destination);
+        volume.connect(getAnalyser() || ctx.destination);
         classicVolume = volume;
 
         const gain = ctx.createGain();
@@ -954,8 +1121,17 @@ function createPlaybackEngine(hooks) {
                 ctx.dead = true;
                 onEnded(s);
             },
-            volume: () => sessionVolume(s)
+            volume: () => sessionVolume(s),
+            visual: s.purpose === 'preview' && !s.noTap,
+            tap: audio => {
+                if (!ctx.isCurrent()) return null;
+                const untap = tapElement(audio);
+                if (untap) s.tapped = true;
+                return untap;
+            }
         };
+        s.tapped = false;
+        s.silentTicks = 0;
         s.ctx = ctx;
         s.phase = 'connecting';
         s.phaseSince = Date.now();
@@ -1076,6 +1252,15 @@ function createPlaybackEngine(hooks) {
             if (time !== s.lastTime) {
                 s.lastTime = time;
                 s.lastProgressAt = now;
+                // Playing, yet nothing reaches the analyser (some browsers can't read live
+                // streams): play this source again without the glow
+                if (s.tapped && !s.fallbackActive && analyser && sessionVolume(s) > 0.02) {
+                    s.silentTicks = analyserSilent() ? s.silentTicks + 1 : 0;
+                    if (s.silentTicks >= 5) {
+                        s.noTap = true;
+                        s.ctx.fail('no sound reaches the analyser');
+                    }
+                }
             } else if (now - s.lastProgressAt > PLAYBACK.STALL_TIMEOUT_MS) {
                 s.ctx.fail('playback stalled');
             }
@@ -1130,6 +1315,7 @@ function createPlaybackEngine(hooks) {
         step,
         refresh,
         applyVolume,
+        getLevels,
         getState: snapshot,
         unlock: getAudioContext
     };

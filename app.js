@@ -744,7 +744,7 @@ function oklchToRgb(l, c, hue) {
     });
 }
 
-function accentColor(doy, hour, year) {
+function accentRgb(doy, hour, year) {
     const abs = doy + Math.round((Date.UTC(year, 0, 1) - Date.UTC(2026, 0, 1)) / 864e5);
     const g = (x, mu, s) => Math.exp(-((x - mu) ** 2) / (2 * s * s));
     const mixH = (a, b, k) => { const d = ((b - a + 540) % 360) - 180; return (a + d * k + 360) % 360; };
@@ -752,8 +752,7 @@ function accentColor(doy, hour, year) {
     const warm = Math.max(g(hour, 6.8, 1.1), g(hour, 19.6, 1.2));
     const hue = mixH(h0, 30, warm * 0.55);
     const spread = 28 + (((abs * 29) % 48) + 48) % 48;
-    const [r, gg, b] = oklchToRgb(0.84, 0.11, hue + spread * 1.6);
-    return `rgb(${r}, ${gg}, ${b})`;
+    return oklchToRgb(0.84, 0.11, hue + spread * 1.6);
 }
 
 // "Scene time": the real time, or the demo time while the demo runs
@@ -775,13 +774,18 @@ function updateSky() {
     const key = scene.doy + '/' + Math.round(scene.hour * 12);
     if (key !== lastAccentKey) {
         lastAccentKey = key;
-        document.documentElement.style.setProperty('--accent', accentColor(scene.doy, scene.hour, scene.year));
+        const [r, g, b] = accentRgb(scene.doy, scene.hour, scene.year);
+        document.documentElement.style.setProperty('--accent', `rgb(${r}, ${g}, ${b})`);
+        sky.glowColor = [r, g, b]; // the music glow on the water takes the colour of the day
     }
 }
 
 if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     sky.setAttribute('still', '1');
 }
+
+// The water glows to the music while a station plays (when its sound may be read)
+sky.levels = () => engine.getLevels(20);
 
 let demoFrame = null;
 let demoLast = 0;
