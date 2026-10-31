@@ -889,8 +889,8 @@ function createPlaybackEngine(hooks) {
             for (let k = a; k < b; k++) peak = Math.max(peak, analyserBins[k]);
             const v = peak ? Math.max(0, Math.min(1, ((peak + boost) / 255 - 0.3) / 0.6)) : 0;
             // A steady sound glows gently, a beat jumps above its band's recent average
-            levelsAvg[i] += (v - levelsAvg[i]) * 0.04;
-            levelsOut[i] = Math.max(0, Math.min(1, v * 0.45 + (v - levelsAvg[i]) * 1.6));
+            levelsAvg[i] = levelsAvg[i] ? levelsAvg[i] + (v - levelsAvg[i]) * 0.04 : v; // start from the first value, no flash
+            levelsOut[i] = Math.max(0, Math.min(1, v * 0.4 + (v - levelsAvg[i]) * 2));
         }
         return levelsOut;
     }

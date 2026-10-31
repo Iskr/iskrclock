@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="app.css?v=6.9">
     <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
-    <script src="iskr-sky.js?v=6.10"></script>
-    <script src="media.js?v=6.10"></script>
+    <script src="iskr-sky.js?v=6.12"></script>
+    <script src="media.js?v=6.11"></script>
 </head>
 <body>
     <iskr-sky id="sky" aria-hidden="true"></iskr-sky>
@@ -27,7 +27,7 @@
     <div class="app" id="app">
         <header class="top">
             <div class="top-left">
-                <div class="logo">IskrCLOCK<span class="logo-version">v6.2</span></div>
+                <div class="logo">IskrCLOCK<span class="logo-version">v6.3</span></div>
                 <div class="plaque" id="npPlaque" hidden>
                     <button class="plaque-play" id="npPlay" aria-label="Pause">❚❚</button>
                     <span class="plaque-text" id="npName"></span>
@@ -371,7 +371,7 @@
     <!-- ===== Звонок будильника ===== -->
     <div class="ring" id="ring" role="alertdialog" aria-modal="true" aria-labelledby="ringTitle" hidden>
         <div class="ring-top">
-            <div class="logo">IskrCLOCK<span class="logo-version">v6.2</span></div>
+            <div class="logo">IskrCLOCK<span class="logo-version">v6.3</span></div>
         </div>
         <div class="ring-body">
             <div class="ring-title" id="ringTitle"></div>
@@ -386,6 +386,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=6.10"></script>
+    <script src="app.js?v=6.12"></script>
 </body>
 </html>

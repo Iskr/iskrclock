@@ -776,7 +776,6 @@ function updateSky() {
         lastAccentKey = key;
         const [r, g, b] = accentRgb(scene.doy, scene.hour, scene.year);
         document.documentElement.style.setProperty('--accent', `rgb(${r}, ${g}, ${b})`);
-        sky.glowColor = [r, g, b]; // the music glow on the water takes the colour of the day
     }
 }
 
@@ -784,8 +783,8 @@ if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').m
     sky.setAttribute('still', '1');
 }
 
-// The water glows to the music while a station plays (when its sound may be read)
-sky.levels = () => engine.getLevels(20);
+// The landscape moves to the music while a station plays (when its sound may be read)
+sky.levels = () => engine.getLevels(7);
 
 let demoFrame = null;
 let demoLast = 0;
