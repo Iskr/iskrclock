@@ -507,15 +507,23 @@ class IskrSky extends HTMLElement {
     return this._lv;
   }
   // The landscape listens (optional `levels` hook): every part of the sound moves its own part of
-  // the world instead of an equalizer drawn on top. Bass → the water (ripples, the sun / moon path),
-  // warm low-mids → the lights (windows, halos, the sky glow), the melody → the wind (leaves, snow),
-  // highs → the stars and fireflies, a strong beat at night → a shooting star. null without music.
+  // the world instead of an equalizer drawn on top, each at its own pace so nothing flashes in unison.
+  // Bass → the water (ripples, the sun / moon path); the lamps → one band each (the house windows a
+  // low-mid, the garland colours four different bands); the sky glow and the halos only breathe
+  // slowly with the overall loudness; the melody → the wind (leaves, snow); every star and firefly
+  // listens to its own upper band; a strong beat at night → a shooting star. null without music.
   _music(time) {
     const lv = this._still ? null : this._levels();
     const dt = clamp(time - (this._mt ?? time), 0, 0.1); this._mt = time;
-    if (!lv) { this._wind = null; return null; }
+    if (!lv) { this._wind = null; this._env = null; return null; }
     const n = lv.length, band = (a, b) => { let s = 0; for (let i = a; i < b; i++) s += lv[Math.min(i, n - 1)]; return s / (b - a); };
-    const m = { bass: band(0, 2), low: band(2, 3), mid: band(3, 5), high: band(5, 7), beat: false };
+    const m = { lv, bass: band(0, 2), low: band(2, 3), mid: band(3, 5), high: band(5, 7), beat: false };
+    // slow envelopes: the sky and the halos breathe over seconds, the windows over a beat or two
+    const env = this._env || (this._env = { sky: 0, halo: 0, lamp: 0 });
+    const ease = (k, v, tau) => { env[k] += (v - env[k]) * (1 - Math.exp(-dt / tau)); return env[k]; };
+    m.sky = ease('sky', (m.bass + m.low + m.mid + m.high) / 4, 4);
+    m.halo = ease('halo', (m.low + m.mid) / 2, 1.5);
+    m.lamp = ease('lamp', m.low, 0.4);
     // the wind: leaves and snow travel on their own clock, which runs faster with the melody
     this._wind = (this._wind ?? time) + dt * (1 + m.mid * 1.8);
     m.wind = this._wind;
@@ -534,14 +542,14 @@ class IskrSky extends HTMLElement {
     const ga = P.G * 0.7 + P.D * 0.12 + P.T * 0.2;
     if (ga > 0.01) { const gx = clamp(sx, -200, W + 200); g = c.createRadialGradient(gx, HZ, 0, gx, HZ, 800); g.addColorStop(0, css(mixC(P.sunC, [255, 170, 110], P.G * 0.5), ga)); g.addColorStop(0.45, css(P.sunC, ga * 0.25)); g.addColorStop(1, css(P.sunC, 0)); c.fillStyle = g; c.fillRect(0, 0, W, HZ + 60); }
     P.blobs.forEach((b, i) => {
-      const x = b.x * W + Math.sin(time * b.sp + b.ph) * W * 0.14, y = b.y * HZ * 0.85 + Math.cos(time * b.sp * 0.8 + b.ph * 1.7) * 80, r = b.r * (1 + 0.14 * Math.sin(time * b.sp * 1.3 + i)) * (M ? 1 + M.low * 0.12 : 1);
-      const ba = M ? P.blobA * (1 + M.low * 0.7) : P.blobA;
+      const x = b.x * W + Math.sin(time * b.sp + b.ph) * W * 0.14, y = b.y * HZ * 0.85 + Math.cos(time * b.sp * 0.8 + b.ph * 1.7) * 80, r = b.r * (1 + 0.14 * Math.sin(time * b.sp * 1.3 + i)) * (M ? 1 + M.sky * 0.05 : 1);
+      const ba = M ? P.blobA * (1 + M.sky * 0.3) : P.blobA;
       g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, css(b.c, ba)); g.addColorStop(0.6, css(b.c, ba * 0.35)); g.addColorStop(1, css(b.c, 0)); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
     });
     const starA = P.N * (1 - P.D);
     if (starA > 0.02) {
       c.globalAlpha = starA * 0.5; c.drawImage(buildMilky(), 0, 0, W, HZ); c.globalAlpha = 1;
-      G.stars.forEach(s => { let a = starA * (0.45 + 0.55 * Math.sin(time * s.sp + s.ph) ** 2); if (M) a = Math.min(1, a * (1 + M.high * 1.6 * Math.sin(time * 6 + s.ph * 7) ** 2)); c.fillStyle = s.t < 0.15 ? `rgba(255,220,190,${a})` : s.t > 0.85 ? `rgba(200,215,255,${a})` : `rgba(255,255,255,${a})`; c.beginPath(); c.arc(s.x, s.y, s.r, 0, 7); c.fill(); });
+      G.stars.forEach(s => { let a = starA * (0.45 + 0.55 * Math.sin(time * s.sp + s.ph) ** 2); if (M) { const k = 3 + Math.floor(s.ph * 7) % 4; a = Math.min(1, a * (1 + M.lv[Math.min(k, M.lv.length - 1)] * 1.3 * Math.sin(time * (3 + s.sp * 4) + s.ph * 7) ** 2)); } c.fillStyle = s.t < 0.15 ? `rgba(255,220,190,${a})` : s.t > 0.85 ? `rgba(200,215,255,${a})` : `rgba(255,255,255,${a})`; c.beginPath(); c.arc(s.x, s.y, s.r, 0, 7); c.fill(); });
       // with music a strong beat sends one (at most every 6 s) instead of the regular one every 11 s
       if (M && M.beat && starA > 0.4 && time - (this._shot ?? -99) > 6) this._shot = time;
       const shot = M && this._shot != null && time - this._shot < 0.77;
@@ -549,12 +557,12 @@ class IskrSky extends HTMLElement {
       if (p < 0.07 && starA > 0.4 && !this._still) { const r = rng(cyc), x0 = W * (0.3 + r() * 0.6), y0 = 40 + r() * 160, q = p / 0.07, dx = -Math.cos(0.45), dy = Math.sin(0.45), hx = x0 + dx * q * 480, hy = y0 + dy * q * 480; g = c.createLinearGradient(hx, hy, hx - dx * 150, hy - dy * 150); g.addColorStop(0, `rgba(255,255,255,${(1 - q) * starA})`); g.addColorStop(1, 'rgba(255,255,255,0)'); c.strokeStyle = g; c.lineWidth = 1.6; c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx - dx * 150, hy - dy * 150); c.stroke(); }
     }
     if (moonOp > 0.01 && my < HZ + 30) {
-      g = c.createRadialGradient(mx, my, 20, mx, my, 170); g.addColorStop(0, `rgba(225,232,255,${0.28 * P.illum * moonOp * (M ? 1 + M.low * 0.9 : 1)})`); g.addColorStop(1, 'rgba(225,232,255,0)'); c.fillStyle = g; c.fillRect(mx - 170, my - 170, 340, 340);
+      g = c.createRadialGradient(mx, my, 20, mx, my, 170); g.addColorStop(0, `rgba(225,232,255,${0.28 * P.illum * moonOp * (M ? 1 + M.halo * 0.5 : 1)})`); g.addColorStop(1, 'rgba(225,232,255,0)'); c.fillStyle = g; c.fillRect(mx - 170, my - 170, 340, 340);
       c.globalCompositeOperation = 'source-over'; drawMoon(c, mx, my, 30, P.phase, moonOp, P.zen, P.N); c.globalCompositeOperation = 'screen';
     }
     if (sunOp > 0.01) {
       const sc = P.sunC;
-      const sh = M ? 1 + M.low * 0.5 : 1;
+      const sh = M ? 1 + M.halo * 0.3 : 1;
       g = c.createRadialGradient(sx, sy, 0, sx, sy, 280); g.addColorStop(0, css(sc, Math.min(1, 0.8 * sunOp * sh))); g.addColorStop(0.1, css(sc, 0.45 * sunOp * sh)); g.addColorStop(0.35, css(sc, 0.1 * sunOp * sh)); g.addColorStop(1, css(sc, 0)); c.fillStyle = g; c.fillRect(sx - 280, sy - 280, 560, 560);
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = sunOp;
       g = c.createRadialGradient(sx - 8, sy - 8, 2, sx, sy, 36); g.addColorStop(0, '#fffef6'); g.addColorStop(0.75, css(mixC(sc, [255, 255, 255], 0.35))); g.addColorStop(1, css(sc));
@@ -589,7 +597,7 @@ class IskrSky extends HTMLElement {
     c.setTransform(1, 0, 0, 1, 0, 0);
     for (let r = 0; r < LD; r++) {
       const src = RH - 1 - r * 1.45; if (src < 0) break;
-      const amp = (0.5 + r * 0.05) * (M ? 1 + M.bass * 1.8 : 1), dx = this._still ? 0 : Math.sin(time * 1.3 + r * 0.42) * amp + Math.sin(time * 0.6 + r * 0.11) * amp * 0.7;
+      const amp = (0.5 + r * 0.05) * (M ? 1 + M.bass * 1.2 : 1), dx = this._still ? 0 : Math.sin(time * 1.3 + r * 0.42) * amp + Math.sin(time * 0.6 + r * 0.11) * amp * 0.7;
       const y0 = Math.round((HZ + r) * pr), y1 = Math.round((HZ + r + 1) * pr); if (y1 <= y0) continue;
       c.drawImage(this.refl, 0, src * pr, this.refl.width, pr, Math.round((dx - 4) * pr), y0, Math.round((W + 8) * pr), y1 - y0);
     }
@@ -597,8 +605,9 @@ class IskrSky extends HTMLElement {
     g = c.createLinearGradient(0, HZ, 0, HZ + LD); g.addColorStop(0, css(P.lake, 0.28)); g.addColorStop(1, css(P.lake, 0.6)); c.fillStyle = g; c.fillRect(0, HZ, W, LD);
     c.fillStyle = css(P.lake, 0.35); c.fillRect(0, HZ, W, 1.5);
     c.globalCompositeOperation = 'lighter';
-    const energy = M ? (M.bass + M.low + M.mid + M.high) / 4 : 0, bass = M ? M.bass : 0;
-    G.ripples.forEach(rp => { const a = (0.5 + 0.5 * Math.sin(time * 0.5 + rp.ph)) * 0.12 * (1 + energy * 2); c.fillStyle = css(mixC(P.hor, [255, 255, 255], 0.3), a); c.fillRect(rp.x + Math.sin(time * 0.2 + rp.ph) * 20, rp.y, rp.w, 0.8); });
+    // the light streaks on the water follow the upper bass, the sun / moon path the kick itself
+    const ripple = M ? M.lv[Math.min(1, M.lv.length - 1)] : 0, bass = M ? M.bass : 0;
+    G.ripples.forEach(rp => { const a = (0.5 + 0.5 * Math.sin(time * 0.5 + rp.ph)) * 0.12 * (1 + ripple * 1.5); c.fillStyle = css(mixC(P.hor, [255, 255, 255], 0.3), a); c.fillRect(rp.x + Math.sin(time * 0.2 + rp.ph) * 20, rp.y, rp.w, 0.8); });
     const glit = (x, col, op, n, wd) => { for (let k = 0; k < n; k++) { const [a, b, d] = G.glit[k], q = k / n, y = HZ + 2 + k * 1.7, w = (1.5 + a * wd * 0.25) * (1 - q * 0.5), fl = this._still ? 0.7 : (0.5 + 0.5 * Math.sin(time * (2 + d * 5) + k * 2.1)) ** 2; c.fillStyle = css(col, op * fl * (1 - q) * 0.75); c.fillRect(x - w / 2 + (b - 0.5) * (6 + k * 2.2), y, w, 1); c.fillRect(x - w / 2 - (d - 0.5) * (6 + k * 2.2), y + 0.8, w * 0.7, 1); } };
     if (sunOp > 0.02 && sx > -40 && sx < W + 40) glit(sx, P.sunC, sunOp * (1 + bass * 0.8), 40, 60);
     if (moonOp > 0.02 && my < HZ) glit(mx, [230, 236, 255], moonOp * (0.3 + 0.7 * P.illum) * 0.7 * (1 + bass * 0.8), 30, 26);
@@ -612,9 +621,8 @@ class IskrSky extends HTMLElement {
     // lights & particles
     if (P.ny) {
       const cols = [[255, 72, 72], [255, 204, 84], [96, 232, 126], [96, 172, 255]], inten = 0.35 + 0.65 * P.N;
-      if (M && M.beat) this._flash = { t: time, ci: ((this._flash ? this._flash.ci : 0) + 1) % 4 };
-      const flash = M && this._flash ? clamp(1 - (time - this._flash.t) / 0.5) : 0;
-      const bulb = (x, y, ci, i) => { const a = this._still ? 1 : Math.min(1, 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(time * 2.4 + i * 1.9)) + (flash && ci === this._flash.ci ? flash * 0.8 : 0)), col = cols[ci]; c.globalCompositeOperation = 'lighter'; g = c.createRadialGradient(x, y, 0, x, y, 8); g.addColorStop(0, css(col, a * inten * 0.85)); g.addColorStop(1, css(col, 0)); c.fillStyle = g; c.fillRect(x - 8, y - 8, 16, 16); c.globalCompositeOperation = 'source-over'; c.fillStyle = css(mixC(col, [255, 255, 255], 0.4 * a), 0.95); c.beginPath(); c.arc(x, y, 1.7, 0, 7); c.fill(); };
+      const bandOf = [0, 2, 4, 6]; // red, yellow, green, blue — each colour listens to its own band
+      const bulb = (x, y, ci, i) => { const a = this._still ? 1 : Math.min(1, 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(time * 2.4 + i * 1.9)) + (M ? M.lv[Math.min(bandOf[ci], M.lv.length - 1)] * 0.5 : 0)), col = cols[ci]; c.globalCompositeOperation = 'lighter'; g = c.createRadialGradient(x, y, 0, x, y, 8); g.addColorStop(0, css(col, a * inten * 0.85)); g.addColorStop(1, css(col, 0)); c.fillStyle = g; c.fillRect(x - 8, y - 8, 16, 16); c.globalCompositeOperation = 'source-over'; c.fillStyle = css(mixC(col, [255, 255, 255], 0.4 * a), 0.95); c.beginPath(); c.arc(x, y, 1.7, 0, 7); c.fill(); };
       let bi = 0;
       GARLAND.forEach(seg => seg.forEach(([lx, ly]) => { bulb(34 + lx * 1.1, 513 + ly * 1.1, bi % 4, bi); bi++; }));
       TREE_LIGHTS.out.forEach(([x, y, ci]) => { bulb(x, y, ci, bi); bi++; });
@@ -622,7 +630,7 @@ class IskrSky extends HTMLElement {
     }
     if (P.lit) {
       c.globalCompositeOperation = 'lighter';
-      const fl = (this._still ? 1 : 0.94 + 0.06 * Math.sin(time * 7) * Math.sin(time * 2.3)) * (M ? 1 + M.low * 0.6 : 1);
+      const fl = (this._still ? 1 : 0.94 + 0.06 * Math.sin(time * 7) * Math.sin(time * 2.3)) * (M ? 1 + M.lamp * 0.3 : 1);
       [[126, 655, 50], [98, 588, 30], [188, 658, 46], [232, 657, 40], [99, 655, 20]].forEach(([x, y, r]) => { g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,200,110,${0.32 * fl})`); g.addColorStop(1, 'rgba(255,200,110,0)'); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); });
       c.save(); c.translate(110, 752); c.scale(1, 0.28); g = c.createRadialGradient(0, 0, 0, 0, 0, 170); g.addColorStop(0, `rgba(255,190,100,${0.22 * fl})`); g.addColorStop(1, 'rgba(255,190,100,0)'); c.fillStyle = g; c.fillRect(-170, -170, 340, 340); c.restore();
       c.globalCompositeOperation = 'source-over';
@@ -632,7 +640,7 @@ class IskrSky extends HTMLElement {
       for (let i = 0; i < 12; i++) { const age = (time * 0.11 + i / 12) % 1, x = 198 + age * 46 + Math.sin(age * 5 + i) * 7, y = 524 - age * 130, r = 5 + age * 24; g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, css(sc, (1 - age) * 0.32)); g.addColorStop(1, css(sc, 0)); c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); }
     }
     if (!this._still) {
-      if (P.S.summer && P.N > 0.5) { c.globalCompositeOperation = 'lighter'; G.flies.forEach((f, i) => { const x = f.x + Math.sin(time * f.sp + f.ph) * 32, y = f.y + Math.cos(time * f.sp * 1.3 + f.ph * 2) * 18, a = Math.min(1, P.N * (0.5 + 0.5 * Math.sin(time * 2.6 + f.ph * 3)) ** 3 * (M ? 1 + M.high * 2.5 : 1)); g = c.createRadialGradient(x, y, 0, x, y, 9); g.addColorStop(0, `rgba(235,255,150,${a})`); g.addColorStop(1, 'rgba(235,255,150,0)'); c.fillStyle = g; c.fillRect(x - 9, y - 9, 18, 18); }); c.globalCompositeOperation = 'source-over'; }
+      if (P.S.summer && P.N > 0.5) { c.globalCompositeOperation = 'lighter'; G.flies.forEach((f, i) => { const x = f.x + Math.sin(time * f.sp + f.ph) * 32, y = f.y + Math.cos(time * f.sp * 1.3 + f.ph * 2) * 18, a = Math.min(1, P.N * (0.5 + 0.5 * Math.sin(time * 2.6 + f.ph * 3)) ** 3 * (M ? 1 + M.lv[Math.min(4 + i % 3, M.lv.length - 1)] * 1.6 : 1)); g = c.createRadialGradient(x, y, 0, x, y, 9); g.addColorStop(0, `rgba(235,255,150,${a})`); g.addColorStop(1, 'rgba(235,255,150,0)'); c.fillStyle = g; c.fillRect(x - 9, y - 9, 18, 18); }); c.globalCompositeOperation = 'source-over'; }
       if (P.S.autumn && P.S.snowK < 0.3 && P.D > 0.2) G.leaves.forEach(l => { const wt = M ? M.wind : time, y = (l.y + wt * l.v) % (H + 40) - 20, x = (l.x + wt * 14 + Math.sin(wt * 0.9 + l.ph) * 30) % (W + 40) - 20; c.save(); c.translate(x, y); c.rotate(wt * 1.5 + l.ph); c.fillStyle = css(P.light(oklch(0.65, 0.15, l.hue), 0.8), 0.9); c.beginPath(); c.ellipse(0, 0, l.s, l.s * 0.5, 0, 0, 7); c.fill(); c.restore(); });
       if (P.S.snowK > 0.5) {
         const sc = mixC(P.light(P.mat.snow, 0.85), [255, 255, 255], 0.3), n = P.ny ? G.snow.length : 150;
