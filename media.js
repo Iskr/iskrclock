@@ -53,6 +53,9 @@ const BUILTIN_STATIONS = [
         url: 'https://stream.radiometro.ru:8443/metro.mp3' },
     { key: 'hermitage', name: { ru: 'Эрмитаж FM 90.1', en: 'Hermitage FM 90.1' }, city: { ru: 'Санкт-Петербург', en: 'St. Petersburg' },
         url: 'https://hermitage.hostingradio.ru/hermitage128.mp3' },
+    // Радио JAZZ (Румедиа): в Петербурге 96.4 FM, в эфире общий сетевой поток; запасные адреса — по очереди
+    { key: 'radio-jazz', name: { ru: 'Радио JAZZ 96.4', en: 'Radio JAZZ 96.4' }, city: { ru: 'Санкт-Петербург', en: 'St. Petersburg' },
+        urls: ['https://nashe1.hostingradio.ru/jazz-128.mp3', 'https://nashe1.hostingradio.ru/jazz-256', 'https://nashe2.hostingradio.ru/jazz-128.mp3'] },
     { key: 'kurs-radio', name: 'KURS Radio', city: { ru: 'Санкт-Петербург', en: 'St. Petersburg' },
         url: 'https://listen9.myradio24.com/kursradio' },
     { key: 'classic', name: { ru: 'Классический', en: 'Classic' }, city: { ru: 'Сигнал без интернета', en: 'Works offline' }, classic: true }
