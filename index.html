@@ -6,15 +6,22 @@
     <title>IskrCLOCK — будильник с радио онлайн</title>
     <meta name="description" content="Онлайн будильник с радио и живым пейзажем: несколько будильников, 17 радиостанций, свои потоки, файлы и YouTube, таймер, секундомер и калькулятор сна.">
     <meta name="theme-color" content="#1d2244">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏰</text></svg>">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-title" content="IskrCLOCK">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="app.css?v=6.9">
-    <!-- HLS.js for HLS streams (BBC Radio 1, custom .m3u8). The YouTube API is loaded from code (media.js). -->
+    <link rel="stylesheet" href="app.css?v=6.4">
+    <!-- Deferred scripts run in this order once the page is parsed. hls.js (HLS streams: BBC Radio 1,
+         custom .m3u8) comes last so a slow CDN never delays the app; media.js loads a mirror if it
+         fails. The YouTube API is loaded by media.js the first time it is needed. -->
+    <script src="iskr-sky.js?v=6.4" defer></script>
+    <script src="media.js?v=6.4" defer></script>
+    <script src="app.js?v=6.4" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
-    <script src="iskr-sky.js?v=6.13"></script>
-    <script src="media.js?v=6.11"></script>
 </head>
 <body>
     <iskr-sky id="sky" aria-hidden="true"></iskr-sky>
@@ -27,14 +34,14 @@
     <div class="app" id="app">
         <header class="top">
             <div class="top-left">
-                <div class="logo">IskrCLOCK<span class="logo-version">v6.3.1</span></div>
+                <div class="logo">IskrCLOCK<span class="logo-version">v6.4</span></div>
                 <div class="plaque" id="npPlaque" hidden>
-                    <button class="plaque-play" id="npPlay" aria-label="Pause">❚❚</button>
+                    <button class="plaque-play" id="npPlay" aria-label="Остановить" data-i18n-aria="pauseAria">❚❚</button>
                     <span class="plaque-text" id="npName"></span>
                 </div>
             </div>
 
-            <nav class="tabs ui" id="tabs">
+            <nav class="tabs ui" id="tabs" aria-label="Разделы" data-i18n-aria="tabsLabel">
                 <a href="#alarms" data-tab="alarms"><span class="tab-icon" aria-hidden="true">⏰️</span><span class="tab-full" data-i18n="tabAlarms">Будильники</span><span class="tab-short" data-i18n="tabAlarmsShort">Будильники</span></a>
                 <a href="#timer" data-tab="timer"><span class="tab-icon" aria-hidden="true">⏲️</span><span class="tab-full" data-i18n="tabTimer">Таймер</span><span class="tab-short" data-i18n="tabTimerShort">Таймер</span></a>
                 <a href="#stopwatch" data-tab="stopwatch"><span class="tab-icon" aria-hidden="true">⏱️</span><span class="tab-full" data-i18n="tabStopwatch">Секундомер</span><span class="tab-short" data-i18n="tabStopwatchShort">Секундомер</span></a>
@@ -74,13 +81,13 @@
                             <button class="step rename" id="alRename">✎</button>
                         </div>
                         <div class="al-time">
-                            <button class="step" data-act="alH" data-d="-1" aria-label="−1 ч">−</button>
+                            <button class="step" data-act="alH" data-d="-1" aria-label="−1 ч" data-i18n-aria="stepMinusHour">−</button>
                             <span class="al-num" id="alH">07</span>
-                            <button class="step" data-act="alH" data-d="1" aria-label="+1 ч">+</button>
+                            <button class="step" data-act="alH" data-d="1" aria-label="+1 ч" data-i18n-aria="stepPlusHour">+</button>
                             <span class="al-colon">:</span>
-                            <button class="step" data-act="alM" data-d="-5" aria-label="−5 мин">−</button>
+                            <button class="step" data-act="alM" data-d="-5" aria-label="−5 мин" data-i18n-aria="stepMinus5Min">−</button>
                             <span class="al-num" id="alM">30</span>
-                            <button class="step" data-act="alM" data-d="5" aria-label="+5 мин">+</button>
+                            <button class="step" data-act="alM" data-d="5" aria-label="+5 мин" data-i18n-aria="stepPlus5Min">+</button>
                         </div>
                         <span class="al-until" id="alUntil"></span>
                     </div>
@@ -111,9 +118,9 @@
                                     <div class="opt">
                                         <span class="opt-label" data-i18n="snoozeLabel">Подремать</span>
                                         <div class="opt-row">
-                                            <button class="mini" data-act="snooze" data-d="-1" aria-label="−1">−</button>
+                                            <button class="mini" data-act="snooze" data-d="-1" aria-label="−1" data-i18n-aria="stepMinus1">−</button>
                                             <span class="opt-val" id="alSnooze"></span>
-                                            <button class="mini" data-act="snooze" data-d="1" aria-label="+1">+</button>
+                                            <button class="mini" data-act="snooze" data-d="1" aria-label="+1" data-i18n-aria="stepPlus1">+</button>
                                         </div>
                                     </div>
                                     <div class="opt">
@@ -148,24 +155,24 @@
 
             <!-- ===== Таймер ===== -->
             <section class="sec sec-timer" data-sec="timer" hidden>
-                <div class="sec-title" data-i18n="tabTimer">Таймер</div>
+                <div class="sec-title" role="heading" aria-level="2" data-i18n="tabTimer">Таймер</div>
                 <div class="digits" id="tmDigits">
                     <div class="dgroup">
-                        <button class="dstep" data-act="tmH" data-d="1" aria-label="+1 ч">+</button>
+                        <button class="dstep" data-act="tmH" data-d="1" aria-label="+1 ч" data-i18n-aria="stepPlusHour">+</button>
                         <div class="dnum" id="tmH">00</div>
-                        <button class="dstep" data-act="tmH" data-d="-1" aria-label="−1 ч">−</button>
+                        <button class="dstep" data-act="tmH" data-d="-1" aria-label="−1 ч" data-i18n-aria="stepMinusHour">−</button>
                     </div>
                     <div class="dcolon">:</div>
                     <div class="dgroup">
-                        <button class="dstep" data-act="tmM" data-d="1" aria-label="+1 мин">+</button>
+                        <button class="dstep" data-act="tmM" data-d="1" aria-label="+1 мин" data-i18n-aria="stepPlusMin">+</button>
                         <div class="dnum" id="tmM">05</div>
-                        <button class="dstep" data-act="tmM" data-d="-1" aria-label="−1 мин">−</button>
+                        <button class="dstep" data-act="tmM" data-d="-1" aria-label="−1 мин" data-i18n-aria="stepMinusMin">−</button>
                     </div>
                     <div class="dcolon">:</div>
                     <div class="dgroup">
-                        <button class="dstep" data-act="tmS" data-d="5" aria-label="+5 с">+</button>
+                        <button class="dstep" data-act="tmS" data-d="5" aria-label="+5 с" data-i18n-aria="stepPlus5Sec">+</button>
                         <div class="dnum" id="tmS">00</div>
-                        <button class="dstep" data-act="tmS" data-d="-5" aria-label="−5 с">−</button>
+                        <button class="dstep" data-act="tmS" data-d="-5" aria-label="−5 с" data-i18n-aria="stepMinus5Sec">−</button>
                     </div>
                 </div>
                 <div class="progress"><div class="progress-bar" id="tmBar"></div></div>
@@ -210,7 +217,7 @@
 
             <!-- ===== Секундомер ===== -->
             <section class="sec sec-stopwatch" data-sec="stopwatch" hidden>
-                <div class="sec-title" data-i18n="tabStopwatch">Секундомер</div>
+                <div class="sec-title" role="heading" aria-level="2" data-i18n="tabStopwatch">Секундомер</div>
                 <div class="sw-display">
                     <div class="sw-main" id="swMain">00:00</div>
                     <div class="sw-cs" id="swCs">.00</div>
@@ -325,15 +332,15 @@
                 </div>
                 <div class="digits digits-sleep editable" id="slDigits">
                     <div class="dgroup">
-                        <button class="dstep" data-act="slH" data-d="1" aria-label="+1 ч">+</button>
+                        <button class="dstep" data-act="slH" data-d="1" aria-label="+1 ч" data-i18n-aria="stepPlusHour">+</button>
                         <div class="dnum" id="slH">07</div>
-                        <button class="dstep" data-act="slH" data-d="-1" aria-label="−1 ч">−</button>
+                        <button class="dstep" data-act="slH" data-d="-1" aria-label="−1 ч" data-i18n-aria="stepMinusHour">−</button>
                     </div>
                     <div class="dcolon">:</div>
                     <div class="dgroup">
-                        <button class="dstep" data-act="slM" data-d="5" aria-label="+5 мин">+</button>
+                        <button class="dstep" data-act="slM" data-d="5" aria-label="+5 мин" data-i18n-aria="stepPlus5Min">+</button>
                         <div class="dnum" id="slM">30</div>
-                        <button class="dstep" data-act="slM" data-d="-5" aria-label="−5 мин">−</button>
+                        <button class="dstep" data-act="slM" data-d="-5" aria-label="−5 мин" data-i18n-aria="stepMinus5Min">−</button>
                     </div>
                 </div>
                 <div class="sl-links ui">
@@ -371,7 +378,7 @@
     <!-- ===== Звонок будильника ===== -->
     <div class="ring" id="ring" role="alertdialog" aria-modal="true" aria-labelledby="ringTitle" hidden>
         <div class="ring-top">
-            <div class="logo">IskrCLOCK<span class="logo-version">v6.3.1</span></div>
+            <div class="logo">IskrCLOCK<span class="logo-version">v6.4</span></div>
         </div>
         <div class="ring-body">
             <div class="ring-title" id="ringTitle"></div>
@@ -386,6 +393,5 @@
         </div>
     </div>
 
-    <script src="app.js?v=6.12"></script>
 </body>
 </html>

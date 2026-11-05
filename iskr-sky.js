@@ -258,7 +258,7 @@ function pine(c, x, by, h, dark, lit, fl, seed, snowC, snowK) {
 }
 function drawMoon(c, x, y, r, phase, alpha, sky, night) {
   const waxing = phase < 0.5, ct = Math.cos(phase * 2 * Math.PI), rx = Math.abs(ct) * r;
-  c.save(); c.translate(x, y); c.globalAlpha = alpha;
+  c.save(); c.translate(x, y);
   c.globalAlpha = alpha * night; c.fillStyle = css(mixC(sky, [200, 210, 235], 0.12)); c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill(); c.globalAlpha = alpha;
   const P = new Path2D();
   if (waxing) { P.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false); if (ct > 0) P.ellipse(0, 0, rx, r, 0, Math.PI / 2, -Math.PI / 2, true); else P.ellipse(0, 0, rx, r, 0, Math.PI / 2, Math.PI * 1.5, false); }
@@ -333,7 +333,6 @@ function snowman(c, P, x, y, S) {
     const gr = c.createRadialGradient(lx * r * 0.45, cy - r * 0.5, r * 0.08, 0, cy, r * 1.08);
     gr.addColorStop(0, css(lit)); gr.addColorStop(0.55, css(mixC(lit, dark, 0.3))); gr.addColorStop(1, css(dark));
     c.fillStyle = gr; c.beginPath(); c.ellipse(0, cy, r, r * sq, 0, 0, 7); c.fill();
-    const rim = c.createLinearGradient(-lx * r, 0, lx * r, 0); rim.addColorStop(0, 'rgba(255,255,255,0)'); rim.addColorStop(1, css(mixC(lit, [255, 255, 255], 0.4), 0.0));
   };
   const ao = (cy, r) => { const gg = c.createRadialGradient(0, cy, 0, 0, cy, r); gg.addColorStop(0, 'rgba(30,40,80,.32)'); gg.addColorStop(1, 'rgba(30,40,80,0)'); c.fillStyle = gg; c.beginPath(); c.ellipse(0, cy, r, r * 0.35, 0, 0, 7); c.fill(); };
   const wood = css(P.light(oklch(0.34, 0.05, 50), 0.7)), woodL = css(P.light(oklch(0.42, 0.05, 55), 0.9));
@@ -383,7 +382,7 @@ class IskrSky extends HTMLElement {
   set hour(v) { v = +v; if (!isNaN(v) && v !== this._hour) { this._hour = v; if (Math.abs(v - (this._ch ?? -9)) > 0.008) this._need = true; this._drawOnce = true; } } get hour() { return this._hour; }
   set still(v) { const was = this._still; this._still = !(v == null || v === false || v === 'false' || v === '0' || v === 0); if (was !== this._still) this._drawOnce = true; }
   set year(v) { v = +v; if (v && v !== this._year) { this._year = v; this._need = true; } } get year() { return this._year; } get still() { return this._still; }
-  attributeChangedCallback(n, o, v) { this[n] = n === 'still' ? v : v; }
+  attributeChangedCallback(n, o, v) { this[n] = v; }
   connectedCallback() {
     Object.assign(this.style, { display: 'block', position: 'relative', width: '100%', height: '100%', overflow: 'hidden' });
     this.cv = document.createElement('canvas'); this.cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;object-fit:cover;object-position:50% 80%';

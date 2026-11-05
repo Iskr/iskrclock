@@ -365,11 +365,16 @@ function findCustomStation(key, stations = loadCustomStations()) {
 }
 
 // ========= YOUTUBE PLAYER =========
-// One hidden player per page (#youtube-player). Its events are routed to the
+// One hidden player per page (#youtube-player), created the first time YouTube is needed:
+// until then the page makes no request to youtube.com. Its events are routed to the
 // playback that currently owns it (youtubeEventTarget).
+const YOUTUBE_API_URL = 'https://www.youtube.com/iframe_api';
+const YOUTUBE_READY_TIMEOUT_MS = 15000;
 let youtubePlayer = null;
 let youtubePlayerReady = false;
 let youtubeEventTarget = null; // { ctx, permanentErrors, onEnded }
+let youtubeScript = null;      // promise: the API script is loaded (reset if it fails)
+let youtubeReadyWaiters = [];
 
 function onYouTubeIframeAPIReady() {
     youtubePlayer = new YT.Player('youtube-player', {
@@ -388,6 +393,7 @@ function onYouTubeIframeAPIReady() {
         events: {
             'onReady': function() {
                 youtubePlayerReady = true;
+                youtubeReadyWaiters.splice(0).forEach(resolve => resolve());
             },
             'onStateChange': function(event) {
                 if (!youtubeEventTarget) return;
@@ -407,12 +413,25 @@ function onYouTubeIframeAPIReady() {
     });
 }
 
-// Loaded from code (not a <script> in <head>) so the callback above is always defined first
+// Resolves once the player may be used; the first call loads the API (from code, so the
+// callback above is always defined first). A failed load is retried on the next call.
+function ensureYouTube() {
+    if (youtubePlayerReady) return Promise.resolve();
+    if (!youtubeScript) {
+        youtubeScript = loadScript(YOUTUBE_API_URL).catch(error => {
+            youtubeScript = null;
+            throw error;
+        });
+    }
+    return youtubeScript.then(() => youtubePlayerReady ? undefined : new Promise((resolve, reject) => {
+        youtubeReadyWaiters.push(resolve);
+        setTimeout(() => reject(new Error('YouTube player is not ready')), YOUTUBE_READY_TIMEOUT_MS);
+    }));
+}
+
+// Starts loading the player ahead of time, for an alarm or a timer that will need it
 function loadYouTubeAPI() {
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    tag.async = true;
-    document.head.appendChild(tag);
+    ensureYouTube().catch(error => console.warn('⚠️ YouTube:', error.message));
 }
 
 // ========= HLS =========
@@ -680,14 +699,10 @@ function youtubeAdapter(ctx, target) {
     };
 }
 
-function requireYouTube() {
-    if (!youtubePlayerReady) {
-        throw new Error('YouTube player is not ready');
-    }
-}
-
-function createYouTubeAdapter(videoId, ctx, permanentErrors) {
-    requireYouTube();
+// The player loads on demand; a playback stopped meanwhile gets nothing
+async function createYouTubeAdapter(videoId, ctx, permanentErrors) {
+    await ensureYouTube();
+    if (ctx.isCurrent && !ctx.isCurrent()) return null;
     const adapter = youtubeAdapter(ctx, { ctx, permanentErrors });
     youtubePlayer.setVolume(Math.round(ctx.volume() * 100));
     youtubePlayer.loadVideoById(videoId);
@@ -695,8 +710,9 @@ function createYouTubeAdapter(videoId, ctx, permanentErrors) {
 }
 
 // A YouTube playlist (list=…) plays through on its own; the item ends after its last video
-function createYouTubeListAdapter(listId, ctx, shuffle) {
-    requireYouTube();
+async function createYouTubeListAdapter(listId, ctx, shuffle) {
+    await ensureYouTube();
+    if (ctx.isCurrent && !ctx.isCurrent()) return null;
     const target = {
         ctx,
         permanentErrors: false,

@@ -17,6 +17,17 @@ const I18N = {
         tabStopwatchShort: 'Секундомер',
         tabStationsShort: 'Станции',
         tabSleepShort: 'Сон',
+        tabsLabel: 'Разделы',
+        stepPlusHour: '+1 ч',
+        stepMinusHour: '−1 ч',
+        stepPlusMin: '+1 мин',
+        stepMinusMin: '−1 мин',
+        stepPlus5Min: '+5 мин',
+        stepMinus5Min: '−5 мин',
+        stepPlus5Sec: '+5 с',
+        stepMinus5Sec: '−5 с',
+        stepPlus1: '+1',
+        stepMinus1: '−1',
         alarmDefault: 'Будильник',
         alarmN: 'Будильник {n}',
         alarmLabelAria: 'Название будильника',
@@ -152,6 +163,17 @@ const I18N = {
         tabStopwatchShort: 'Stopwatch',
         tabStationsShort: 'Stations',
         tabSleepShort: 'Sleep',
+        tabsLabel: 'Sections',
+        stepPlusHour: '+1 h',
+        stepMinusHour: '−1 h',
+        stepPlusMin: '+1 min',
+        stepMinusMin: '−1 min',
+        stepPlus5Min: '+5 min',
+        stepMinus5Min: '−5 min',
+        stepPlus5Sec: '+5 s',
+        stepMinus5Sec: '−5 s',
+        stepPlus1: '+1',
+        stepMinus1: '−1',
         alarmDefault: 'Alarm',
         alarmN: 'Alarm {n}',
         alarmLabelAria: 'Alarm name',
@@ -322,6 +344,19 @@ function setText(id, text) {
     if (node && node.textContent !== text) node.textContent = text;
 }
 
+// An integer within [min, max], otherwise the default — for values read from storage
+function intIn(value, min, max, def) {
+    const n = Number(value);
+    return Number.isInteger(n) && n >= min && n <= max ? n : def;
+}
+
+// Base64 of a UTF-8 string (for small playlist files kept as data: URLs)
+function base64Utf8(text) {
+    let binary = '';
+    new TextEncoder().encode(text).forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
+}
+
 function writeJSON(key, value) {
     try {
         localStorage.setItem(key, JSON.stringify(value));
@@ -379,7 +414,7 @@ function saveAlarms() {
 }
 
 function validStation(key) {
-    if (!key) return false;
+    if (typeof key !== 'string' || !key) return false;
     return key.startsWith('custom-') ? !!findCustomStation(key) : !!findBuiltinStation(key);
 }
 
@@ -387,7 +422,7 @@ function validStation(key) {
 // kept as is: the conversion is retried on the next load and the station comes back
 let stationsMigrationFailed = false;
 function keepStation(key) {
-    return validStation(key) || (stationsMigrationFailed && !!key && key.startsWith('custom-'));
+    return validStation(key) || (stationsMigrationFailed && typeof key === 'string' && key.startsWith('custom-'));
 }
 
 // Reads alarms; converts the single alarm of older versions (keeping its station)
@@ -396,13 +431,12 @@ function loadAlarms(keyMap) {
     const savedAlarms = saved && saved.v === 2 && Array.isArray(saved.alarms) ? saved.alarms.filter(a => a && typeof a === 'object') : [];
     if (savedAlarms.length) {
         // Damaged values fall back to defaults instead of breaking the page
-        const num = (v, min, max, def) => { const n = Number(v); return Number.isInteger(n) && n >= min && n <= max ? n : def; };
         state.alarms = savedAlarms.map(a => {
             const alarm = { ...newAlarm(7, 30), ...a };
             alarm.id = typeof a.id === 'string' && a.id ? a.id : newId('a');
-            alarm.h = num(a.h, 0, 23, 7);
-            alarm.m = num(a.m, 0, 59, 30);
-            alarm.snooze = num(a.snooze, 1, 30, 5);
+            alarm.h = intIn(a.h, 0, 23, 7);
+            alarm.m = intIn(a.m, 0, 59, 30);
+            alarm.snooze = intIn(a.snooze, 1, 30, 5);
             alarm.label = typeof a.label === 'string' ? a.label : '';
             alarm.on = !!a.on;
             alarm.fade = a.fade !== false;
@@ -411,7 +445,7 @@ function loadAlarms(keyMap) {
             return alarm;
         });
         state.selectedAlarmId = saved.selectedAlarmId;
-        state.volume = Number.isFinite(saved.volume) ? saved.volume : 50;
+        state.volume = intIn(saved.volume, 0, 100, 50);
     } else {
         if (saved && localStorage.getItem('alarmSettings_v1') == null) {
             writeJSON('alarmSettings_v1', saved);
@@ -447,23 +481,37 @@ function loadOtherState() {
     const key = localStorage.getItem('playerStation');
     if (keepStation(key)) state.playerKey = key;
 
+    // Saved values are checked one by one: a damaged entry falls back to its default
+    const ms = (value, def = 0) => (Number.isFinite(value) && value >= 0 ? value : def);
     const timer = readJSON('timerState', null);
     if (timer && typeof timer === 'object') {
-        Object.assign(state.timer, timer);
-        if (!keepStation(state.timer.station)) state.timer.station = 'classic';
-        if (state.timer.running && state.timer.end <= Date.now()) {
+        const tm = state.timer;
+        tm.h = intIn(timer.h, 0, 99, tm.h);
+        tm.m = intIn(timer.m, 0, 59, tm.m);
+        tm.s = intIn(timer.s, 0, 59, tm.s);
+        tm.total = ms(timer.total);
+        tm.remain = ms(timer.remain);
+        tm.end = ms(timer.end);
+        tm.running = !!timer.running && tm.end > 0;
+        tm.done = !!timer.done;
+        tm.station = keepStation(timer.station) ? timer.station : 'classic';
+        if (tm.running && tm.end <= Date.now()) {
             // Finished while the page was closed: show it as done, without the sound
-            Object.assign(state.timer, { running: false, remain: 0, done: true });
+            Object.assign(tm, { running: false, remain: 0, done: true });
         }
     }
 
     const sw = readJSON('stopwatchState', null);
-    if (sw && typeof sw.elapsedTime === 'number') {
-        state.sw = { acc: sw.elapsedTime, start: sw.startTime || 0, running: !!sw.isRunning, laps: Array.isArray(sw.laps) ? sw.laps : [] };
+    if (sw && typeof sw === 'object' && Number.isFinite(sw.elapsedTime)) {
+        const running = !!sw.isRunning && ms(sw.startTime) > 0;
+        const laps = Array.isArray(sw.laps) ? sw.laps.filter(v => Number.isFinite(v) && v >= 0) : [];
+        state.sw = { acc: ms(sw.elapsedTime), start: running ? sw.startTime : 0, running, laps };
     }
 
     const sleep = readJSON('sleepCalc', null);
-    if (sleep && (sleep.mode === 'wake' || sleep.mode === 'bed')) state.sleep = { ...state.sleep, ...sleep };
+    if (sleep && (sleep.mode === 'wake' || sleep.mode === 'bed')) {
+        state.sleep = { mode: sleep.mode, h: intIn(sleep.h, 0, 23, 7), m: intIn(sleep.m, 0, 59, 30) };
+    }
 }
 
 function saveTimer() {
@@ -598,6 +646,22 @@ function armAll() {
     state.alarms.forEach(arm);
     scheduleAlarmTimeout();
     updateWakeLock();
+    prewarmYouTube();
+}
+
+function stationUsesYouTube(key) {
+    const builtin = findBuiltinStation(key);
+    if (builtin) return !!builtin.youtube;
+    const custom = findCustomStation(key);
+    return !!custom && custom.items.some(item => item.k === 'youtube' || item.k === 'ytlist');
+}
+
+// The YouTube player loads only when it is needed: ahead of time if an enabled alarm or the
+// timer's signal would play through it, otherwise the first time such a station is played
+function prewarmYouTube() {
+    const keys = state.alarms.filter(a => a.on).map(a => a.station);
+    if (state.timer.running) keys.push(state.timer.station);
+    if (keys.some(stationUsesYouTube)) loadYouTubeAPI();
 }
 
 // Besides the 1-second check, a one-shot timeout fires exactly at the earliest ring:
@@ -779,8 +843,15 @@ function updateSky() {
     }
 }
 
-if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    sky.setAttribute('still', '1');
+// A still landscape for people who asked their system for less motion (followed live)
+const reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+if (reducedMotion) {
+    const applyMotion = () => {
+        if (reducedMotion.matches) sky.setAttribute('still', '1');
+        else sky.removeAttribute('still');
+    };
+    applyMotion();
+    if (reducedMotion.addEventListener) reducedMotion.addEventListener('change', applyMotion);
 }
 
 // The landscape moves to the music while a station plays (when its sound may be read)
@@ -831,6 +902,7 @@ function renderDemo() {
     $('demoPanel').hidden = !d.on;
     if (!d.on) return;
     setText('demoPause', d.paused ? '▶' : '❚❚');
+    $('demoPause').setAttribute('aria-label', t(d.paused ? 'resume' : 'pause'));
     $('demoPanel').classList.toggle('collapsed', d.collapsed);
     $('demoCollapse').title = t(d.collapsed ? 'demoExpand' : 'demoCollapse');
     $('demoCollapse').setAttribute('aria-label', $('demoCollapse').title);
@@ -884,6 +956,7 @@ function updateAlarm(fn) {
     arm(alarm);
     scheduleAlarmTimeout();
     updateWakeLock();
+    prewarmYouTube();
     saveAlarms();
     renderAlarms();
 }
@@ -897,6 +970,7 @@ function addAlarm(hours, minutes, label) {
     arm(alarm);
     scheduleAlarmTimeout();
     updateWakeLock();
+    prewarmYouTube();
     saveAlarms();
     renderAlarms();
     return alarm;
@@ -1211,6 +1285,7 @@ function toggleTimer() {
         }
         engine.unlock();
         Object.assign(tm, { running: true, done: false, end: Date.now() + remain, remain, total: tm.remain > 0 ? tm.total : remain });
+        prewarmYouTube();
     }
     saveTimer();
     startTimerLoop();
@@ -1290,7 +1365,10 @@ function renderTimer() {
         b.textContent = t('minShort', { n });
         b.classList.toggle('on', editable && !tm.h && tm.m === n && !tm.s);
     });
-    if (state.tab === 'timer') document.title = tm.running ? `⏲ ${$('tmH').textContent}:${$('tmM').textContent}:${$('tmS').textContent}` : t('documentTitle');
+    if (state.tab === 'timer') {
+        document.title = tm.running ? `⏲ ${$('tmH').textContent}:${$('tmM').textContent}:${$('tmS').textContent}`
+            : tm.done ? `⏲ ${t('timeUp')}` : t('documentTitle');
+    }
 }
 
 // ========= STOPWATCH =========
@@ -1406,6 +1484,8 @@ function renderBigPlayer() {
     $('bpPlay').setAttribute('aria-label', s.playing ? t('pauseAria') : t('play'));
     $('bpPrev').title = isPlaylist ? t('prevTrack') : t('prevStation');
     $('bpNext').title = isPlaylist ? t('nextTrack') : t('nextStation');
+    $('bpPrev').setAttribute('aria-label', $('bpPrev').title);
+    $('bpNext').setAttribute('aria-label', $('bpNext').title);
 }
 
 function stepStation(delta) {
@@ -1534,7 +1614,7 @@ async function readPickedFiles(input) {
         }
         if (/\.(m3u8?|pls)$/i.test(file.name)) {
             const text = await file.text();
-            const url = 'data:audio/x-mpegurl;base64,' + btoa(unescape(encodeURIComponent(text)));
+            const url = 'data:audio/x-mpegurl;base64,' + base64Utf8(text);
             items.push({ k: 'm3u', url, name: file.name });
         } else {
             items.push({ k: 'file', file, name: file.name, size: file.size });
@@ -1762,11 +1842,17 @@ function applyLanguage() {
     document.querySelectorAll('[data-i18n-aria]').forEach(node => {
         node.setAttribute('aria-label', t(node.dataset.i18nAria));
     });
-    document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+    document.querySelectorAll('.lang button').forEach(b => {
+        const active = b.dataset.lang === lang;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', String(active));
+    });
     $('fullscreenBtn').title = t('fullscreen');
     $('fullscreenBtn').setAttribute('aria-label', t('fullscreen'));
     $('demoPrev').title = t('prevDay');
     $('demoNext').title = t('nextDay');
+    $('demoPrev').setAttribute('aria-label', t('prevDay'));
+    $('demoNext').setAttribute('aria-label', t('nextDay'));
     document.title = state.ringing ? document.title : t('documentTitle');
     renderAll();
 }
@@ -1970,8 +2056,15 @@ function bindEvents() {
     $('swLap').addEventListener('click', lapStopwatch);
     $('swReset').addEventListener('click', resetStopwatch);
 
-    // Keyboard shortcuts for the timer and the stopwatch
+    // Keyboard: Escape closes an open list; Space / L / R drive the timer and the stopwatch
     document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && (state.popup || state.chipsOpen)) {
+            state.popup = null;
+            state.chipsOpen = false;
+            renderPlayers();
+            renderChips();
+            return;
+        }
         if (e.target.closest('input, textarea, select, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey || state.ringing) return;
         // Space on a focused button already presses it — don't toggle a second time
         if (e.code === 'Space' && e.target.closest('button, [role="button"], [role="switch"]')) return;
@@ -2137,7 +2230,6 @@ async function init() {
     applyLanguage();
     setTab(location.hash.slice(1) || 'alarms');
     startTimerLoop();
-    loadYouTubeAPI();
 
     setInterval(() => {
         if (!state.demo.on) updateSky();

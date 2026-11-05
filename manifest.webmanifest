@@ -1,0 +1,17 @@
+{
+  "name": "IskrCLOCK — будильник с радио",
+  "short_name": "IskrCLOCK",
+  "description": "Онлайн-будильник с радио и живым пейзажем: будильники, таймер, секундомер, станции и калькулятор сна.",
+  "lang": "ru",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1d2244",
+  "theme_color": "#1d2244",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
